@@ -1,4 +1,4 @@
-import type { Item, Rarity, GeneratedAffix, ItemType } from './types';
+import type { Item, GeneratedAffix, ItemTemplate, Rarity } from './types';
 import { ITEM_TEMPLATES } from '../../data/items';
 import { AFFIX_POOL } from '../../data/affixes';
 
@@ -79,8 +79,21 @@ export class ItemGenerator {
   /**
    * Pick random unique affixes from the allowed pool for this item type.
    */
-  private static rollAffixes(itemType: ItemType, iLvl: number, count: number): GeneratedAffix[] {
-    const allowedAffixes = AFFIX_POOL.filter(a => a.allowedTypes.includes(itemType) && iLvl >= a.minLevel);
+  private static rollAffixes(template: ItemTemplate, iLvl: number, count: number): GeneratedAffix[] {
+    const allowedAffixes = AFFIX_POOL.filter(a => {
+      if (!a.allowedTypes.includes(template.itemType)) return false;
+      if (iLvl < a.minLevel) return false;
+      
+      // Category filters
+      if (a.allowedWeaponCategories && template.weaponCategory) {
+        if (!a.allowedWeaponCategories.includes(template.weaponCategory)) return false;
+      }
+      if (a.allowedArmorCategories && template.armorCategory) {
+        if (!a.allowedArmorCategories.includes(template.armorCategory)) return false;
+      }
+      
+      return true;
+    });
     const selectedAffixes: GeneratedAffix[] = [];
     
     // Copy pool so we can remove picked affixes (no duplicates)
@@ -89,15 +102,43 @@ export class ItemGenerator {
     for (let i = 0; i < count; i++) {
       if (availablePool.length === 0) break;
 
-      const randomIndex = Math.floor(Math.random() * availablePool.length);
-      const affixTemplate = availablePool.splice(randomIndex, 1)[0];
+      const totalWeight = availablePool.reduce((sum, a) => sum + (a.weight ?? 100), 0);
+      let rand = Math.random() * totalWeight;
+      let selectedIndex = 0;
+      
+      for (let j = 0; j < availablePool.length; j++) {
+         const w = availablePool[j].weight ?? 100;
+         if (rand < w) {
+            selectedIndex = j;
+            break;
+         }
+         rand -= w;
+      }
+
+      const affixTemplate = availablePool.splice(selectedIndex, 1)[0];
+      
+      // Enforce exclusivity: remove any remaining affixes in the pool that share the same exclusivityGroup
+      // If no exclusivityGroup is defined, fallback to ensuring the exact same stat isn't rolled again
+      const groupToMatch = affixTemplate.exclusivityGroup;
+      for (let j = availablePool.length - 1; j >= 0; j--) {
+        const remaining = availablePool[j];
+        if (groupToMatch && remaining.exclusivityGroup === groupToMatch) {
+          availablePool.splice(j, 1);
+        } else if (!groupToMatch && remaining.stat === affixTemplate.stat) {
+          availablePool.splice(j, 1);
+        }
+      }
       
       // Compute the base exponential power: baseValue * (1 + levelMultiplier)^iLvl
       const targetPower = affixTemplate.baseValue * Math.pow(1 + affixTemplate.levelMultiplier, iLvl);
       
       // Apply +/- 25% random variance on top of the final target power
       const variance = 0.75 + (Math.random() * 0.50);
-      let finalValue = Math.round(targetPower * variance);
+      
+      // 2H weapons get 1.5x stronger affixes
+      const typeMultiplier = template.itemType === 'weapon-2h' ? 1.5 : 1.0;
+      
+      let finalValue = Math.round(targetPower * variance * typeMultiplier);
       
       // Ensure it's at least 1 for flat/increased stats
       if (finalValue < 1) finalValue = 1;
@@ -132,7 +173,7 @@ export class ItemGenerator {
     }
 
     const affixCount = this.getAffixCount(rarity);
-    const affixes = this.rollAffixes(template.itemType, iLvl, affixCount);
+    const affixes = this.rollAffixes(template, iLvl, affixCount);
 
     return {
       id: Math.random().toString(36).substring(2, 9),
@@ -149,7 +190,8 @@ export class ItemGenerator {
       weaponCategory: template.weaponCategory,
       weaponRange: template.weaponRange,
       baseCritChance: template.baseCritChance,
-      baseBlockChance: template.baseBlockChance
+      baseBlockChance: template.baseBlockChance,
+      requirements: template.requirements
     };
   }
 
@@ -176,7 +218,8 @@ export class ItemGenerator {
       weaponCategory: template.weaponCategory,
       weaponRange: template.weaponRange,
       baseCritChance: template.baseCritChance,
-      baseBlockChance: template.baseBlockChance
+      baseBlockChance: template.baseBlockChance,
+      requirements: template.requirements
     };
   }
 

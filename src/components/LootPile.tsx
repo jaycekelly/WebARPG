@@ -2,6 +2,8 @@ import { Sparkles, Package } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { Item } from '../engine/items/types';
+import { ItemTooltip } from './ItemTooltip';
+import { useTooltipStore } from '../store/useTooltipStore';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -38,9 +40,18 @@ export function LootPile({ items }: Props) {
 
   const glowColor = RARITY_COLORS[highestRarityItem.rarity];
   const isMultiple = items.length > 1;
+  const setContent = useTooltipStore(state => state.setContent);
 
   return (
-    <div className="w-full h-full flex items-center justify-center animate-bounce [animation-iteration-count:1] z-10">
+    <div 
+      className="w-full h-full flex items-center justify-center animate-bounce [animation-iteration-count:1] z-10 relative group"
+      onMouseEnter={() => {
+        if (!isMultiple) {
+          setContent(<ItemTooltip item={items[0]} />);
+        }
+      }}
+      onMouseLeave={() => setContent(null)}
+    >
       {isMultiple ? (
         <Package className={cn("w-3/5 h-3/5", glowColor)} />
       ) : (

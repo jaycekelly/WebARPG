@@ -1,5 +1,6 @@
 import { useCombatStore, type InputRequest } from '../../store/useCombatStore';
 import { useStatsStore } from '../../store/useStatsStore';
+import { useInventoryStore } from '../../store/useInventoryStore';
 import { usePlayerStore } from '../../store/usePlayerStore';
 import { useWorldStore } from '../../store/useWorldStore';
 import { SKILLS } from '../../data/skills';
@@ -26,8 +27,25 @@ export const getEffectiveCastTime = (skill: Skill) => {
   return Math.max(100, Math.floor(skill.castTime / (1 + (castSpeed / 100))));
 };
 
+export const getMainHandAttackCooldown = () => {
+  const weapon = useInventoryStore.getState().equipment['weapon1'];
+  const baseWeaponSpeed = weapon?.weaponAttackSpeed || 0.5;
+  const attackSpeedBonus = useStatsStore.getState().getStat('AttackSpeed');
+  const finalAPS = baseWeaponSpeed * (1 + attackSpeedBonus / 100);
+  return 1000 / Math.max(0.1, finalAPS);
+};
+
+export const getOffHandAttackCooldown = () => {
+  const weapon = useInventoryStore.getState().equipment['weapon2'];
+  const baseWeaponSpeed = weapon?.weaponAttackSpeed || 0.5;
+  const attackSpeedBonus = useStatsStore.getState().getStat('AttackSpeed');
+  const finalAPS = baseWeaponSpeed * (1 + attackSpeedBonus / 100);
+  return 1000 / Math.max(0.1, finalAPS);
+};
+
 export class InputHandler {
-  static readonly QUEUE_BUFFER_MS = 500;
+  static readonly SKILL_QUEUE_BUFFER_MS = 500;
+  static readonly MOVE_QUEUE_BUFFER_MS = 50;
 
   static requestAction(action: InputRequest) {
     const now = Date.now();
@@ -38,9 +56,10 @@ export class InputHandler {
       this.executeAction(action);
     } else {
       // Queue it
+      const buffer = action.type === 'move' ? this.MOVE_QUEUE_BUFFER_MS : this.SKILL_QUEUE_BUFFER_MS;
       combatState.queueAction({
         ...action,
-        expiresAt: now + this.QUEUE_BUFFER_MS
+        expiresAt: now + buffer
       });
     }
   }
@@ -97,8 +116,7 @@ export class InputHandler {
       return;
     }
 
-    // Spend Mana
-    if (!useMana(effectiveMana)) return;
+    // Note: Mana is only checked here, it is actually spent in SkillExecutor.execute()
 
     // Trigger GCD
     triggerGcd(getEffectiveGcd(skill));

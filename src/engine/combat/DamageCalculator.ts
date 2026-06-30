@@ -1,8 +1,6 @@
 import type { DamageType } from '../stats/types';
 
 export class DamageCalculator {
-  static readonly A_MULT = 50;
-  static readonly R_MULT = 5;
   static readonly A_CAP = 0.85;
   static readonly R_CAP = 0.75;
   static readonly ARMOR_FACTOR = 0.5;
@@ -18,9 +16,16 @@ export class DamageCalculator {
     baseCritChance: number = 0,
     defenderHasWeapon: boolean = true,
     defenderHasShield: boolean = false,
-    defenderBaseBlockChance: number = 0
+    defenderBaseBlockChance: number = 0,
+    isAutoAttack: boolean = false
   ): { damage: number, result: 'hit' | 'block' | 'parry' | 'deflect' | 'crit' } {
     const isPhysical = damageType === 'Strike' || damageType === 'Pierce';
+
+    // Apply +/- 25% global damage variance to auto attacks only
+    if (isAutoAttack) {
+      const variance = 0.75 + Math.random() * 0.50;
+      rawDamage *= variance;
+    }
 
     // 1. Critical Strike (Rolls before mitigation)
     let isCrit = false;
@@ -35,9 +40,7 @@ export class DamageCalculator {
       
       if (Math.random() < finalCritChance / 100) {
         isCrit = true;
-        const multiplierBonus = isSpell
-          ? (attackerStats['SpellCriticalStrikeMultiplier'] || 150)
-          : (attackerStats['AttackCriticalStrikeMultiplier'] || 150);
+        const multiplierBonus = attackerStats['CriticalStrikeMultiplier'] || 150;
           
         critMultiplier = multiplierBonus / 100;
         rawDamage *= critMultiplier;
@@ -46,9 +49,11 @@ export class DamageCalculator {
 
     // 2. Deflection (Evasion)
     let deflectMitigation = 0;
-    const deflectChance = isSpell ? (defenderStats['SpellDeflectChance'] || 0) : (defenderStats['DeflectChance'] || 0);
+    const deflectChance = defenderStats['DeflectChance'] || 0;
     if (Math.random() < deflectChance / 100) {
-      deflectMitigation = (defenderStats['DeflectEffect'] || 40) / 100;
+      const baseDeflectEffect = 40;
+      const addedDeflectEffect = defenderStats['DeflectEffect'] || 0;
+      deflectMitigation = (baseDeflectEffect + addedDeflectEffect) / 100;
     }
 
     // 3. Block or Parry (Mutually Exclusive based on equipment)
@@ -58,12 +63,16 @@ export class DamageCalculator {
     if (defenderHasShield) {
       const blockChance = defenderBaseBlockChance + (isSpell ? (defenderStats['SpellBlock'] || 0) : (defenderStats['Block'] || 0));
       if (Math.random() < blockChance / 100) {
-         blockMitigation = (defenderStats['BlockEffect'] || (isSpell ? 0 : 75)) / 100; 
+         const baseBlockEffect = isSpell ? 0 : 75;
+         const addedBlockEffect = defenderStats['BlockEffect'] || 0;
+         blockMitigation = (baseBlockEffect + addedBlockEffect) / 100;
       }
     } else if (defenderHasWeapon) {
       const parryChance = isSpell ? (defenderStats['SpellParry'] || 0) : (defenderStats['Parry'] || 0);
       if (Math.random() < parryChance / 100) {
-         parryMitigation = (defenderStats['ParryEffect'] || (isSpell ? 0 : 50)) / 100;
+         const baseParryEffect = isSpell ? 0 : 50;
+         const addedParryEffect = defenderStats['ParryEffect'] || 0;
+         parryMitigation = (baseParryEffect + addedParryEffect) / 100;
       }
     }
     
@@ -76,15 +85,27 @@ export class DamageCalculator {
 
     const armor = defenderStats['Armor'] || 0;
     
+    // Innate penetration scales polynomially with attacker level
+    const innatePenetration = (attackerLevel * 1.5) + (Math.pow(attackerLevel, 2) / 10);
+    
     // BaseArmorDR is used for Elemental mitigation via ArmorFactor
-    const baseArmorDR = Math.min(this.A_CAP, armor / (armor + this.A_MULT * attackerLevel));
+    const baseEffectiveArmor = Math.max(0, armor - innatePenetration);
+    const baseArmorDR = Math.min(this.A_CAP, baseEffectiveArmor / (baseEffectiveArmor + 100));
     
     if (isPhysical) {
-      const flatPen = attackerStats['PhysicalPenetrationFlat'] || 0;
-      const percentPen = attackerStats['PhysicalPenetrationPercent'] || 0;
+      let flatPen = (attackerStats['PhysicalPenetrationFlat'] || 0) + innatePenetration;
+      let percentPen = attackerStats['PhysicalPenetrationPercent'] || 0;
+      
+      if (damageType === 'Strike') {
+        flatPen += attackerStats['StrikePenetrationFlat'] || 0;
+        percentPen += attackerStats['StrikePenetrationPercent'] || 0;
+      } else if (damageType === 'Pierce') {
+        flatPen += attackerStats['PiercePenetrationFlat'] || 0;
+        percentPen += attackerStats['PiercePenetrationPercent'] || 0;
+      }
       
       const effectiveArmor = Math.max(0, armor - flatPen) * (1 - percentPen / 100);
-      const armorDR_Physical = Math.min(this.A_CAP, effectiveArmor / (effectiveArmor + this.A_MULT * attackerLevel));
+      const armorDR_Physical = Math.min(this.A_CAP, effectiveArmor / (effectiveArmor + 100));
       
       const specificResist = damageType === 'Strike' ? (defenderStats['StrikeResist'] || 0) : (defenderStats['PierceResist'] || 0);
       const specificResistDR = specificResist / 100;
@@ -110,11 +131,12 @@ export class DamageCalculator {
         percentPen += attackerStats['LightningPenetrationPercent'] || 0;
       }
       
-      const effectiveResistance = (resistance - flatPen) * (1 - percentPen / 100);
+      // Add innate level-based penetration to the elemental penetration
+      const effectiveResistance = (resistance - (flatPen + innatePenetration)) * (1 - percentPen / 100);
       
       // Mathematical Safety: We use Math.abs(effectiveResistance) in the denominator 
-      // to prevent asymptote zero-division crashes when negative resists cross R_MULT * AttackerLevel
-      const resistDRRaw = effectiveResistance / (Math.abs(effectiveResistance) + this.R_MULT * attackerLevel);
+      // to prevent asymptote zero-division crashes when negative resists cross the constant
+      const resistDRRaw = effectiveResistance / (Math.abs(effectiveResistance) + 100);
       const resistDR = Math.max(this.MIN_RESIST_DR, Math.min(this.R_CAP, resistDRRaw));
       
       const finalDamage = Math.max(0, rawDamage * (1 - this.ARMOR_FACTOR * baseArmorDR) * (1 - resistDR) * (1 - mitigationPercent));

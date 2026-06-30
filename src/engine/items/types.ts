@@ -4,7 +4,7 @@ export type EquipmentSlot =
   | 'helm' 
   | 'chest' 
   | 'gloves' 
-  | 'pants' 
+  | 'legs'
   | 'boots' 
   | 'weapon1' 
   | 'weapon2' 
@@ -17,15 +17,17 @@ export type ItemType =
   | 'helm' 
   | 'chest' 
   | 'gloves' 
-  | 'pants' 
+  | 'legs'
   | 'boots' 
   | 'weapon-1h' 
   | 'weapon-2h' 
   | 'shield'
+  | 'tome'
   | 'amulet' 
   | 'ring';
 
 export type WeaponCategory = 'Sword' | 'Dagger' | 'Bow' | 'Axe' | 'Scepter' | 'Wand' | 'Staff' | 'Unarmed';
+export type ArmorCategory = 'Heavy' | 'Light' | 'Caster';
 
 export type Rarity = 'Normal' | 'Magic' | 'Rare' | 'Epic' | 'Legendary' | 'Unique';
 
@@ -39,6 +41,14 @@ export interface GeneratedAffix {
   id: string; // The pool ID of the affix (e.g. 'flat_health')
   description: string; // What shows on the tooltip
   stat: BaseStat;
+}
+
+export interface ItemRequirements {
+  level?: number;
+  strength?: number;
+  dexterity?: number;
+  intelligence?: number;
+  vitality?: number;
 }
 
 export interface Item {
@@ -57,6 +67,7 @@ export interface Item {
   weaponRange?: number;
   baseCritChance?: number;
   baseBlockChance?: number;
+  requirements?: ItemRequirements;
 }
 
 export interface ItemTemplate {
@@ -69,17 +80,23 @@ export interface ItemTemplate {
   weaponAttackSpeed?: number;
   weaponRange?: number;
   weaponCategory?: WeaponCategory;
+  armorCategory?: ArmorCategory;
   baseCritChance?: number;
   baseBlockChance?: number;
+  requirements?: ItemRequirements;
 }
 
 export interface AffixTemplate {
   id: string;
   allowedTypes: ItemType[];
+  allowedWeaponCategories?: WeaponCategory[];
+  allowedArmorCategories?: ArmorCategory[];
   minLevel: number;
   stat: StatType;
   type: ModifierType;
   baseValue: number;
   levelMultiplier: number;
   descriptionTpl: string;
+  weight?: number; // Optional weight, defaults to 100
+  exclusivityGroup?: string;
 }

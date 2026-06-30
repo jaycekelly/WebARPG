@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
-import { InputHandler } from './input/InputHandler';
+import { InputHandler, getMainHandAttackCooldown, getOffHandAttackCooldown } from './input/InputHandler';
 import { useStatsStore } from '../store/useStatsStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import type { SkillTag } from './skills/types';
@@ -34,7 +34,8 @@ export function useGameEngine() {
 
       const now = Date.now();
       
-      const playerState = usePlayerStore.getState();
+      try {
+        const playerState = usePlayerStore.getState();
       const worldState = useWorldStore.getState();
       const combatState = useCombatStore.getState();
       const statsState = useStatsStore.getState();
@@ -49,13 +50,8 @@ export function useGameEngine() {
         } else {
           worldState.damageEnemy(event.entityId, event.damage);
           const enemy = worldState.enemies.find(e => e.id === event.entityId);
-          if (enemy?.isDead) {
+          if (enemy?.isDead && !enemy.rewardsGranted) {
              combatState.addLog(`${enemy.name} died to ${event.damageType} damage over time.`, 'system');
-             usePlayerStore.getState().addXp(enemy.xpReward);
-             combatState.addLog(`Gained ${enemy.xpReward} XP.`, 'system');
-             if (usePlayerStore.getState().activeTargetId === enemy.id) {
-                usePlayerStore.getState().setTarget(null);
-             }
           }
         }
       });
@@ -66,7 +62,11 @@ export function useGameEngine() {
       const maxHp = statsState.getStat('Health');
       const hpRegenFlat = statsState.getStat('HealthRegeneration');
       const hpRegenPercent = statsState.getStat('HealthRegenPercent');
-      const hpTick = (hpRegenFlat + (maxHp * (hpRegenPercent / 100))) * dtSec;
+      
+      const baseHpRegen = (maxHp * 0.005) + hpRegenFlat;
+      const totalHpRegen = baseHpRegen * (1 + (hpRegenPercent / 100));
+      const hpTick = totalHpRegen * dtSec;
+      
       if (hpTick > 0 && playerState.currentHealth < maxHp && playerState.currentHealth > 0) {
           usePlayerStore.getState().heal(hpTick);
       }
@@ -74,7 +74,10 @@ export function useGameEngine() {
       const maxMana = statsState.getStat('Mana');
       const manaRegenFlat = statsState.getStat('ManaRegeneration');
       const manaRegenPercent = statsState.getStat('ManaRegenPercent');
-      const manaTick = (manaRegenFlat + (maxMana * (manaRegenPercent / 100))) * dtSec;
+      
+      const baseManaRegen = (maxMana * 0.01) + manaRegenFlat;
+      const totalManaRegen = baseManaRegen * (1 + (manaRegenPercent / 100));
+      const manaTick = totalManaRegen * dtSec;
       if (manaTick > 0 && playerState.currentMana < maxMana && playerState.currentHealth > 0) {
           usePlayerStore.getState().restoreMana(manaTick);
       }
@@ -94,13 +97,8 @@ export function useGameEngine() {
           if (enemy && !enemy.isDead) {
              worldState.damageEnemy(enemy.id, tickDamage);
              const updated = useWorldStore.getState().enemies.find(e => e.id === enemy.id);
-             if (updated?.isDead) {
+             if (updated?.isDead && !updated.rewardsGranted) {
                combatState.addLog(`${enemy.name} died to ${zone.hazardId}.`, 'system');
-               usePlayerStore.getState().addXp(enemy.xpReward);
-               combatState.addLog(`Gained ${enemy.xpReward} XP.`, 'system');
-               if (usePlayerStore.getState().activeTargetId === enemy.id) {
-                  usePlayerStore.getState().setTarget(null);
-               }
              }
           }
         }
@@ -112,7 +110,7 @@ export function useGameEngine() {
       };
 
       const { activeTargetId, position, currentHealth } = playerState;
-      const { lastMoveTime, lastAutoAttackTime, setLastAutoAttackTime, castingSkillId, castEndTime, setCasting } = combatState;
+      const { lastMoveTime, castingSkillId, castEndTime, setCasting } = combatState;
       
       // Prevent anything if dead
       if (currentHealth <= 0) return;
@@ -141,169 +139,141 @@ export function useGameEngine() {
       if (activeTargetId) {
         const target = worldState.enemies.find(e => e.id === activeTargetId);
         
-        if (target && !target.isDead) {
-          const weapon = useInventoryStore.getState().equipment['weapon1'];
-          const autoAttackRange = weapon?.weaponRange || 1; // Pull range from weapon
-          
+        if (target && !target.isDead && (now - lastMoveTime) > 300) {
           const dist = getChebyshevDistance(position, target.position);
           
-          let canHit = false;
-          if (dist <= autoAttackRange) {
-            if (autoAttackRange <= 1) {
-               // Melee Range: check for corner blocking on diagonals
-               canHit = !checkCornerBlock(position, target.position, isSolid);
-            } else {
-               // Reach / Ranged: check line of sight
-               canHit = hasLineOfSight(position, target.position, isSolid);
+          const executeWeaponAttack = (weapon: any, isOffHand: boolean) => {
+            const autoAttackRange = weapon?.weaponRange || 1;
+            
+            let canHit = false;
+            if (dist <= autoAttackRange) {
+              if (autoAttackRange <= 1) {
+                 canHit = !checkCornerBlock(position, target.position, isSolid);
+              } else {
+                 canHit = hasLineOfSight(position, target.position, isSolid);
+              }
             }
+            
+            if (!canHit) return false;
+            
+            const lastAttackTime = isOffHand ? combatState.lastOffHandAttackTime : combatState.lastMainHandAttackTime;
+            const attackCooldown = isOffHand ? getOffHandAttackCooldown() : getMainHandAttackCooldown();
+            const timeSinceLastAttack = now - lastAttackTime;
+            
+            if (timeSinceLastAttack >= attackCooldown) {
+              if (isOffHand) {
+                combatState.setLastOffHandAttackTime(now);
+              } else {
+                combatState.setLastMainHandAttackTime(now);
+              }
+              
+              const damageType = weapon?.damageType || 'Strike';
+              const attackTags: SkillTag[] = ['Attack'];
+              if (autoAttackRange <= 1) attackTags.push('Melee');
+              else attackTags.push('Projectile');
+              
+              if (damageType === 'Strike') attackTags.push('Strike');
+              else if (damageType === 'Pierce') attackTags.push('Pierce');
+              
+              if (damageType === 'Strike' || damageType === 'Pierce') attackTags.push('Physical');
+              else if (damageType === 'Fire') attackTags.push('Fire');
+              else if (damageType === 'Cold') attackTags.push('Cold');
+              else if (damageType === 'Lightning') attackTags.push('Lightning');
+              
+              let baseAttackPower = statsState.getStat('Damage');
+              
+              if (damageType === 'Strike') baseAttackPower += statsState.getStat('StrikeDamageToWeapons');
+              else if (damageType === 'Pierce') baseAttackPower += statsState.getStat('PierceDamageToWeapons');
+              else if (damageType === 'Fire') baseAttackPower += statsState.getStat('FireDamageToWeapons');
+              else if (damageType === 'Cold') baseAttackPower += statsState.getStat('ColdDamageToWeapons');
+              else if (damageType === 'Lightning') baseAttackPower += statsState.getStat('LightningDamageToWeapons');
+              
+              if (damageType === 'Fire' || damageType === 'Cold' || damageType === 'Lightning') {
+                  const elementalMult = 1 + (statsState.getStat('WeaponElementalDamage') / 100);
+                  baseAttackPower *= elementalMult;
+              }
+              
+              let damageMultiplier = SkillExecutor.getDamageMultiplier(attackTags);
+              if (isOffHand) damageMultiplier *= 0.5; // Off-hand does 50% damage
+              
+              const attackPower = baseAttackPower * damageMultiplier;
+              
+              const enemyDefenderStats = {
+                'Armor': target.stats.armor,
+                'FireResist': target.stats.fireResist,
+                'ColdResist': target.stats.coldResist,
+                'LightningResist': target.stats.lightningResist,
+                'StrikeResist': (target.stats.strikeResist || 0) + (target.stats.physicalResist || 0),
+                'PierceResist': (target.stats.pierceResist || 0) + (target.stats.physicalResist || 0),
+                'PhysicalResist': target.stats.physicalResist || 0
+              };
+              
+              const { damage: finalDamage, result } = DamageCalculator.calculateDamage(
+                attackPower,
+                damageType,
+                false,
+                playerState.level,
+                statsState.getAllStats(),
+                enemyDefenderStats,
+                weapon?.baseCritChance || 5,
+                true,
+                false,
+                0,
+                true
+              );
+              
+              const handName = isOffHand ? 'Off-Hand' : 'Main-Hand';
+              if (result === 'deflect') {
+                 combatState.addLog(`You missed ${target.name} with ${handName}!`, 'system');
+              } else {
+                 let resultText = '';
+                 if (result === 'block') resultText = ' (Blocked)';
+                 else if (result === 'parry') resultText = ' (Parried)';
+                 else if (result === 'crit') resultText = ' (Critical Strike!)';
+                
+                 worldState.damageEnemy(target.id, finalDamage);
+                 combatState.addLog(`You hit ${target.name} for ${finalDamage.toFixed(0)} damage with ${handName}.${resultText}`, 'player-attack');
+                 
+                 const lifeOnHit = statsState.getStat('LifeGainOnHit');
+                 const lifesteal = statsState.getStat('Lifesteal');
+                 let totalSustain = 0;
+                 if (lifeOnHit > 0) totalSustain += lifeOnHit;
+                 if (lifesteal > 0) totalSustain += finalDamage * (lifesteal / 100);
+                 
+                 const manaOnHit = statsState.getStat('ManaGainOnHit');
+                 const manaLeech = statsState.getStat('ManaLeech');
+                 let totalManaSustain = 0;
+                 if (manaOnHit > 0) totalManaSustain += manaOnHit;
+                 if (manaLeech > 0) totalManaSustain += finalDamage * (manaLeech / 100);
+                 
+                 if (target.health <= finalDamage) {
+                     const lifeOnKill = statsState.getStat('LifeOnKill');
+                     const manaOnKill = statsState.getStat('ManaOnKill');
+                     if (lifeOnKill > 0) totalSustain += lifeOnKill;
+                     if (manaOnKill > 0) totalManaSustain += manaOnKill;
+                 }
+                 
+                 if (totalSustain > 0) usePlayerStore.getState().heal(totalSustain);
+                 if (totalManaSustain > 0) usePlayerStore.getState().restoreMana(totalManaSustain);
+              }
+              return true;
+            }
+            return false;
+          };
+          
+          const weapon1 = useInventoryStore.getState().equipment['weapon1'];
+          const weapon2 = useInventoryStore.getState().equipment['weapon2'];
+          
+          executeWeaponAttack(weapon1, false);
+          
+          // Only execute off-hand attack if it's a weapon (not a shield)
+          if (weapon2 && weapon2.itemType !== 'shield') {
+            executeWeaponAttack(weapon2, true);
           }
-          
-          const isStandingStill = (now - lastMoveTime) > 300;
-          
-          const timeSinceLastAttack = now - lastAutoAttackTime;
-          
-          const baseWeaponSpeed = weapon?.weaponAttackSpeed || 1.0; // 1.0 attacks per second unarmed
-          const attackSpeedBonus = statsState.getStat('AttackSpeed'); // e.g. 20 means +20%
-          const finalAPS = baseWeaponSpeed * (1 + attackSpeedBonus / 100);
-          
-          const attackCooldown = 1000 / Math.max(0.1, finalAPS);
+            
 
-          if (canHit && isStandingStill && timeSinceLastAttack >= attackCooldown) {
-            // FIRE AUTO ATTACK
-            setLastAutoAttackTime(now);
-            
-            const damageType = weapon?.damageType || 'Strike';
-            
-            // Dynamically assign tags
-            const attackTags: SkillTag[] = ['Attack'];
-            if (autoAttackRange <= 1) attackTags.push('Melee');
-            else attackTags.push('Projectile');
-            
-            if (damageType === 'Strike') attackTags.push('Strike');
-            else if (damageType === 'Pierce') attackTags.push('Pierce');
-            
-            if (damageType === 'Strike' || damageType === 'Pierce') attackTags.push('Physical');
-            else if (damageType === 'Fire') attackTags.push('Fire');
-            else if (damageType === 'Cold') attackTags.push('Cold');
-            else if (damageType === 'Lightning') attackTags.push('Lightning');
-            
-            let baseAttackPower = statsState.getStat('Damage');
-            
-            // Weapon Enhancements
-            if (damageType === 'Strike') {
-                baseAttackPower += statsState.getStat('StrikeDamageToWeapons');
-            } else if (damageType === 'Pierce') {
-                baseAttackPower += statsState.getStat('PierceDamageToWeapons');
-            } else if (damageType === 'Fire') {
-                baseAttackPower += statsState.getStat('FireDamageToWeapons');
-            } else if (damageType === 'Cold') {
-                baseAttackPower += statsState.getStat('ColdDamageToWeapons');
-            } else if (damageType === 'Lightning') {
-                baseAttackPower += statsState.getStat('LightningDamageToWeapons');
-            }
-            
-            if (damageType === 'Fire' || damageType === 'Cold' || damageType === 'Lightning') {
-                const elementalMult = 1 + (statsState.getStat('WeaponElementalDamage') / 100);
-                baseAttackPower *= elementalMult;
-            }
-            
-            const damageMultiplier = SkillExecutor.getDamageMultiplier(attackTags);
-            const attackPower = baseAttackPower * damageMultiplier;
-            
-            // For enemies, map their flat stats to the Record shape DamageCalculator expects
-            const enemyDefenderStats = {
-              'Armor': target.stats.armor,
-              'FireResist': target.stats.fireResist,
-              'ColdResist': target.stats.coldResist,
-              'LightningResist': target.stats.lightningResist,
-              'StrikeResist': (target.stats.strikeResist || 0) + (target.stats.physicalResist || 0),
-              'PierceResist': (target.stats.pierceResist || 0) + (target.stats.physicalResist || 0),
-              'PhysicalResist': target.stats.physicalResist || 0
-            };
-
-            const { damage: finalDamage, result } = DamageCalculator.calculateDamage(
-              attackPower,
-              damageType,
-              false, // Not a spell
-              playerState.level,
-              statsState.getAllStats(), // Attacker stats
-              enemyDefenderStats,       // Defender stats
-              weapon?.baseCritChance || 5, // Unarmed gets 5% crit default
-              true, // defenderHasWeapon
-              false, // defenderHasShield
-              0 // defenderBaseBlockChance
-            );
-            
-            if (result === 'deflect') {
-               combatState.addLog(`You missed ${target.name}!`, 'system');
-            } else {
-               let resultText = '';
-               if (result === 'block') resultText = ' (Blocked)';
-               else if (result === 'parry') resultText = ' (Parried)';
-               else if (result === 'crit') resultText = ' (Critical Strike!)';
-              
-               worldState.damageEnemy(target.id, finalDamage);
-               combatState.addLog(`You hit ${target.name} for ${finalDamage.toFixed(0)} damage.${resultText}`, 'player-attack');
-               
-               // Handle Sustain
-               const lifeOnHit = statsState.getStat('LifeGainOnHit');
-               const lifesteal = statsState.getStat('Lifesteal');
-               let totalSustain = 0;
-               if (lifeOnHit > 0) totalSustain += lifeOnHit;
-               if (lifesteal > 0) totalSustain += finalDamage * (lifesteal / 100);
-               
-               const manaOnHit = statsState.getStat('ManaGainOnHit');
-               const manaLeech = statsState.getStat('ManaLeech');
-               let totalManaSustain = 0;
-               if (manaOnHit > 0) totalManaSustain += manaOnHit;
-               if (manaLeech > 0) totalManaSustain += finalDamage * (manaLeech / 100);
-               
-               // On-Kill Effects
-               if (target.health <= finalDamage) {
-                   const lifeOnKill = statsState.getStat('LifeOnKill');
-                   const manaOnKill = statsState.getStat('ManaOnKill');
-                   if (lifeOnKill > 0) totalSustain += lifeOnKill;
-                   if (manaOnKill > 0) totalManaSustain += manaOnKill;
-               }
-               
-               if (totalSustain > 0) {
-                 usePlayerStore.getState().heal(totalSustain);
-               }
-               if (totalManaSustain > 0) {
-                 usePlayerStore.getState().restoreMana(totalManaSustain);
-               }
-            }
-            
-            // Handle Kill
-            const updatedTarget = useWorldStore.getState().enemies.find(e => e.id === target.id);
-            if (updatedTarget?.isDead) {
-              combatState.addLog(`You killed ${target.name}!`, 'system');
-              // Grant XP and Gold
-              const xpGain = Math.max(1, Math.floor(updatedTarget.xpReward * (1 + statsState.getStat('ExperienceGain') / 100)));
-              const goldGain = Math.max(1, Math.floor(Math.random() * 5 * updatedTarget.level));
-              usePlayerStore.getState().addXp(xpGain);
-              usePlayerStore.getState().addGold(goldGain);
-              combatState.addLog(`Gained ${xpGain} XP and ${goldGain} Gold.`, 'system');
-              
-              // Drop Loot
-              // Mostly drop 1 item, rarely drop 2
-              const dropCount = Math.random() > 0.8 ? 2 : 1;
-              const drops: Item[] = [];
-              const mf = statsState.getStat('MagicFind');
-              for (let i = 0; i < dropCount; i++) {
-                const item = ItemGenerator.generateRandomLoot(updatedTarget.level, mf);
-                if (item) drops.push(item);
-              }
-              
-              if (drops.length > 0) {
-                worldState.addLoot(updatedTarget.position, drops);
-              }
-              
-              usePlayerStore.getState().setTarget(null);
-            }
           }
         }
-      }
 
       // Enemy AI Logic
       worldState.enemies.forEach(enemy => {
@@ -407,6 +377,114 @@ export function useGameEngine() {
           }
         }
       });
+      
+      // Handle Dead Enemies & Rewards (Centralized)
+      worldState.enemies.forEach(enemy => {
+        if (enemy.isDead && !enemy.rewardsGranted) {
+           worldState.markEnemyRewardsGranted(enemy.id);
+           
+           combatState.addLog(`You killed ${enemy.name}!`, 'system');
+           
+           // Grant XP and Gold
+           const xpGain = Math.max(1, Math.floor(enemy.xpReward * (1 + statsState.getStat('ExperienceGain') / 100)));
+           const randomMultiplier = 0.5 + Math.random();
+           const goldGain = Math.floor(enemy.goldReward * randomMultiplier * (1 + statsState.getStat('GoldFind') / 100));
+           usePlayerStore.getState().addXp(xpGain);
+           usePlayerStore.getState().addGold(goldGain);
+           combatState.addLog(`Gained ${xpGain} XP and ${goldGain} Gold.`, 'system');
+           
+           // Drop Loot
+           let dropChance = 0;
+           let maxDrops = 1;
+           const playerStore = usePlayerStore.getState();
+           
+           if (enemy.rarity === 'Normal') {
+             dropChance = 0.25;
+             if (playerStore.normalPityCount >= 4) dropChance = 1.0;
+           } else if (enemy.rarity === 'Magic') {
+             dropChance = 0.50;
+             if (playerStore.magicPityCount >= 2) dropChance = 1.0;
+           } else if (enemy.rarity === 'Rare') {
+             dropChance = 1.0;
+             maxDrops = 2;
+           } else if (enemy.rarity === 'Boss') {
+             dropChance = 1.0;
+             maxDrops = 3;
+           }
+
+           const willDrop = Math.random() < dropChance;
+           
+           if (willDrop) {
+             if (enemy.rarity === 'Normal' || enemy.rarity === 'Magic') {
+               playerStore.resetPity(enemy.rarity);
+             }
+             
+             const drops: Item[] = [];
+             const mf = statsState.getStat('MagicFind');
+             for (let i = 0; i < maxDrops; i++) {
+               const item = ItemGenerator.generateRandomLoot(enemy.level, mf);
+               if (item) drops.push(item);
+             }
+             
+             if (drops.length > 0) {
+               const ws = useWorldStore.getState();
+               const ps = usePlayerStore.getState();
+               const origin = enemy.position;
+               const claimedSpots = new Set<string>();
+               
+               const isTileEmpty = (x: number, y: number) => {
+                 if (x < 0 || x >= ws.grid.width || y < 0 || y >= ws.grid.height) return false;
+                 if (ws.grid.obstacles.some(o => o.x === x && o.y === y)) return false;
+                 if (ps.position.x === x && ps.position.y === y) return false;
+                 if (ws.enemies.some(e => !e.isDead && e.position.x === x && e.position.y === y)) return false;
+                 if (ws.lootDrops.some(ld => ld.position.x === x && ld.position.y === y)) return false;
+                 if (claimedSpots.has(`${x},${y}`)) return false;
+                 return true;
+               };
+
+               drops.forEach(item => {
+                 const adjacent: {x: number, y: number}[] = [];
+                 for (let dx = -1; dx <= 1; dx++) {
+                   for (let dy = -1; dy <= 1; dy++) {
+                     const nx = origin.x + dx;
+                     const ny = origin.y + dy;
+                     if (isTileEmpty(nx, ny)) {
+                       adjacent.push({ x: nx, y: ny });
+                     }
+                   }
+                 }
+                 
+                 let targetPos = origin;
+                 if (adjacent.length > 0) {
+                   const r = Math.floor(Math.random() * adjacent.length);
+                   targetPos = adjacent[r];
+                   claimedSpots.add(`${targetPos.x},${targetPos.y}`);
+                 }
+                 
+                 worldState.addLoot(targetPos, [item]);
+               });
+             }
+           } else {
+             if (enemy.rarity === 'Normal' || enemy.rarity === 'Magic') {
+               playerStore.incrementPity(enemy.rarity);
+             }
+           }
+           
+           if (usePlayerStore.getState().activeTargetId === enemy.id) {
+             usePlayerStore.getState().setTarget(null);
+           }
+        }
+      });
+      
+      } catch (err) {
+        console.error('Game Engine Error:', err);
+        const combatState = useCombatStore.getState();
+        if (err instanceof Error) {
+          combatState.addLog(`ENGINE CRASH: ${err.message}`, 'system');
+        } else {
+          combatState.addLog(`ENGINE CRASH: Unknown error`, 'system');
+        }
+      }
 
       animationFrameId = requestAnimationFrame(loop);
     };

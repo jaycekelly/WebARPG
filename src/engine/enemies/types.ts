@@ -1,4 +1,5 @@
 export type AIProfile = 'melee_rusher' | 'static' | 'ranged_kiter';
+export type EnemyRarity = 'Normal' | 'Magic' | 'Rare' | 'Boss';
 
 export interface EnemyStats {
   maxHealth: number;
@@ -23,7 +24,9 @@ export interface EnemyTemplate {
   name: string;
   minLevel: number;
   maxLevel: number;
+  rarity?: EnemyRarity;
   stats: EnemyStats;
   aiProfile: AIProfile;
   baseXpReward: number; // XP to give at minLevel, can be scaled up
+  baseGoldReward: number; // Gold to give at minLevel
 }

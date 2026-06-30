@@ -97,6 +97,7 @@ export class LevelGenerator {
         aiProfile: template.aiProfile,
         faction: 'enemy',
         xpReward: Math.floor(template.baseXpReward * scaleFactor),
+        goldReward: Math.floor((template.baseGoldReward || 0) * scaleFactor),
       });
     }
   }

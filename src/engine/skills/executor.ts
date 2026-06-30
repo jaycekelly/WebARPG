@@ -58,6 +58,13 @@ export class SkillExecutor {
     }
 
     // Also add global BuffEffect/Duration to damage if they are DOTs? No, Damage is separate.
+    // Add Attribute Scaling
+    const str = useStatsStore.getState().getStat('Strength');
+    const dex = useStatsStore.getState().getStat('Dexterity');
+    const int = useStatsStore.getState().getStat('Intelligence');
+    const totalOffensiveAttr = str + dex + int;
+    increasedSum += (totalOffensiveAttr * 0.5) / 100;
+
     return Math.max(0, 1 + increasedSum) * moreMultiplier;
   }
 
@@ -80,13 +87,33 @@ export class SkillExecutor {
     const playerState = usePlayerStore.getState();
     const inventoryState = useInventoryStore.getState();
     
-    // Weapon checks
-    const weapon = inventoryState.equipment['weapon1'];
+    if (cascadeDepth === 0) {
+      const reduction = statsState.getStat('ManaCostReduction');
+      const effectiveMana = Math.max(0, Math.floor(skill.manaCost * (1 - (reduction / 100))));
+      if (!playerState.useMana(effectiveMana)) {
+        addLog(`Not enough mana for ${skill.name}.`, 'system');
+        return;
+      }
+    }
+    
+    const weapon1 = inventoryState.equipment['weapon1'];
+    const weapon2 = inventoryState.equipment['weapon2'];
     
     if (skill.requiredWeaponCategories && skill.requiredWeaponCategories.length > 0) {
-       const weaponCat = weapon?.weaponCategory || 'Unarmed';
-       if (!skill.requiredWeaponCategories.includes(weaponCat)) {
-         addLog(`Cannot use ${skill.name} with a ${weaponCat}! Requires: ${skill.requiredWeaponCategories.join(', ')}`, 'system');
+       const w1Cat = weapon1?.weaponCategory || 'Unarmed';
+       const w1Valid = skill.requiredWeaponCategories.includes(w1Cat);
+       
+       let w2Valid = true;
+       if (weapon2 && weapon2.itemType !== 'shield' && weapon2.weaponCategory) {
+         w2Valid = skill.requiredWeaponCategories.includes(weapon2.weaponCategory);
+       }
+       
+       // At least one weapon must meet the requirement, AND neither weapon can violate it (unless shield)
+       const hasRequirement = (weapon1 && w1Valid) || (weapon2 && weapon2.itemType !== 'shield' && w2Valid);
+       const noViolations = (!weapon1 || w1Valid) && (!weapon2 || weapon2.itemType === 'shield' || w2Valid);
+
+       if (!hasRequirement || !noViolations) {
+         addLog(`Cannot use ${skill.name} with current weapons! Requires: ${skill.requiredWeaponCategories.join(', ')}`, 'system');
          return;
        }
     }
@@ -165,8 +192,12 @@ export class SkillExecutor {
          return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
        };
 
+       // For ranged AoE skills (like Fireball), the area is centered on the target.
+       // For point-blank AoE skills (like Nova), it is centered on the player.
+       const aoeCenter = (skill.range > 0 && targetPos) ? targetPos : playerPos;
+
        affectedTiles = getAoETiles(
-         playerPos,
+         aoeCenter,
          targetPos,
          shape,
          radius,
@@ -234,10 +265,10 @@ export class SkillExecutor {
        for (const { enemy, multiplier } of finalTargets) {
           let finalElement = effect.element || 'Strike';
       
-          // If this is a weapon skill and it doesn't hardcode an element, inherit from weapon
+          // If this is a weapon skill and it doesn't hardcode an element, inherit from weapon1
           if (skill.requiredWeaponCategories && skill.requiredWeaponCategories.length > 0) {
-             if (weapon && weapon.damageType && !effect.element) {
-                finalElement = weapon.damageType;
+             if (weapon1 && weapon1.damageType && !effect.element) {
+                finalElement = weapon1.damageType;
              }
           }
 
@@ -299,8 +330,8 @@ export class SkillExecutor {
              
              // isAttackSkill defined above
              let baseCrit = skill.baseCritChance || 0;
-             if (isAttackSkill && weapon?.baseCritChance !== undefined) {
-               baseCrit = weapon.baseCritChance;
+             if (isAttackSkill && weapon1?.baseCritChance !== undefined) {
+               baseCrit = weapon1.baseCritChance;
              }
              
              const { damage: finalMitigatedDamage, result } = DamageCalculator.calculateDamage(
@@ -346,69 +377,7 @@ export class SkillExecutor {
                     worldState.damageEnemy(enemy.id, actualDamage);
                     addLog(`You hit ${enemy.name} for ${actualDamage.toFixed(0)} ${finalElement} damage.${resultText}`, 'ability');
                     
-                    // Ailment Application
-                    if (actualDamage > 0) {
-                      const statusPower = statsState.getStat('StatusEffectPower');
-                      const statusDurMult = 1 + (statsState.getStat('StatusEffectDuration') / 100);
-                      
-                      if (finalElement === 'Fire') {
-                        const burnEffect = statsState.getStat('BurnEffect');
-                        const dotDurMult = 1 + (statsState.getStat('DoTDuration') / 100);
-                        const dotDmgMult = 1 + (statsState.getStat('DoTDamage') / 100);
-                        const dotDmg = actualDamage * 0.20 * dotDmgMult * (1 + burnEffect / 100);
-                        
-                        useBuffStore.getState().addBuff(enemy.id, {
-                           buffId: 'burn',
-                           name: 'Burn',
-                           type: 'debuff',
-                           stackingBehavior: 'independent',
-                           durationMs: 4000 * dotDurMult,
-                           maxDurationMs: 4000 * dotDurMult,
-                           stacks: 1,
-                           maxStacks: 1,
-                           icon: 'Flame',
-                           statModifiers: [],
-                           isDoT: true,
-                           dotDamagePerTick: dotDmg,
-                           dotTickRateMs: 1000,
-                           dotDamageType: 'Fire'
-                        });
-                      }
-                      
-                      if (finalElement === 'Cold') {
-                        const chillEffect = statsState.getStat('ChillEffect');
-                        const chillMagnitude = Math.min(75, 15 + Math.min(35, actualDamage / 5) + statusPower + chillEffect);
-                        useBuffStore.getState().addBuff(enemy.id, {
-                           buffId: 'chill',
-                           name: 'Chill',
-                           type: 'debuff',
-                           stackingBehavior: 'independent',
-                           durationMs: 4000 * statusDurMult,
-                           maxDurationMs: 4000 * statusDurMult,
-                           stacks: 1,
-                           maxStacks: 1,
-                           icon: 'Snowflake',
-                           statModifiers: [{ stat: 'Damage', type: 'more', value: -chillMagnitude }]
-                        });
-                      }
-                      
-                      if (finalElement === 'Lightning') {
-                        const shockEffect = statsState.getStat('ShockEffect');
-                        const shockMagnitude = Math.min(100, 10 + Math.min(40, actualDamage / 5) + statusPower + shockEffect);
-                        useBuffStore.getState().addBuff(enemy.id, {
-                           buffId: 'shock',
-                           name: 'Shock',
-                           type: 'debuff',
-                           stackingBehavior: 'independent',
-                           durationMs: 4000 * statusDurMult,
-                           maxDurationMs: 4000 * statusDurMult,
-                           stacks: 1,
-                           maxStacks: 1,
-                           icon: 'Zap',
-                           statModifiers: [{ stat: 'Damage', type: 'flat', value: shockMagnitude }] // We store magnitude here safely
-                        });
-                      }
-                    }
+                    // Ailment Application removed as per design request
                    
                    // Sustain
                    const lifeOnHit = statsState.getStat('LifeGainOnHit');
@@ -462,8 +431,16 @@ export class SkillExecutor {
                       addLog(`You defeated ${enemy.name}!`, 'system');
                       
                       const xpGain = Math.max(1, Math.floor(updatedTarget.xpReward * (1 + statsState.getStat('ExperienceGain') / 100)));
+                      const randomMultiplier = 0.5 + Math.random();
+                      const goldGain = Math.floor(updatedTarget.goldReward * randomMultiplier * (1 + statsState.getStat('GoldFind') / 100));
+                      
                       const { leveledUp, newLevel } = playerState.addXp(xpGain);
-                      addLog(`You gained ${xpGain} XP.`, 'system');
+                      if (goldGain > 0) {
+                        playerState.addGold(goldGain);
+                        addLog(`You gained ${xpGain} XP and ${goldGain} Gold.`, 'system');
+                      } else {
+                        addLog(`You gained ${xpGain} XP.`, 'system');
+                      }
                       if (leveledUp) addLog(`Level Up! You are now Level ${newLevel}!`, 'system');
                       if (playerState.activeTargetId === enemy.id) playerState.setTarget(null);
                    }
@@ -532,6 +509,7 @@ export class SkillExecutor {
              aiProfile: 'melee_rusher',
              faction: 'player', // Ally!
              xpReward: 0,
+             goldReward: 0,
              stats: {
                 maxHealth: 100,
                 attackPower: 10,

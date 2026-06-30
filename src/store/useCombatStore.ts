@@ -20,7 +20,8 @@ interface CombatState {
   // Timers for the real-time engine
   gcdEndTime: number;
   lastMoveTime: number;
-  lastAutoAttackTime: number;
+  lastMainHandAttackTime: number;
+  lastOffHandAttackTime: number;
   
   // Cast Bar State
   castingSkillId: string | null;
@@ -35,7 +36,8 @@ interface CombatState {
   // Timer setters
   triggerGcd: (durationMs: number) => void;
   setLastMoveTime: (time: number) => void;
-  setLastAutoAttackTime: (time: number) => void;
+  setLastMainHandAttackTime: (time: number) => void;
+  setLastOffHandAttackTime: (time: number) => void;
   setCasting: (skillId: string | null, durationMs?: number) => void;
   
   // Queue methods
@@ -48,7 +50,8 @@ export const useCombatStore = create<CombatState>((set) => ({
   isAutoAttacking: false,
   gcdEndTime: 0,
   lastMoveTime: 0,
-  lastAutoAttackTime: 0,
+  lastMainHandAttackTime: 0,
+  lastOffHandAttackTime: 0,
   castingSkillId: null,
   castEndTime: 0,
   queuedAction: null,
@@ -62,7 +65,8 @@ export const useCombatStore = create<CombatState>((set) => ({
   
   triggerGcd: (durationMs) => set({ gcdEndTime: Date.now() + durationMs }),
   setLastMoveTime: (time) => set({ lastMoveTime: time }),
-  setLastAutoAttackTime: (time) => set({ lastAutoAttackTime: time }),
+  setLastMainHandAttackTime: (time) => set({ lastMainHandAttackTime: time }),
+  setLastOffHandAttackTime: (time) => set({ lastOffHandAttackTime: time }),
   
   setCasting: (skillId, durationMs) => set({ 
     castingSkillId: skillId, 

@@ -9,7 +9,7 @@ const SLOT_ICONS: Record<string, React.ElementType> = {
   'helm': HelpCircle, // Add proper icons later
   'chest': Shield,
   'gloves': HelpCircle,
-  'pants': HelpCircle,
+  'legs': HelpCircle,
   'boots': HelpCircle,
   'weapon1': Sword,
   'weapon2': Sword,
@@ -57,7 +57,7 @@ export function InventoryPanel() {
           ${rarityClasses}
         `}
       >
-        <Icon className={`w-5 h-5`} />
+        <Icon className={`w-5 h-5 text-zinc-100`} />
         <span className="text-[8px] mt-1 font-bold uppercase tracking-wider opacity-50">{label}</span>
       </button>
     );
@@ -68,14 +68,14 @@ export function InventoryPanel() {
       {/* Paper Doll Equipment */}
         <div className="grid grid-cols-3 gap-2 mb-2 justify-items-center">
           <div className="col-start-2">{renderEquipmentSlot('helm', 'Helm')}</div>
+          <div className="col-start-3">{renderEquipmentSlot('amulet', 'Amulet')}</div>
           
           <div className="col-start-1">{renderEquipmentSlot('weapon1', 'Wep 1')}</div>
           <div className="col-start-2">{renderEquipmentSlot('chest', 'Chest')}</div>
           <div className="col-start-3">{renderEquipmentSlot('weapon2', 'Wep 2')}</div>
           
           <div className="col-start-1">{renderEquipmentSlot('gloves', 'Gloves')}</div>
-          <div className="col-start-2">{renderEquipmentSlot('pants', 'Pants')}</div>
-          <div className="col-start-3">{renderEquipmentSlot('amulet', 'Amulet')}</div>
+          <div className="col-start-2">{renderEquipmentSlot('legs', 'Legs')}</div>
           
           <div className="col-start-1">{renderEquipmentSlot('ring1', 'Ring')}</div>
           <div className="col-start-2">{renderEquipmentSlot('boots', 'Boots')}</div>

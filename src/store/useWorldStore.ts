@@ -12,11 +12,14 @@ export interface Enemy {
   health: number;
   stats: EnemyStats;
   aiProfile: AIProfile;
+  rarity: 'Normal' | 'Magic' | 'Rare' | 'Boss';
   isDead: boolean;
   xpReward: number;
+  goldReward: number;
   lastAttackTime: number;
   lastMoveTime: number;
   faction: 'enemy' | 'player';
+  rewardsGranted?: boolean;
 }
 
 export interface LootDrop {
@@ -56,6 +59,7 @@ interface WorldState {
   updateEnemyMoveTime: (id: string, time: number) => void;
   moveEnemy: (id: string, position: {x: number, y: number}) => void;
   getEnemyAt: (x: number, y: number) => Enemy | undefined;
+  markEnemyRewardsGranted: (id: string) => void;
   
   // Loot
   addLoot: (position: { x: number; y: number }, items: Item[]) => void;
@@ -76,7 +80,7 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   zones: [],
 
   spawnEnemy: (enemyData) => set((state) => ({
-    enemies: [...state.enemies, { ...enemyData, id: Math.random().toString(), isDead: false, lastAttackTime: 0, lastMoveTime: 0, faction: enemyData.faction || 'enemy' }]
+    enemies: [...state.enemies, { ...enemyData, rarity: enemyData.rarity || 'Normal', id: Math.random().toString(), isDead: false, lastAttackTime: 0, lastMoveTime: 0, faction: enemyData.faction || 'enemy' }]
   })),
 
   damageEnemy: (id, amount) => set((state) => ({
@@ -110,6 +114,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   getEnemyAt: (x, y) => {
     return get().enemies.find(e => e.position.x === x && e.position.y === y && !e.isDead);
   },
+
+  markEnemyRewardsGranted: (id) => set((state) => ({
+    enemies: state.enemies.map(enemy => 
+      enemy.id === id ? { ...enemy, rewardsGranted: true } : enemy
+    )
+  })),
 
   addLoot: (position, items) => set((state) => {
     // Check if loot already exists at this tile to merge it

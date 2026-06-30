@@ -86,11 +86,16 @@ export function Grid() {
             if (enemy) {
               setTarget(enemy.id);
             } else if (lootDrop) {
-              if (lootDrop.items.length === 1) {
-                lootItem(lootDrop.items[0]);
-                removeLootDrop(lootDrop.id);
+              const dist = Math.max(Math.abs(position.x - x), Math.abs(position.y - y));
+              if (dist <= 1) {
+                if (lootDrop.items.length === 1) {
+                  lootItem(lootDrop.items[0]);
+                  removeLootDrop(lootDrop.id);
+                } else {
+                  setSelectedLootDropId(lootDrop.id);
+                }
               } else {
-                setSelectedLootDropId(lootDrop.id);
+                 addLog("You must get closer to loot that.", 'system');
               }
             } else if (isPlayer) {
               setTarget(null);

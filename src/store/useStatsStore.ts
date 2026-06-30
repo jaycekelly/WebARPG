@@ -10,6 +10,7 @@ interface StatsState {
   addModifier: (mod: StatModifier) => void;
   removeModifier: (id: string) => void;
   removeModifiersBySource: (sourceId: string) => void;
+  updateModifierValue: (id: string, value: number) => void;
   
   // Derived / Getters
   getStat: (stat: StatType) => number;
@@ -18,10 +19,16 @@ interface StatsState {
 
 export const useStatsStore = create<StatsState>((set, get) => ({
   modifiers: [
-    { id: 'base_health', sourceId: 'base_character', stat: 'Health', type: 'flat', value: 40 },
-    { id: 'base_mana', sourceId: 'base_character', stat: 'Mana', type: 'flat', value: 40 },
+    { id: 'base_health', sourceId: 'base_character', stat: 'Health', type: 'flat', value: 70 },
+    { id: 'base_mana', sourceId: 'base_character', stat: 'Mana', type: 'flat', value: 50 },
     { id: 'base_damage', sourceId: 'base_character', stat: 'Damage', type: 'flat', value: 10 },
     { id: 'base_move', sourceId: 'base_character', stat: 'MoveSpeed', type: 'flat', value: 1.33 },
+    
+    // Base Attributes
+    { id: 'base_strength', sourceId: 'base_character', stat: 'Strength', type: 'flat', value: 5 },
+    { id: 'base_dexterity', sourceId: 'base_character', stat: 'Dexterity', type: 'flat', value: 5 },
+    { id: 'base_intelligence', sourceId: 'base_character', stat: 'Intelligence', type: 'flat', value: 5 },
+    { id: 'base_vitality', sourceId: 'base_character', stat: 'Vitality', type: 'flat', value: 5 },
   ],
 
   addModifier: (mod) => set((state) => ({
@@ -34,6 +41,10 @@ export const useStatsStore = create<StatsState>((set, get) => ({
 
   removeModifiersBySource: (sourceId) => set((state) => ({
     modifiers: state.modifiers.filter(m => m.sourceId !== sourceId)
+  })),
+  
+  updateModifierValue: (id, value) => set((state) => ({
+    modifiers: state.modifiers.map(m => m.id === id ? { ...m, value } : m)
   })),
 
   getStat: (stat) => {
@@ -91,6 +102,19 @@ export const useStatsStore = create<StatsState>((set, get) => ({
        });
        mods = mods.concat(physMods.map(m => ({ ...m, id: m.id + '_derived', stat: stat as StatType })));
     }
+    
+    if (stat === 'Health') {
+       const vit = get().getStat('Vitality');
+       if (vit > 0) {
+         mods.push({
+           id: 'vit_health_bonus',
+           sourceId: 'base_attributes',
+           stat: 'Health',
+           type: 'flat',
+           value: vit * 2
+         });
+       }
+    }
 
     return StatCalculator.calculateFinalStat(mods);
   },
@@ -126,6 +150,11 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     if (physRes) {
       stats['StrikeResist'] = (stats['StrikeResist'] || 0) + physRes;
       stats['PierceResist'] = (stats['PierceResist'] || 0) + physRes;
+    }
+    
+    const vit = stats['Vitality'] || 0;
+    if (vit > 0) {
+      stats['Health'] = (stats['Health'] || 0) + (vit * 2);
     }
 
     return stats;

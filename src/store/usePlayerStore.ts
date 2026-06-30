@@ -12,7 +12,10 @@ interface PlayerState {
   level: number;
   currentXp: number;
   skillPoints: number;
+  attributePoints: number;
   gold: number;
+  normalPityCount: number;
+  magicPityCount: number;
   boundSkills: (string | null)[];
   
   move: (dx: number, dy: number) => void;
@@ -25,19 +28,25 @@ interface PlayerState {
   addXp: (amount: number) => { leveledUp: boolean, newLevel: number };
   addGold: (amount: number) => void;
   addSkillPoints: (amount: number) => void;
+  allocateAttribute: (stat: 'Strength' | 'Dexterity' | 'Intelligence' | 'Vitality') => void;
+  incrementPity: (rarity: 'Normal' | 'Magic') => void;
+  resetPity: (rarity: 'Normal' | 'Magic') => void;
   bindSkill: (slotIndex: number, skillId: string | null) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   playerClass: 'Fighter',
   position: { x: 5, y: 5 },
-  currentHealth: 40,
-  currentMana: 40,
+  currentHealth: 80,
+  currentMana: 50,
   activeTargetId: null,
   level: 1,
   currentXp: 0,
   skillPoints: 0,
+  attributePoints: 0,
   gold: 0,
+  normalPityCount: 0,
+  magicPityCount: 0,
   boundSkills: ['fireball', null, null, null, null, null],
 
   move: (dx, dy) => set((state) => {
@@ -94,16 +103,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     let newXp = state.currentXp + amount;
     let newLevel = state.level;
     let newSkillPoints = state.skillPoints;
+    let newAttrPoints = state.attributePoints;
     let leveledUp = false;
 
     // We use a while loop in case they gain enough XP to gain multiple levels
-    while (true) {
-      const xpRequired = 100 * Math.pow(newLevel, 2);
-      if (newXp >= xpRequired) {
-        newXp -= xpRequired;
-        newLevel += 1;
-        newSkillPoints += 1;
-        leveledUp = true;
+    while (newXp >= 100 * Math.pow(newLevel, 2)) {
+      newXp -= 100 * Math.pow(newLevel, 2);
+      newLevel++;
+      newSkillPoints++;
+      newAttrPoints++;
+      leveledUp = true;
         
         // Push the static stat bonuses to the stat engine
         useStatsStore.getState().addModifier({
@@ -120,13 +129,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           type: 'flat',
           value: 10
         });
-      } else {
-        break;
-      }
     }
 
     if (leveledUp) {
-      set({ currentXp: newXp, level: newLevel, skillPoints: newSkillPoints });
+      set({ currentXp: newXp, level: newLevel, skillPoints: newSkillPoints, attributePoints: newAttrPoints });
       // Heal player completely on level up (wait till next tick to get updated max health)
       setTimeout(() => {
           const maxHealth = useStatsStore.getState().getStat('Health');
@@ -146,6 +152,30 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   addSkillPoints: (amount) => set((state) => ({
     skillPoints: Math.max(0, state.skillPoints + amount)
   })),
+  
+  allocateAttribute: (stat) => set((state) => {
+    if (state.attributePoints <= 0) return state;
+    
+    const statsStore = useStatsStore.getState();
+    const currentBase = statsStore.modifiers.find(m => m.id === `base_${stat.toLowerCase()}`);
+    if (currentBase) {
+      statsStore.updateModifierValue(`base_${stat.toLowerCase()}`, currentBase.value + 5);
+    }
+    
+    return { attributePoints: state.attributePoints - 1 };
+  }),
+
+  incrementPity: (rarity) => set((state) => {
+    if (rarity === 'Normal') return { normalPityCount: state.normalPityCount + 1 };
+    if (rarity === 'Magic') return { magicPityCount: state.magicPityCount + 1 };
+    return state;
+  }),
+  
+  resetPity: (rarity) => set((state) => {
+    if (rarity === 'Normal') return { normalPityCount: 0 };
+    if (rarity === 'Magic') return { magicPityCount: 0 };
+    return state;
+  }),
 
   bindSkill: (slotIndex, skillId) => set((state) => {
     const newBound = [...state.boundSkills];

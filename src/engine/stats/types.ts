@@ -11,6 +11,12 @@ export interface StatModifier {
 }
 
 export type StatType =
+  // Core Attributes
+  | 'Strength'
+  | 'Dexterity'
+  | 'Intelligence'
+  | 'Vitality'
+
   // Health & Mana
   | 'Health'
   | 'HealthRegeneration'
@@ -23,14 +29,13 @@ export type StatType =
   | 'Damage'
   | 'AttackSpeed'
   | 'CastSpeed'
-  | 'MoveSpeed'
   | 'StrikeDamage'
   | 'PierceDamage'
-  | 'PhysicalDamage' // Strike + Pierce
+  | 'PhysicalDamage'
   | 'FireDamage'
   | 'ColdDamage'
   | 'LightningDamage'
-  | 'ElementalDamage' // Fire + Cold + Lightning
+  | 'ElementalDamage'
   | 'MeleeDamage'
   | 'RangedDamage'
   | 'SkillDamage'
@@ -38,6 +43,10 @@ export type StatType =
   | 'AreaDamage'
 
   // Penetration (Flat & Percent)
+  | 'StrikePenetrationFlat'
+  | 'StrikePenetrationPercent'
+  | 'PiercePenetrationFlat'
+  | 'PiercePenetrationPercent'
   | 'PhysicalPenetrationFlat'
   | 'PhysicalPenetrationPercent'
   | 'FirePenetrationFlat'
@@ -51,9 +60,8 @@ export type StatType =
 
   // Critical
   | 'AttackCriticalStrikeChance'
-  | 'AttackCriticalStrikeMultiplier'
   | 'SpellCriticalStrikeChance'
-  | 'SpellCriticalStrikeMultiplier'
+  | 'CriticalStrikeMultiplier'
 
   // Weapon Enhancements
   | 'StrikeDamageToWeapons'
@@ -85,7 +93,6 @@ export type StatType =
 
   // Deflection & Blocking
   | 'DeflectChance'
-  | 'SpellDeflectChance'
   | 'DeflectEffect'
   | 'Block'
   | 'SpellBlock'
@@ -108,12 +115,14 @@ export type StatType =
   // Misc
   | 'SkillReach'
   | 'CooldownReduction'
+  | 'MoveSpeed'
   | 'ManaCostReduction'
   | 'Tenacity'
   | 'BuffEffect'
   | 'BuffDuration'
   | 'ExperienceGain'
   | 'MagicFind'
+  | 'GoldFind'
   | 'ThreatMultiplier';
 
 // Helper function to easily define stats in data files

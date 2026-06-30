@@ -4,6 +4,8 @@ import { X, Sword, Shield, Circle, CircleDashed } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { Item } from '../engine/items/types';
+import { ItemTooltip } from './ItemTooltip';
+import { useTooltipStore } from '../store/useTooltipStore';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -35,6 +37,7 @@ interface Props {
 export function LootPopup({ dropId, onClose }: Props) {
   const { lootDrops, removeLootItem, removeLootDrop } = useWorldStore();
   const { lootItem } = useInventoryStore();
+  const setContent = useTooltipStore(state => state.setContent);
   
   const drop = lootDrops.find(d => d.id === dropId);
   
@@ -79,8 +82,13 @@ export function LootPopup({ dropId, onClose }: Props) {
             return (
               <div 
                 key={item.id}
-                onClick={() => handleLootSingle(item)}
-                className="flex items-center gap-4 p-3 bg-zinc-800/30 border border-zinc-700/50 rounded-lg cursor-pointer hover:bg-zinc-800/80 transition-colors"
+                onClick={() => {
+                  handleLootSingle(item);
+                  setContent(null); // clear tooltip when looting
+                }}
+                onMouseEnter={() => setContent(<ItemTooltip item={item} />)}
+                onMouseLeave={() => setContent(null)}
+                className="flex items-center gap-4 p-3 bg-zinc-800/30 border border-zinc-700/50 rounded-lg cursor-pointer hover:bg-zinc-800/80 transition-colors relative group"
               >
                 <div className="w-10 h-10 rounded-md bg-black/40 flex items-center justify-center border border-zinc-700">
                   <Icon className={cn("w-6 h-6", RARITY_COLORS[item.rarity])} />

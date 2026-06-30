@@ -1,10 +1,12 @@
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
-import { InputHandler, getEffectiveCastTime, getEffectiveManaCost } from '../engine/input/InputHandler';
+import { InputHandler, getEffectiveCastTime, getEffectiveManaCost, getMainHandAttackCooldown, getOffHandAttackCooldown } from '../engine/input/InputHandler';
 import { useStatsStore } from '../store/useStatsStore';
 import { useBuffStore } from '../store/useBuffStore';
 import { useSkillStore } from '../store/useSkillStore';
+import { useInventoryStore } from '../store/useInventoryStore';
+import { useTooltipStore } from '../store/useTooltipStore';
 import { Crosshair, X, Flame, ShieldAlert, Footprints, ArrowUpCircle, Sword } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SKILLS } from '../data/skills';
@@ -24,8 +26,9 @@ const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => 
 
 export function CombatOverlay() {
   const { activeTargetId, setTarget, position, currentMana, currentHealth, level, currentXp, boundSkills, bindSkill } = usePlayerStore();
+  const setContent = useTooltipStore(state => state.setContent);
   const { enemies } = useWorldStore();
-  const { gcdEndTime, castingSkillId, castEndTime } = useCombatStore();
+  const { gcdEndTime, castingSkillId, castEndTime, lastMainHandAttackTime, lastOffHandAttackTime } = useCombatStore();
   const { getStat } = useStatsStore();
   const { entityBuffs } = useBuffStore();
   const { unlockedActives } = useSkillStore();
@@ -47,19 +50,47 @@ export function CombatOverlay() {
 
   const target = enemies.find(e => e.id === activeTargetId);
 
+  // Swing Timer logic
+  const mainHandCooldown = getMainHandAttackCooldown();
+  const offHandCooldown = getOffHandAttackCooldown();
+  const weapon2 = useInventoryStore.getState().equipment['weapon2'];
+  const hasOffHandWeapon = weapon2 && weapon2.itemType !== 'shield';
+  
+  const timeSinceMainAttack = now - lastMainHandAttackTime;
+  const timeSinceOffAttack = now - lastOffHandAttackTime;
+  
+  const isMainTimerActive = timeSinceMainAttack < mainHandCooldown;
+  const isOffTimerActive = hasOffHandWeapon && timeSinceOffAttack < offHandCooldown;
+
   // Global Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Handle Tab targeting
       if (e.key === 'Tab') {
         e.preventDefault(); // Prevent browser UI focus shift
-        const allEnemies = useWorldStore.getState().enemies.filter(en => !en.isDead);
+        const playerPos = usePlayerStore.getState().position;
+        const allEnemies = [...useWorldStore.getState().enemies]
+          .filter(en => !en.isDead)
+          .sort((a, b) => {
+            const dxA = playerPos.x - a.position.x;
+            const dyA = playerPos.y - a.position.y;
+            const distA = dxA * dxA + dyA * dyA; // Euclidean distance squared
+            
+            const dxB = playerPos.x - b.position.x;
+            const dyB = playerPos.y - b.position.y;
+            const distB = dxB * dxB + dyB * dyB;
+            if (distA === distB) {
+              return a.id.localeCompare(b.id);
+            }
+            return distA - distB;
+          });
+          
         if (allEnemies.length === 0) return;
         
         const currentTargetId = usePlayerStore.getState().activeTargetId;
         const currentIndex = allEnemies.findIndex(en => en.id === currentTargetId);
         
-        // Cycle to next, or first if none targeted
+        // Cycle to next closest, or the closest if none targeted
         const nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % allEnemies.length;
         usePlayerStore.getState().setTarget(allEnemies[nextIndex].id);
         return;
@@ -90,9 +121,9 @@ export function CombatOverlay() {
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-8 z-10">
       
       {/* Target Frame (Top Center) */}
-      <div className="flex justify-center pointer-events-auto pt-2">
+      <div className="flex justify-center pointer-events-none pt-2">
         {target && (
-          <div className="bg-zinc-900 border border-zinc-700 shadow-2xl rounded-lg p-4 pr-10 flex items-center gap-4 min-w-[300px] relative">
+          <div className="bg-zinc-900 border border-zinc-700 shadow-2xl rounded-lg p-4 pr-10 flex items-center gap-4 min-w-[300px] relative pointer-events-auto">
             <button onClick={() => setTarget(null)} className="absolute top-3 right-3 text-zinc-500 hover:text-zinc-300 transition-colors">
               <X className="w-4 h-4" />
             </button>
@@ -114,25 +145,52 @@ export function CombatOverlay() {
           </div>
         )}
       </div>
-      
-      {/* Cast Bar (Center screen) */}
-      {castingSkillId && castEndTime > 0 && SKILLS[castingSkillId] && (
-        <div className="absolute top-[60%] left-1/2 -translate-x-1/2 w-48 pointer-events-auto">
-          <div className="text-xs text-center text-white mb-1 font-bold shadow-sm drop-shadow-md">
-            Casting {SKILLS[castingSkillId].name}...
-          </div>
-          <div className="h-2 w-full bg-zinc-900 rounded-full border border-zinc-700 overflow-hidden shadow-lg">
-                <div 
-                  className="bg-cyan-500 h-full transition-all duration-75"
-                  style={{ width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%` }}
-                />
-          </div>
-        </div>
-      )}
 
       {/* HUD & Action Bar (Bottom Center) */}
-      <div className="flex flex-col items-center pointer-events-auto gap-3">
+      <div className="flex flex-col items-center pointer-events-none gap-3">
         
+        {/* Timers Container */}
+        <div className="flex flex-col items-center gap-1 w-64 pointer-events-auto">
+          {/* Cast Bar */}
+          {castingSkillId && castEndTime > 0 && SKILLS[castingSkillId] && (
+            <div className="w-full">
+              <div className="text-[10px] text-center text-white mb-0.5 font-bold shadow-sm drop-shadow-md">
+                Casting {SKILLS[castingSkillId].name}...
+              </div>
+              <div className="h-1.5 w-full bg-zinc-900 rounded-sm border border-zinc-700 overflow-hidden shadow-lg">
+                    <div 
+                      className="bg-cyan-500 h-full transition-all duration-75"
+                      style={{ width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%` }}
+                    />
+              </div>
+            </div>
+          )}
+
+          {/* Main Hand Swing Timer */}
+          {isMainTimerActive && (
+            <div className="w-full">
+              <div className="h-1 w-full bg-zinc-900 rounded-sm border border-zinc-700 overflow-hidden shadow-lg">
+                <div 
+                  className="bg-orange-500 h-full transition-all duration-75"
+                  style={{ width: `${Math.max(0, 100 - (timeSinceMainAttack / mainHandCooldown) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Off-Hand Swing Timer */}
+          {isOffTimerActive && (
+            <div className="w-full">
+              <div className="h-1 w-full bg-zinc-900 rounded-sm border border-zinc-700 overflow-hidden shadow-lg">
+                <div 
+                  className="bg-yellow-500 h-full transition-all duration-75"
+                  style={{ width: `${Math.max(0, 100 - (timeSinceOffAttack / offHandCooldown) * 100)}%` }}
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Active Buffs */}
         {playerBuffs.length > 0 && (
           <div className="flex gap-1.5 justify-center mb-1">
@@ -178,7 +236,7 @@ export function CombatOverlay() {
           {/* Health */}
           <div className="relative h-3 w-full bg-zinc-800 rounded-sm overflow-hidden">
              <div 
-               className="absolute top-0 left-0 h-full bg-red-600 transition-all duration-300"
+               className="absolute top-0 left-0 h-full bg-red-600 transition-all duration-75"
                style={{ width: `${Math.min(100, (currentHealth / maxHealth) * 100)}%` }}
              />
              <div className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white shadow-black drop-shadow-md pb-[1px]">
@@ -188,7 +246,7 @@ export function CombatOverlay() {
           {/* Mana */}
           <div className="relative h-3 w-full bg-zinc-800 rounded-sm overflow-hidden">
              <div 
-               className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-300"
+               className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-75"
                style={{ width: `${Math.min(100, (currentMana / maxMana) * 100)}%` }}
              />
              <div className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white shadow-black drop-shadow-md pb-[1px]">
@@ -212,7 +270,7 @@ export function CombatOverlay() {
         </div>
 
         {/* Action Bar */}
-        <div className="bg-zinc-900 border border-zinc-800 shadow-2xl rounded-xl p-3 flex gap-3 relative overflow-visible">
+        <div className="w-fit flex gap-2 p-2 bg-zinc-900/90 backdrop-blur-md rounded-xl border border-zinc-800 shadow-2xl pointer-events-auto">
            
            {boundSkills.slice(0, 6).map((skillId, index) => {
              const skill = skillId ? SKILLS[skillId] : null;
@@ -228,7 +286,7 @@ export function CombatOverlay() {
              const isBinding = bindingSlotIndex === index;
 
              return (
-              <div key={index} className="relative">
+              <div key={index} className="relative group">
                 <button 
                   disabled={!skill || isGcdActive || currentMana < (skill ? getEffectiveManaCost(skill) : 0)}
                   className={`relative w-14 h-14 rounded border flex items-center justify-center transition-all group overflow-hidden
@@ -241,6 +299,33 @@ export function CombatOverlay() {
                     e.preventDefault();
                     setBindingSlotIndex(isBinding ? null : index);
                   }}
+                  onMouseEnter={() => {
+                    if (!isBinding && skill) {
+                      setContent(
+                        <div className="w-48 bg-zinc-950 border border-zinc-700 rounded-lg shadow-2xl p-2 text-left pointer-events-none">
+                          <div className="font-bold text-orange-500 mb-1">{skill.name}</div>
+                          <div className="flex justify-between text-[10px] text-zinc-400 mb-2 pb-1 border-b border-zinc-800 uppercase tracking-widest">
+                             <span>{skill.range > 0 ? `Range ${skill.range}` : 'Melee'}</span>
+                             <span>{getEffectiveManaCost(skill)} Mana</span>
+                          </div>
+                          {skill.effects.some(e => e.type === 'damage') && (
+                            <div className="mb-2 pb-2 border-b border-zinc-800">
+                              {skill.effects.filter(e => e.type === 'damage').map((effect, i) => (
+                                <div key={i} className="text-xs font-bold text-red-400">
+                                  {effect.baseValue} {effect.element} Damage
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="text-xs text-zinc-300 leading-snug mb-2">
+                             {skill.description}
+                          </div>
+                        </div>
+                      );
+                    }
+                  }}
+                  onMouseLeave={() => setContent(null)}
                 >
                   {/* GCD Sweep Overlay */}
                   {skill && isGcdActive && (
@@ -259,6 +344,7 @@ export function CombatOverlay() {
                       {getEffectiveManaCost(skill)}
                     </div>
                   )}
+
                 </button>
 
                 {/* Popover Menu */}
@@ -266,12 +352,6 @@ export function CombatOverlay() {
                   <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-zinc-950 border border-zinc-700 rounded-xl shadow-2xl p-2 z-50 animate-in slide-in-from-bottom-2">
                     <div className="text-xs font-bold text-zinc-400 mb-2 px-1 text-center">Bind Skill</div>
                     <div className="flex flex-col gap-1">
-                      <button
-                        className="w-full text-left px-2 py-1.5 rounded text-xs text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
-                        onClick={() => { bindSkill(index, null); setBindingSlotIndex(null); }}
-                      >
-                        (Clear Slot)
-                      </button>
                       {unlockedActives.map(actId => {
                         const act = SKILLS[actId];
                         if (!act) return null;
@@ -287,6 +367,13 @@ export function CombatOverlay() {
                           </button>
                         );
                       })}
+                      <div className="h-px w-full bg-zinc-800 my-1" />
+                      <button
+                        className="w-full text-left px-2 py-1.5 rounded text-xs text-zinc-500 hover:bg-zinc-800 hover:text-red-400 transition-colors"
+                        onClick={() => { bindSkill(index, null); setBindingSlotIndex(null); }}
+                      >
+                        (Clear Slot)
+                      </button>
                     </div>
                   </div>
                 )}
