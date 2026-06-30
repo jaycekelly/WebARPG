@@ -1,6 +1,6 @@
 export type ModifierType = 'flat' | 'increased' | 'more';
 
-export type DamageType = 'Slashing' | 'Piercing' | 'Fire' | 'Cold' | 'Lightning';
+export type DamageType = 'Strike' | 'Pierce' | 'Fire' | 'Cold' | 'Lightning';
 
 export interface StatModifier {
   id: string;          // Unique ID for this specific modifier instance
@@ -50,15 +50,18 @@ export type StatType =
   | 'ElementalPenetrationPercent'
 
   // Critical
-  | 'CriticalStrikeChance'
-  | 'CriticalStrikeMultiplier'
+  | 'AttackCriticalStrikeChance'
+  | 'AttackCriticalStrikeMultiplier'
+  | 'SpellCriticalStrikeChance'
+  | 'SpellCriticalStrikeMultiplier'
 
   // Weapon Enhancements
-  | 'PhysicalDamageToWeapons'
-  | 'ElementalDamageToWeapons'
+  | 'StrikeDamageToWeapons'
+  | 'PierceDamageToWeapons'
   | 'FireDamageToWeapons'
   | 'ColdDamageToWeapons'
   | 'LightningDamageToWeapons'
+  | 'WeaponElementalDamage'
 
   // Damage Over Time (DoT) & Status Effects
   | 'DoTDamage'
@@ -87,9 +90,9 @@ export type StatType =
   | 'Block'
   | 'SpellBlock'
   | 'BlockEffect'
-  | 'WeaponBlock'
-  | 'WeaponSpellBlock'
-  | 'WeaponBlockEffect'
+  | 'Parry'
+  | 'SpellParry'
+  | 'ParryEffect'
 
   // Sustain & Recovery
   | 'HealingDealt'
@@ -103,7 +106,7 @@ export type StatType =
   | 'ManaOnKill'
 
   // Misc
-  | 'AreaOfEffect'
+  | 'SkillReach'
   | 'CooldownReduction'
   | 'ManaCostReduction'
   | 'Tenacity'
@@ -112,3 +115,12 @@ export type StatType =
   | 'ExperienceGain'
   | 'MagicFind'
   | 'ThreatMultiplier';
+
+// Helper function to easily define stats in data files
+export function Stat(
+  stat: StatType,
+  value: number,
+  type: ModifierType = 'flat',
+): { stat: StatType; value: number; type: ModifierType } {
+  return { stat, value, type };
+}

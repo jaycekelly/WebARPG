@@ -6,12 +6,16 @@ export interface EnemyStats {
   attackSpeed: number; // Attacks per second. e.g. 0.5 = 1 attack every 2s
   attackRange: number; // Grid tiles
   moveSpeed: number;   // Tiles per second. e.g. 1.0 = 1 tile per second (1000ms cooldown)
+  aggroRange: number;  // Distance before AI activates
   
   // Defenses
   armor: number;
   fireResist: number;
   coldResist: number;
   lightningResist: number;
+  strikeResist?: number;
+  pierceResist?: number;
+  physicalResist?: number;
 }
 
 export interface EnemyTemplate {

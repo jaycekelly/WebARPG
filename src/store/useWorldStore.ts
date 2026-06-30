@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import type { EnemyStats, AIProfile } from '../engine/enemies/types';
+import type { Item } from '../engine/items/types';
+import type { DamageType } from '../engine/stats/types';
 
 export interface Enemy {
   id: string;
@@ -14,25 +16,67 @@ export interface Enemy {
   xpReward: number;
   lastAttackTime: number;
   lastMoveTime: number;
+  faction: 'enemy' | 'player';
+}
+
+export interface LootDrop {
+  id: string;
+  items: Item[];
+  position: { x: number; y: number };
+}
+
+export interface GroundZone {
+  id: string;
+  position: { x: number; y: number };
+  hazardId: string;
+  element?: DamageType;
+  damagePerSecond: number;
+  expiresAt: number;
+}
+
+export interface Obstacle {
+  x: number;
+  y: number;
+  type: 'tree' | 'wall' | 'rock';
+}
+
+export interface GridMap {
+  width: number;
+  height: number;
+  obstacles: Obstacle[];
 }
 
 interface WorldState {
-  gridSize: { width: number; height: number };
+  grid: GridMap;
   enemies: Enemy[];
+  lootDrops: LootDrop[];
   spawnEnemy: (enemy: Omit<Enemy, 'id' | 'isDead' | 'lastAttackTime' | 'lastMoveTime'>) => void;
   damageEnemy: (id: string, amount: number) => void;
   updateEnemyAttackTime: (id: string, time: number) => void;
   updateEnemyMoveTime: (id: string, time: number) => void;
   moveEnemy: (id: string, position: {x: number, y: number}) => void;
   getEnemyAt: (x: number, y: number) => Enemy | undefined;
+  
+  // Loot
+  addLoot: (position: { x: number; y: number }, items: Item[]) => void;
+  removeLootItem: (dropId: string, itemId: string) => void;
+  removeLootDrop: (dropId: string) => void;
+  setGrid: (grid: GridMap) => void;
+
+  // Zones
+  zones: GroundZone[];
+  addZone: (zone: Omit<GroundZone, 'id'>) => void;
+  clearExpiredZones: (now: number) => void;
 }
 
 export const useWorldStore = create<WorldState>((set, get) => ({
-  gridSize: { width: 15, height: 10 },
+  grid: { width: 15, height: 15, obstacles: [] },
   enemies: [],
+  lootDrops: [],
+  zones: [],
 
   spawnEnemy: (enemyData) => set((state) => ({
-    enemies: [...state.enemies, { ...enemyData, id: Math.random().toString(), isDead: false, lastAttackTime: 0, lastMoveTime: 0 }]
+    enemies: [...state.enemies, { ...enemyData, id: Math.random().toString(), isDead: false, lastAttackTime: 0, lastMoveTime: 0, faction: enemyData.faction || 'enemy' }]
   })),
 
   damageEnemy: (id, amount) => set((state) => ({
@@ -65,5 +109,49 @@ export const useWorldStore = create<WorldState>((set, get) => ({
 
   getEnemyAt: (x, y) => {
     return get().enemies.find(e => e.position.x === x && e.position.y === y && !e.isDead);
-  }
+  },
+
+  addLoot: (position, items) => set((state) => {
+    // Check if loot already exists at this tile to merge it
+    const existingDrop = state.lootDrops.find(drop => drop.position.x === position.x && drop.position.y === position.y);
+    
+    if (existingDrop) {
+      return {
+        lootDrops: state.lootDrops.map(drop => 
+          drop.id === existingDrop.id ? { ...drop, items: [...drop.items, ...items] } : drop
+        )
+      };
+    } else {
+      return {
+        lootDrops: [...state.lootDrops, { id: Math.random().toString(), items, position }]
+      };
+    }
+  }),
+
+  removeLootItem: (dropId, itemId) => set((state) => ({
+    lootDrops: state.lootDrops.map(drop => {
+      if (drop.id === dropId) {
+        return { ...drop, items: drop.items.filter(item => item.id !== itemId) };
+      }
+      return drop;
+    }).filter(drop => drop.items.length > 0) // Clean up empty drops
+  })),
+
+  removeLootDrop: (dropId) => set((state) => ({
+    lootDrops: state.lootDrops.filter(drop => drop.id !== dropId)
+  })),
+
+  setGrid: (grid) => set({ grid }),
+
+  addZone: (zoneData) => set((state) => {
+    // If a zone of the same hazardId already exists here, we can overwrite or just add another
+    // Let's just add it for now, can optimize stacking later
+    return {
+      zones: [...state.zones, { ...zoneData, id: Math.random().toString() }]
+    };
+  }),
+
+  clearExpiredZones: (now) => set((state) => ({
+    zones: state.zones.filter(z => z.expiresAt > now)
+  }))
 }));

@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { useStatsStore } from './useStatsStore';
 import { useCombatStore } from './useCombatStore';
+import type { ClassType } from '../engine/player/types';
 
 interface PlayerState {
+  playerClass: ClassType;
   position: { x: number; y: number };
   currentHealth: number;
   currentMana: number;
@@ -10,17 +12,24 @@ interface PlayerState {
   level: number;
   currentXp: number;
   skillPoints: number;
+  gold: number;
+  boundSkills: (string | null)[];
   
   move: (dx: number, dy: number) => void;
   setPosition: (x: number, y: number) => void;
   setTarget: (id: string | null) => void;
   takeDamage: (amount: number) => void;
   heal: (amount: number) => void;
+  restoreMana: (amount: number) => void;
   useMana: (amount: number) => boolean;
   addXp: (amount: number) => { leveledUp: boolean, newLevel: number };
+  addGold: (amount: number) => void;
+  addSkillPoints: (amount: number) => void;
+  bindSkill: (slotIndex: number, skillId: string | null) => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
+  playerClass: 'Fighter',
   position: { x: 5, y: 5 },
   currentHealth: 40,
   currentMana: 40,
@@ -28,6 +37,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   level: 1,
   currentXp: 0,
   skillPoints: 0,
+  gold: 0,
+  boundSkills: ['fireball', null, null, null, null, null],
 
   move: (dx, dy) => set((state) => {
     const now = Date.now();
@@ -56,11 +67,17 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     return { currentHealth: newHealth };
   }),
 
-  heal: (amount) => set((state) => {
+  heal: (amount: number) => set((state) => {
     // Read the dynamic max health from the stats store
     const maxHealth = useStatsStore.getState().getStat('Health');
     const newHealth = Math.min(maxHealth, state.currentHealth + amount);
     return { currentHealth: newHealth };
+  }),
+
+  restoreMana: (amount) => set((state) => {
+    const maxMana = useStatsStore.getState().getStat('Mana');
+    const newMana = Math.min(maxMana, state.currentMana + amount);
+    return { currentMana: newMana };
   }),
 
   useMana: (amount) => {
@@ -120,5 +137,21 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       set({ currentXp: newXp });
       return { leveledUp: false, newLevel: state.level };
     }
-  }
+  },
+  
+  addGold: (amount) => set((state) => ({
+    gold: state.gold + amount
+  })),
+
+  addSkillPoints: (amount) => set((state) => ({
+    skillPoints: Math.max(0, state.skillPoints + amount)
+  })),
+
+  bindSkill: (slotIndex, skillId) => set((state) => {
+    const newBound = [...state.boundSkills];
+    // Optional: If skillId is already bound elsewhere, remove it?
+    // We'll just allow multiple binds or just overwrite.
+    newBound[slotIndex] = skillId;
+    return { boundSkills: newBound };
+  })
 }));

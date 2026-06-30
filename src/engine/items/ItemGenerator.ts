@@ -27,16 +27,19 @@ export const RARITY_TUNING = {
 export class ItemGenerator {
   
   /**
-   * Determine rarity based on a weighted random roll influenced by iLvl.
+   * Determine rarity based on a weighted random roll influenced by iLvl and magicFind.
    */
-  private static rollRarity(iLvl: number): Rarity {
+  private static rollRarity(iLvl: number, magicFind: number = 0): Rarity {
     const t = RARITY_TUNING;
     const wCommon = Math.max(0, t.commonBase - t.commonDecay * iLvl);
-    const wMagic = t.magicBase;
-    const wRare = Math.max(0, t.rareScale * iLvl - t.rareOffset);
-    const wEpic = Math.max(0, t.epicScale * iLvl - t.epicOffset);
-    const wLegendary = Math.max(0, t.legScale * iLvl - t.legOffset);
-    const wUnique = t.uniqueBase;
+    const mfMult = 1 + (magicFind / 100);
+    
+    // Magic find boosts higher rarities
+    const wMagic = t.magicBase * mfMult;
+    const wRare = Math.max(0, t.rareScale * iLvl - t.rareOffset) * mfMult;
+    const wEpic = Math.max(0, t.epicScale * iLvl - t.epicOffset) * mfMult;
+    const wLegendary = Math.max(0, t.legScale * iLvl - t.legOffset) * mfMult;
+    const wUnique = t.uniqueBase * mfMult;
 
     const totalWeight = wCommon + wMagic + wRare + wEpic + wLegendary + wUnique;
     const roll = Math.random() * totalWeight;
@@ -77,7 +80,7 @@ export class ItemGenerator {
    * Pick random unique affixes from the allowed pool for this item type.
    */
   private static rollAffixes(itemType: ItemType, iLvl: number, count: number): GeneratedAffix[] {
-    const allowedAffixes = AFFIX_POOL.filter(a => a.allowedTypes.includes(itemType));
+    const allowedAffixes = AFFIX_POOL.filter(a => a.allowedTypes.includes(itemType) && iLvl >= a.minLevel);
     const selectedAffixes: GeneratedAffix[] = [];
     
     // Copy pool so we can remove picked affixes (no duplicates)
@@ -89,12 +92,26 @@ export class ItemGenerator {
       const randomIndex = Math.floor(Math.random() * availablePool.length);
       const affixTemplate = availablePool.splice(randomIndex, 1)[0];
       
-      const rolled = affixTemplate.roll(iLvl);
+      // Compute the base exponential power: baseValue * (1 + levelMultiplier)^iLvl
+      const targetPower = affixTemplate.baseValue * Math.pow(1 + affixTemplate.levelMultiplier, iLvl);
+      
+      // Apply +/- 25% random variance on top of the final target power
+      const variance = 0.75 + (Math.random() * 0.50);
+      let finalValue = Math.round(targetPower * variance);
+      
+      // Ensure it's at least 1 for flat/increased stats
+      if (finalValue < 1) finalValue = 1;
+      
+      const description = affixTemplate.descriptionTpl.replace('{value}', finalValue.toString());
       
       selectedAffixes.push({
         id: affixTemplate.id,
-        description: rolled.description,
-        stat: rolled.stat
+        description,
+        stat: {
+          stat: affixTemplate.stat,
+          type: affixTemplate.type,
+          value: finalValue
+        }
       });
     }
 
@@ -104,11 +121,11 @@ export class ItemGenerator {
   /**
    * Generates a fully rolled Item instance.
    */
-  static generateLoot(templateId: string, iLvl: number): Item | null {
+  static generateLoot(templateId: string, iLvl: number, magicFind: number = 0): Item | null {
     const template = ITEM_TEMPLATES[templateId];
     if (!template) return null;
 
-    const rarity = this.rollRarity(iLvl);
+    const rarity = this.rollRarity(iLvl, magicFind);
     
     if (rarity === 'Unique') {
        return this.generateUnique(templateId, iLvl);
@@ -127,7 +144,12 @@ export class ItemGenerator {
       rarity,
       baseStats: template.baseStats, // Inherited intrinsic stats (like base damage)
       affixes,
-      damageType: template.damageType
+      damageType: template.damageType,
+      weaponAttackSpeed: template.weaponAttackSpeed,
+      weaponCategory: template.weaponCategory,
+      weaponRange: template.weaponRange,
+      baseCritChance: template.baseCritChance,
+      baseBlockChance: template.baseBlockChance
     };
   }
 
@@ -149,7 +171,23 @@ export class ItemGenerator {
       rarity: 'Unique',
       baseStats: template.baseStats,
       affixes: [], // For now, Unique templating can just rely on baseStats, or we expand it later
-      damageType: template.damageType
+      damageType: template.damageType,
+      weaponAttackSpeed: template.weaponAttackSpeed,
+      weaponCategory: template.weaponCategory,
+      weaponRange: template.weaponRange,
+      baseCritChance: template.baseCritChance,
+      baseBlockChance: template.baseBlockChance
     };
+  }
+
+  /**
+   * Generates a completely random piece of loot for the given iLvl.
+   */
+  static generateRandomLoot(iLvl: number, magicFind: number = 0): Item | null {
+    const templateIds = Object.keys(ITEM_TEMPLATES);
+    if (templateIds.length === 0) return null;
+    
+    const randomTemplateId = templateIds[Math.floor(Math.random() * templateIds.length)];
+    return this.generateLoot(randomTemplateId, iLvl, magicFind);
   }
 }

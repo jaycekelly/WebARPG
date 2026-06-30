@@ -1,6 +1,9 @@
 import { useInventoryStore } from '../store/useInventoryStore';
-import type { EquipmentSlot, Item, Rarity } from '../engine/items/types';
-import { Sword, Shield, Circle, PackageOpen, HelpCircle } from 'lucide-react';
+import { useAppStore } from '../store/useAppStore';
+import { useTooltipStore } from '../store/useTooltipStore';
+import type { EquipmentSlot, Rarity } from '../engine/items/types';
+import { Sword, Shield, Circle, HelpCircle } from 'lucide-react';
+import { ItemTooltip } from './ItemTooltip';
 
 const SLOT_ICONS: Record<string, React.ElementType> = {
   'helm': HelpCircle, // Add proper icons later
@@ -22,47 +25,22 @@ const ICONS: Record<string, React.ElementType> = {
 };
 
 const RARITY_COLORS: Record<Rarity, string> = {
-  'Normal': 'border-zinc-600 text-zinc-300',
-  'Magic': 'border-blue-500 text-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.2)]',
-  'Rare': 'border-yellow-500 text-yellow-400 shadow-[0_0_8px_rgba(234,179,8,0.2)]',
-  'Epic': 'border-purple-500 text-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.3)]',
-  'Legendary': 'border-orange-500 text-orange-400 shadow-[0_0_8px_rgba(249,115,22,0.3)]',
-  'Unique': 'border-amber-400 text-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.4)]',
+  'Normal': 'border-zinc-500 text-zinc-400',
+  'Magic': 'border-blue-500 text-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.2)]',
+  'Rare': 'border-yellow-500 text-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.2)]',
+  'Epic': 'border-purple-500 text-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.3)]',
+  'Legendary': 'border-orange-500 text-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.3)]',
+  'Unique': 'border-amber-500 text-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]',
 };
 
-const getTooltip = (item: Item | undefined, slotLabel: string) => {
-  if (!item) return `Empty ${slotLabel}`;
-  
-  let tooltip = `${item.name}\n${item.rarity} ${item.itemType} (iLvl ${item.iLvl})\n`;
-  
-  if (item.baseStats.length > 0) {
-     tooltip += `\n-- Base Stats --\n`;
-     item.baseStats.forEach(stat => {
-        const sign = stat.value > 0 ? '+' : '';
-        const suffix = stat.type === 'increased' ? '%' : '';
-        tooltip += `${sign}${stat.value}${suffix} ${stat.stat}\n`;
-     });
-  }
 
-  if (item.affixes.length > 0) {
-     tooltip += `\n-- Affixes --\n`;
-     item.affixes.forEach(affix => {
-        tooltip += `${affix.description}\n`;
-     });
-  }
-  
-  tooltip += `\n(Click to unequip)`;
-  return tooltip;
-};
 
-const getTooltipBag = (item: Item | undefined) => {
-  if (!item) return `Empty slot`;
-  const t = getTooltip(item, '');
-  return t.replace('(Click to unequip)', '(Click to equip)');
-};
+
 
 export function InventoryPanel() {
-  const { inventory, equipment, equip, unequip } = useInventoryStore();
+  const { inventory, equipment, equip, unequip, sellItem } = useInventoryStore();
+  const { location, vendorOpen } = useAppStore();
+  const { setContent } = useTooltipStore();
 
   const renderEquipmentSlot = (slot: EquipmentSlot, label: string) => {
     const item = equipment[slot];
@@ -73,10 +51,11 @@ export function InventoryPanel() {
     return (
       <button
         onClick={() => item && unequip(slot)}
+        onMouseEnter={() => item && setContent(<ItemTooltip item={item} />)}
+        onMouseLeave={() => setContent(null)}
         className={`w-12 h-12 flex flex-col items-center justify-center border rounded transition-all group relative bg-zinc-800 hover:bg-zinc-700
           ${rarityClasses}
         `}
-        title={getTooltip(item, label)}
       >
         <Icon className={`w-5 h-5`} />
         <span className="text-[8px] mt-1 font-bold uppercase tracking-wider opacity-50">{label}</span>
@@ -85,9 +64,9 @@ export function InventoryPanel() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-2">
       {/* Paper Doll Equipment */}
-        <div className="grid grid-cols-3 gap-2 mb-6 justify-items-center">
+        <div className="grid grid-cols-3 gap-2 mb-2 justify-items-center">
           <div className="col-start-2">{renderEquipmentSlot('helm', 'Helm')}</div>
           
           <div className="col-start-1">{renderEquipmentSlot('weapon1', 'Wep 1')}</div>
@@ -104,24 +83,33 @@ export function InventoryPanel() {
         </div>
 
         {/* Bag Header */}
-        <div className="flex items-center gap-2 mb-3 text-zinc-400 text-xs font-bold uppercase tracking-wider">
-          <PackageOpen className="w-4 h-4" /> Backpack
-        </div>
+        <h3 className="text-sm font-bold text-zinc-100 mb-1">
+          Backpack
+        </h3>
 
         {/* Bag Grid */}
         <div className="grid grid-cols-5 gap-2">
-          {Array.from({ length: 15 }).map((_, i) => {
+          {Array.from({ length: 20 }).map((_, i) => {
             const item = inventory[i];
             const rarityClasses = item ? RARITY_COLORS[item.rarity] : 'bg-zinc-900/30 border-zinc-800/50';
 
             return (
               <button
                 key={i}
-                onClick={() => item && equip(i)}
+                onClick={() => {
+                  if (!item) return;
+                  if (location === 'town' && vendorOpen) {
+                    sellItem(i);
+                    setContent(null); // Hide tooltip after selling
+                  } else {
+                    equip(i);
+                  }
+                }}
+                onMouseEnter={() => item && setContent(<ItemTooltip item={item} />)}
+                onMouseLeave={() => setContent(null)}
                 className={`w-12 h-12 flex items-center justify-center border rounded transition-colors bg-zinc-800 hover:bg-zinc-700
                   ${rarityClasses}
                 `}
-                title={getTooltipBag(item)}
               >
                 {item && (
                   (() => {
@@ -133,6 +121,7 @@ export function InventoryPanel() {
             );
           })}
         </div>
+
     </div>
   );
 }

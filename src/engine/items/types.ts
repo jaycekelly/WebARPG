@@ -8,6 +8,7 @@ export type EquipmentSlot =
   | 'boots' 
   | 'weapon1' 
   | 'weapon2' 
+  | 'shield'
   | 'amulet' 
   | 'ring1' 
   | 'ring2';
@@ -20,8 +21,11 @@ export type ItemType =
   | 'boots' 
   | 'weapon-1h' 
   | 'weapon-2h' 
+  | 'shield'
   | 'amulet' 
   | 'ring';
+
+export type WeaponCategory = 'Sword' | 'Dagger' | 'Bow' | 'Axe' | 'Scepter' | 'Wand' | 'Staff' | 'Unarmed';
 
 export type Rarity = 'Normal' | 'Magic' | 'Rare' | 'Epic' | 'Legendary' | 'Unique';
 
@@ -47,5 +51,35 @@ export interface Item {
   iLvl: number;
   baseStats: BaseStat[];
   affixes: GeneratedAffix[];
-  damageType?: DamageType; // Used if itemType is a weapon
+  damageType?: DamageType; // Weapon specific
+  weaponAttackSpeed?: number;
+  weaponCategory?: WeaponCategory;
+  weaponRange?: number;
+  baseCritChance?: number;
+  baseBlockChance?: number;
+}
+
+export interface ItemTemplate {
+  id: string;
+  name: string;
+  icon: string;
+  itemType: ItemType;
+  baseStats: BaseStat[];
+  damageType?: DamageType;
+  weaponAttackSpeed?: number;
+  weaponRange?: number;
+  weaponCategory?: WeaponCategory;
+  baseCritChance?: number;
+  baseBlockChance?: number;
+}
+
+export interface AffixTemplate {
+  id: string;
+  allowedTypes: ItemType[];
+  minLevel: number;
+  stat: StatType;
+  type: ModifierType;
+  baseValue: number;
+  levelMultiplier: number;
+  descriptionTpl: string;
 }

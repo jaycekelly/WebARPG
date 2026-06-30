@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Item, EquipmentSlot, ItemType } from '../engine/items/types';
 import { useStatsStore } from './useStatsStore';
 import { useCombatStore } from './useCombatStore';
+import { usePlayerStore } from './usePlayerStore';
 
 interface InventoryState {
   inventory: Item[];
@@ -10,6 +11,7 @@ interface InventoryState {
   lootItem: (item: Item) => void;
   equip: (inventoryIndex: number, targetSlot?: EquipmentSlot) => void;
   unequip: (slot: EquipmentSlot) => void;
+  sellItem: (inventoryIndex: number) => void;
 }
 
 const getDefaultSlot = (type: ItemType): EquipmentSlot | null => {
@@ -21,6 +23,7 @@ const getDefaultSlot = (type: ItemType): EquipmentSlot | null => {
     case 'boots': return 'boots';
     case 'weapon-1h': return 'weapon1';
     case 'weapon-2h': return 'weapon1';
+    case 'shield': return 'weapon2';
     case 'amulet': return 'amulet';
     case 'ring': return 'ring1';
     default: return null;
@@ -127,5 +130,23 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       inventory: [...state.inventory, item],
       equipment: { ...state.equipment, [slot]: undefined }
     }));
+  },
+
+  sellItem: (inventoryIndex) => {
+    const state = get();
+    const item = state.inventory[inventoryIndex];
+    if (!item) return;
+
+    // A simple sell formula based on iLvl and rarity
+    const rarityMultiplier = {
+      Normal: 1, Magic: 2, Rare: 5, Epic: 15, Legendary: 50, Unique: 100
+    }[item.rarity];
+    const goldValue = Math.max(1, item.iLvl * rarityMultiplier);
+
+    usePlayerStore.getState().addGold(goldValue);
+
+    const newInventory = [...state.inventory];
+    newInventory.splice(inventoryIndex, 1);
+    set({ inventory: newInventory });
   }
 }));

@@ -30,7 +30,8 @@ export class EnemySpawner {
       position: position,
       health: Math.floor(template.stats.maxHealth * scaleFactor),
       aiProfile: template.aiProfile,
-      xpReward: Math.floor(template.baseXpReward * scaleFactor),
+      faction: 'enemy',
+      xpReward: Math.floor(template.baseXpReward * (1 + levelDiff * 0.2)),
       stats: {
         maxHealth: Math.floor(template.stats.maxHealth * scaleFactor),
         attackPower: Math.floor(template.stats.attackPower * scaleFactor),
@@ -38,6 +39,7 @@ export class EnemySpawner {
         attackSpeed: template.stats.attackSpeed,
         attackRange: template.stats.attackRange,
         moveSpeed: template.stats.moveSpeed,
+        aggroRange: template.stats.aggroRange,
         armor: template.stats.armor,
         fireResist: template.stats.fireResist,
         coldResist: template.stats.coldResist,

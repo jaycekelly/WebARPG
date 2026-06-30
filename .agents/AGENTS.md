@@ -22,8 +22,26 @@ This document outlines the core principles and architectural rules for the WebAR
 
 ## 4. UI & Aesthetics (Tailwind)
 - **Premium Dark Aesthetic**: Maintain the clean, dark-themed, "Melvor Idle" inspired interface. 
-- Use consistent Tailwind spacing, borders (`border-zinc-800`), and typography.
-- Rely on subtle visual cues (colors, micro-animations, Lucide icons) rather than massive blocks of text to convey information.
+- **Base Backgrounds**: Use `bg-zinc-950` for the absolute lowest layer (e.g., the body or global container).
+- **Primary Panels & Modals**: Use `bg-zinc-900 border border-zinc-800` for primary UI blocks (Sidebars, Inventory, Skill Tree Modal, Action Bar container, Vitals display).
+- **Secondary/Nested Containers**: Use `bg-zinc-900/50` or `bg-zinc-950/50` for nested sub-panels, often with a subtle `backdrop-blur-md` if floating. Use `border-zinc-800` for their borders.
+- **Typography Colors**: 
+  - Primary text/Headers: `text-zinc-100`
+  - Secondary text/Descriptions: `text-zinc-400`
+- **Semantic/Highlight Colors**:
+  - **Rule**: ALWAYS use `500` for text/borders (e.g., `text-red-500`, `border-red-500`) and `600` for solid background fills (e.g., `bg-red-600`). Use `500/10` or `500/20` for faint backgrounds.
+  - **Player/Health/Enemies**: Red (`text-red-500`, `bg-red-600`, `bg-red-500/10`)
+  - **Mana/Magic/Passives**: Blue (`text-blue-500`, `bg-blue-600`)
+  - **XP**: Purple (`bg-purple-600`)
+  - **System/Friendly/Buffs**: Emerald (`text-emerald-500`, `border-emerald-500`)
+  - **Interactables/Actives/Highlights**: Cyan (`text-cyan-500`, `border-cyan-500`)
+- **Grid Layouts**: Combat grid tiles use `border-zinc-800/40`.
+- **Combat Log Formatting**:
+  - *System*: `text-emerald-500 italic`
+  - *Player Attack*: `text-blue-500`
+  - *Enemy Attack*: `text-red-500`
+  - *Abilities*: `text-cyan-500 font-semibold bg-cyan-500/10`
+- **Micro-Animations**: Rely on subtle visual cues (`transition-colors`, `hover:scale-110`, `animate-pulse` on targeted units, Lucide icons) rather than massive blocks of text to convey information.
 
 ## 5. Agent Workflow
 - **Plan Before Massive Changes**: Whenever a massive new system is requested (e.g., "Build the Trade Skill system"), stop and write out an implementation plan first to ensure the architecture remains clean.

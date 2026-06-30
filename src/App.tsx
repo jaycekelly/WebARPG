@@ -1,34 +1,50 @@
+import { useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
-import { Grid } from './components/Grid';
-import { CombatOverlay } from './components/CombatOverlay';
-import { CombatLog } from './components/CombatLog';
 import { useGameEngine } from './engine/useGameEngine';
+import { useAppStore } from './store/useAppStore';
+import { TownView } from './components/TownView';
+import { DungeonView } from './components/DungeonView';
+import { DataEditorView } from './components/DataEditorView';
+import { SkillTreeModal } from './components/SkillTreeModal';
+import { GlobalTooltip } from './components/GlobalTooltip';
 
 function App() {
   useGameEngine(); // Mount the 60fps game engine loop
-  return (
-    <div className="flex h-screen w-screen bg-zinc-950 overflow-hidden text-zinc-100 font-sans selection:bg-red-500/30">
-      <Sidebar />
-      
-      <main className="flex-1 relative flex flex-col">
-        {/* Top header bar */}
-        <header className="h-14 bg-zinc-900 border-b border-zinc-800 flex items-center px-6 shadow-sm z-20">
-          <h1 className="font-bold text-lg tracking-tight bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">
-            WebARPG
-          </h1>
-          <div className="ml-auto flex items-center gap-4 text-sm text-zinc-500 font-medium">
-            <span>Room: Dungeon Entrance</span>
-          </div>
-        </header>
+  const { location, setLocation } = useAppStore();
 
-        {/* Game Area */}
-        <div className="flex-1 relative flex">
-          <Grid />
-          <CombatOverlay />
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Toggle Editor with Ctrl+E
+      if (e.ctrlKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        setLocation(useAppStore.getState().location === 'editor' ? 'town' : 'editor');
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [setLocation]);
+
+  if (location === 'editor') {
+    return (
+      <div className="flex w-screen h-screen items-center justify-center bg-black overflow-hidden">
+        <div className="flex w-full h-full max-w-[1920px] max-h-[1080px] bg-zinc-950 overflow-hidden text-zinc-100 font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
+          <DataEditorView />
+          <GlobalTooltip />
         </div>
-      </main>
+      </div>
+    );
+  }
 
-      <CombatLog />
+  return (
+    <div className="flex w-screen h-screen items-center justify-center bg-black overflow-hidden">
+      <div className="flex w-full h-full max-w-[1920px] max-h-[1080px] bg-zinc-950 overflow-hidden text-zinc-100 font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
+        <Sidebar />
+        
+        {location === 'town' ? <TownView /> : <DungeonView />}
+
+        <SkillTreeModal />
+        <GlobalTooltip />
+      </div>
     </div>
   );
 }
