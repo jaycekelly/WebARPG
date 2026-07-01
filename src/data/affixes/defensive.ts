@@ -27,6 +27,18 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'MaxHealth'
   },
   
+  {
+    id: 'inc_health_regen',
+    allowedTypes: ['amulet', 'ring'],
+    minLevel: 1,
+    stat: 'HealthRegenPercent',
+    type: 'increased',
+    baseValue: 10,
+    levelMultiplier: 0.05,
+    descriptionTpl: '{value}% Health Regen',
+    exclusivityGroup: 'HealthRegen'
+  },
+  
   // Mana
   {
     id: 'flat_mana',
@@ -51,6 +63,19 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     levelMultiplier: 0.04,
     descriptionTpl: '{value}% Increased Maximum Mana',
     exclusivityGroup: 'MaxMana'
+  },
+  {
+    id: 'inc_mana_regen',
+    allowedTypes: ['helm', 'chest', 'gloves', 'legs', 'boots', 'shield', 'tome', 'weapon-1h', 'weapon-2h', 'amulet', 'ring'],
+    allowedArmorCategories: ['Caster'],
+    allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'ManaRegenPercent',
+    type: 'increased',
+    baseValue: 10,
+    levelMultiplier: 0.05,
+    descriptionTpl: '{value}% Mana Regen',
+    exclusivityGroup: 'ManaRegen'
   },
   
   // Armor (Generic Defense, allowed on everything except weapons)
@@ -165,7 +190,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 5,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value}% Deflect Amount',
+    descriptionTpl: '+{value}% Deflect Effect',
     exclusivityGroup: 'Deflect'
   },
 

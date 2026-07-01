@@ -55,9 +55,21 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Damage'
   },
   {
-    id: 'inc_spell_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_spell_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'SpellDamage',
+    type: 'increased',
+    baseValue: 6,
+    levelMultiplier: 0.04,
+    weight: 200,
+    descriptionTpl: '{value}% Increased Spell Damage',
+    exclusivityGroup: 'Damage'
+  },
+  {
+    id: 'inc_spell_damage_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 1,
     stat: 'SpellDamage',
     type: 'increased',
@@ -120,9 +132,21 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
   
   // Specific Types
   {
-    id: 'inc_strike_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'amulet', 'ring'],
+    id: 'inc_strike_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Sword', 'Axe', 'Scepter', 'Unarmed'], // Dagger is pierce, Bow is pierce
+    minLevel: 1,
+    stat: 'StrikeDamage',
+    type: 'increased',
+    baseValue: 7,
+    levelMultiplier: 0.04,
+    weight: 200,
+    descriptionTpl: '{value}% Increased Strike Damage',
+    exclusivityGroup: 'DamageType'
+  },
+  {
+    id: 'inc_strike_damage_jewelry',
+    allowedTypes: ['amulet', 'ring'],
     minLevel: 1,
     stat: 'StrikeDamage',
     type: 'increased',
@@ -132,9 +156,21 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'DamageType'
   },
   {
-    id: 'inc_pierce_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'amulet', 'ring'],
+    id: 'inc_pierce_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Dagger', 'Bow'],
+    minLevel: 1,
+    stat: 'PierceDamage',
+    type: 'increased',
+    baseValue: 7,
+    levelMultiplier: 0.04,
+    weight: 200,
+    descriptionTpl: '{value}% Increased Pierce Damage',
+    exclusivityGroup: 'DamageType'
+  },
+  {
+    id: 'inc_pierce_damage_jewelry',
+    allowedTypes: ['amulet', 'ring'],
     minLevel: 1,
     stat: 'PierceDamage',
     type: 'increased',
@@ -144,9 +180,21 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'DamageType'
   },
   {
-    id: 'inc_fire_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_fire_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'FireDamage',
+    type: 'increased',
+    baseValue: 7,
+    levelMultiplier: 0.04,
+    weight: 200,
+    descriptionTpl: '{value}% Increased Fire Damage',
+    exclusivityGroup: 'DamageType'
+  },
+  {
+    id: 'inc_fire_damage_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 1,
     stat: 'FireDamage',
     type: 'increased',
@@ -156,9 +204,21 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'DamageType'
   },
   {
-    id: 'inc_cold_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_cold_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'ColdDamage',
+    type: 'increased',
+    baseValue: 7,
+    levelMultiplier: 0.04,
+    weight: 200,
+    descriptionTpl: '{value}% Increased Cold Damage',
+    exclusivityGroup: 'DamageType'
+  },
+  {
+    id: 'inc_cold_damage_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 1,
     stat: 'ColdDamage',
     type: 'increased',
@@ -168,9 +228,21 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'DamageType'
   },
   {
-    id: 'inc_lightning_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_lightning_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'LightningDamage',
+    type: 'increased',
+    baseValue: 7,
+    levelMultiplier: 0.04,
+    weight: 200,
+    descriptionTpl: '{value}% Increased Lightning Damage',
+    exclusivityGroup: 'DamageType'
+  },
+  {
+    id: 'inc_lightning_damage_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 1,
     stat: 'LightningDamage',
     type: 'increased',
@@ -184,9 +256,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
   // Speed
   // ----------------------------------------------------
   {
-    id: 'inc_attack_speed',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'amulet', 'ring', 'gloves'],
+    id: 'inc_attack_speed_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Sword', 'Dagger', 'Bow', 'Axe', 'Scepter', 'Unarmed'],
+    minLevel: 1,
+    stat: 'AttackSpeed',
+    type: 'increased',
+    baseValue: 5,
+    levelMultiplier: 0.02,
+    weight: 200,
+    descriptionTpl: '{value}% Increased Attack Speed'
+  },
+  {
+    id: 'inc_attack_speed_jewelry',
+    allowedTypes: ['amulet', 'ring', 'gloves'],
     minLevel: 1,
     stat: 'AttackSpeed',
     type: 'increased',
@@ -195,9 +278,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     descriptionTpl: '{value}% Increased Attack Speed'
   },
   {
-    id: 'inc_cast_speed',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring', 'gloves'],
+    id: 'inc_cast_speed_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'CastSpeed',
+    type: 'increased',
+    baseValue: 5,
+    levelMultiplier: 0.02,
+    weight: 200,
+    descriptionTpl: '{value}% Increased Cast Speed'
+  },
+  {
+    id: 'inc_cast_speed_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring', 'gloves'],
     minLevel: 1,
     stat: 'CastSpeed',
     type: 'increased',
@@ -418,63 +512,147 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
   // Weapon Enhancements
   // ----------------------------------------------------
   {
-    id: 'flat_strike_to_weapons',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
-    allowedWeaponCategories: ['Sword', 'Axe', 'Scepter', 'Unarmed'], // Dagger/Bow are Pierce
+    id: 'flat_strike_to_weapons_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    allowedWeaponCategories: ['Sword', 'Axe', 'Dagger', 'Bow', 'Unarmed'], // All physical weapons
     minLevel: 1,
     stat: 'StrikeDamageToWeapons',
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Strike Damage to Weapons',
+    weight: 200,
+    descriptionTpl: '+{value} Strike Damage to Attacks',
     exclusivityGroup: 'FlatDamage'
   },
   {
-    id: 'flat_pierce_to_weapons',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
-    allowedWeaponCategories: ['Dagger', 'Bow'],
+    id: 'flat_strike_to_weapons_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
+    minLevel: 1,
+    stat: 'StrikeDamageToWeapons',
+    type: 'flat',
+    baseValue: 3,
+    levelMultiplier: 0.1,
+    descriptionTpl: '+{value} Strike Damage to Attacks',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'flat_pierce_to_weapons_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    allowedWeaponCategories: ['Sword', 'Axe', 'Dagger', 'Bow', 'Unarmed'], // All physical weapons
     minLevel: 1,
     stat: 'PierceDamageToWeapons',
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Pierce Damage to Weapons',
+    weight: 200,
+    descriptionTpl: '+{value} Pierce Damage to Attacks',
     exclusivityGroup: 'FlatDamage'
   },
   {
-    id: 'flat_fire_to_weapons',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'flat_pierce_to_weapons_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
+    minLevel: 1,
+    stat: 'PierceDamageToWeapons',
+    type: 'flat',
+    baseValue: 3,
+    levelMultiplier: 0.1,
+    descriptionTpl: '+{value} Pierce Damage to Attacks',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'flat_fire_to_weapons_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
     minLevel: 1,
     stat: 'FireDamageToWeapons',
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Fire Damage to Weapons',
+    weight: 200,
+    descriptionTpl: '+{value} Fire Damage to Attacks',
     exclusivityGroup: 'FlatDamage'
   },
   {
-    id: 'flat_cold_to_weapons',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'flat_fire_to_weapons_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
+    minLevel: 1,
+    stat: 'FireDamageToWeapons',
+    type: 'flat',
+    baseValue: 3,
+    levelMultiplier: 0.1,
+    descriptionTpl: '+{value} Fire Damage to Attacks',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'flat_cold_to_weapons_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
     minLevel: 1,
     stat: 'ColdDamageToWeapons',
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Cold Damage to Weapons',
+    weight: 200,
+    descriptionTpl: '+{value} Cold Damage to Attacks',
     exclusivityGroup: 'FlatDamage'
   },
   {
-    id: 'flat_lightning_to_weapons',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'flat_cold_to_weapons_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
+    minLevel: 1,
+    stat: 'ColdDamageToWeapons',
+    type: 'flat',
+    baseValue: 3,
+    levelMultiplier: 0.1,
+    descriptionTpl: '+{value} Cold Damage to Attacks',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'flat_lightning_to_weapons_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
     minLevel: 1,
     stat: 'LightningDamageToWeapons',
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Lightning Damage to Weapons',
+    weight: 200,
+    descriptionTpl: '+{value} Lightning Damage to Attacks',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'flat_lightning_to_weapons_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
+    minLevel: 1,
+    stat: 'LightningDamageToWeapons',
+    type: 'flat',
+    baseValue: 3,
+    levelMultiplier: 0.1,
+    descriptionTpl: '+{value} Lightning Damage to Attacks',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'inc_weapon_elemental_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'WeaponElementalDamage',
+    type: 'increased',
+    baseValue: 6,
+    levelMultiplier: 0.04,
+    weight: 200,
+    descriptionTpl: '{value}% Weapon Elemental Damage',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'inc_weapon_elemental_damage_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
+    minLevel: 1,
+    stat: 'WeaponElementalDamage',
+    type: 'increased',
+    baseValue: 6,
+    levelMultiplier: 0.04,
+    descriptionTpl: '{value}% Weapon Elemental Damage',
     exclusivityGroup: 'FlatDamage'
   },
 

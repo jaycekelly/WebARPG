@@ -9,10 +9,10 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
 
   // Health & Mana
   'Health': 'Max Health',
-  'HealthRegeneration': 'Health Regen',
+  'HealthRegeneration': 'Health Regen / sec',
   'HealthRegenPercent': '% Health Regen',
   'Mana': 'Max Mana',
-  'ManaRegeneration': 'Mana Regen',
+  'ManaRegeneration': 'Mana Regen / sec',
   'ManaRegenPercent': '% Mana Regen',
 
   // Damage
@@ -49,7 +49,7 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'ElementalPenetrationPercent': '% Elemental Penetration',
 
   // Critical
-  'AttackCriticalStrikeChance': '% Attack Crit Chance',
+  'AttackCriticalStrikeChance': '% Crit Chance',
   'SpellCriticalStrikeChance': '% Spell Crit Chance',
   'CriticalStrikeMultiplier': '% Crit Multiplier',
 
@@ -59,10 +59,10 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'FireDamageToWeapons': 'Fire Damage to Attacks',
   'ColdDamageToWeapons': 'Cold Damage to Attacks',
   'LightningDamageToWeapons': 'Lightning Damage to Attacks',
-  'WeaponElementalDamage': '% Weapon Elemental Damage',
+  'WeaponElementalDamage': '% Attack Elemental Damage',
 
   // DoT & Status
-  'DoTDamage': '% Damage Over Time',
+  'DoTDamage': '% Damage over Time',
   'DoTDuration': '% DoT Duration',
   'StatusEffectPower': '% Status Effect Power',
   'StatusEffectDuration': '% Status Effect Duration',
@@ -79,7 +79,7 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'FireResist': 'Fire Resistance',
   'ColdResist': 'Cold Resistance',
   'LightningResist': 'Lightning Resistance',
-  'AllElementalResist': 'All Elemental Resistances',
+  'AllElementalResist': 'All Ele Resistance',
 
   // Avoidance
   'DeflectChance': '% Deflect Chance',
