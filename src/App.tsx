@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useLayoutEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { useGameEngine } from './engine/useGameEngine';
 import { useAppStore } from './store/useAppStore';
@@ -23,7 +23,26 @@ const GameOverScreen = () => {
 
 function App() {
   useGameEngine(); // Mount the 60fps game engine loop
-  const { location, setLocation } = useAppStore();
+  const { location, setLocation, setScaleFactor } = useAppStore();
+
+  useLayoutEffect(() => {
+    const handleResize = () => {
+      // Base aspect ratio is 1920x1080 (16:9)
+      const scaleX = window.innerWidth / 1920;
+      const scaleY = window.innerHeight / 1080;
+      
+      // Calculate scale to fit. Limit min scale to 0.66 (720p equivalent)
+      const scale = Math.max(0.66, Math.min(scaleX, scaleY));
+      
+      // Update Tailwind's base 1rem (16px default)
+      document.documentElement.style.fontSize = `${16 * scale}px`;
+      setScaleFactor(scale);
+    };
+
+    handleResize(); // Initial call
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [setScaleFactor]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -77,7 +96,7 @@ function App() {
   if (location === 'editor') {
     return (
       <div className="flex w-screen h-screen items-center justify-center bg-black overflow-hidden">
-        <div className="flex w-full h-full max-w-[1920px] max-h-[1080px] bg-zinc-950 overflow-hidden text-zinc-100 font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
+        <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-zinc-100 font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
           <DataEditorView />
           <GlobalTooltip />
         </div>
@@ -87,7 +106,7 @@ function App() {
 
   return (
     <div className="flex w-screen h-screen items-center justify-center bg-black overflow-hidden">
-      <div className="flex w-full h-full max-w-[1920px] max-h-[1080px] bg-zinc-950 overflow-hidden text-zinc-100 font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
+      <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-zinc-100 font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
         <Sidebar />
         
         {location === 'town' ? <TownView /> : <DungeonView />}

@@ -6,6 +6,7 @@ import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useTooltipStore } from '../store/useTooltipStore';
+import { useAppStore } from '../store/useAppStore';
 import { getAoETiles, hasLineOfSight } from '../engine/world/gridMath';
 import type { Point } from '../engine/world/gridMath';
 import { SKILLS } from '../data/skills';
@@ -20,9 +21,8 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const TILE_SIZE = 64; // px
-const GAP_SIZE = 1; // px
-const TOTAL_TILE_SIZE = TILE_SIZE + GAP_SIZE;
+const BASE_TILE_SIZE = 64; // px
+const BASE_GAP_SIZE = 1; // px
 
 const DEADZONE_RADIUS = 2.0;
 const DEADZONE_MANHATTAN = 3.0; // Crops the corners of the square deadzone
@@ -138,6 +138,10 @@ const FloatingTextLayer = memo(() => {
 // --- Main Grid Component ---
 
 export function Grid() {
+  const scaleFactor = useAppStore(state => state.scaleFactor);
+  const TILE_SIZE = BASE_TILE_SIZE * scaleFactor;
+  const GAP_SIZE = BASE_GAP_SIZE * scaleFactor;
+  const TOTAL_TILE_SIZE = TILE_SIZE + GAP_SIZE;
   // Use Shallow to prevent re-renders unless these specific properties change
   const position = usePlayerStore(useShallow(state => state.position));
   const cameraMode = usePlayerStore(state => state.cameraMode);

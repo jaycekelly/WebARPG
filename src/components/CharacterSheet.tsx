@@ -116,12 +116,6 @@ export function CharacterSheet() {
               {attributePoints} AP
             </div>
           )}
-          {skillPoints > 0 && (
-            <div className="bg-sky-400/10 border border-sky-400/20 text-sky-400 px-2 py-1 rounded text-xs font-bold flex items-center gap-1.5 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.2)]">
-              <Sparkles className="w-3 h-3" />
-              {skillPoints} SP
-            </div>
-          )}
         </div>
       </div>
 

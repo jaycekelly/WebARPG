@@ -6,7 +6,7 @@ import { InventoryPanel } from './InventoryPanel';
 import { CharacterSheet } from './CharacterSheet';
 
 export function Sidebar() {
-  const { skillPoints } = usePlayerStore();
+  const { skillPoints, attributePoints } = usePlayerStore();
   const { setSkillTreeOpen } = useAppStore();
   
   const [activeTab, setActiveTab] = useState<'inventory' | 'stats'>('inventory');
@@ -35,6 +35,7 @@ export function Sidebar() {
             >
               <User size={20} className="mt-0.5" />
               Stats
+              {attributePoints > 0 && <span className="bg-red-600 text-zinc-100 w-4 h-4 rounded-full flex items-center justify-center text-[9px] animate-pulse">{attributePoints}</span>}
             </button>
             <button 
               onClick={() => setSkillTreeOpen(true)}
