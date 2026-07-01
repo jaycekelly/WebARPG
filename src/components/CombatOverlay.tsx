@@ -124,33 +124,28 @@ export function CombatOverlay() {
         const worldState = useWorldStore.getState();
         const combatState = useCombatStore.getState();
 
-        // Auto-Aim Logic for Area/Ground skills
-        if (!appState.isPaused && (skill.targeting === 'Area' || skill.targeting === 'Ground' || skill.targeting === 'Directional')) {
-          if (playerState.activeTargetId) {
-            const target = worldState.enemies.find(e => e.id === playerState.activeTargetId);
-            if (target && !target.isDead) {
-              const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
-              const dist = getChebyshevDistance(playerState.position, target.position);
-              
-              const isSolid = (x: number, y: number) => {
-                if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
-                return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
-              };
+        let canAutoTarget = false;
+        let targetEntity = null;
 
-              if (dist <= effectiveRange && hasLineOfSight(playerState.position, target.position, isSolid)) {
-                // Valid target! Auto-aim at target's position
-                InputHandler.requestAction({ type: 'skill', skillId: boundId, targetPos: target.position, targetId: target.id });
-                return;
-              }
+        if (playerState.activeTargetId) {
+          targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId);
+          if (targetEntity && !targetEntity.isDead) {
+            const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
+            const dist = getChebyshevDistance(playerState.position, targetEntity.position);
+            const isSolid = (x: number, y: number) => {
+              if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
+              return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
+            };
+            if (dist <= effectiveRange && hasLineOfSight(playerState.position, targetEntity.position, isSolid)) {
+              canAutoTarget = true;
             }
           }
         }
-
-        // Fallback: Manual Aiming
-        if (skill.targeting === 'Area' || skill.targeting === 'Ground' || skill.targeting === 'Directional') {
-          combatState.setTargetingSkill(boundId);
+        
+        if (!appState.isPaused && canAutoTarget && targetEntity) {
+          InputHandler.requestAction({ type: 'skill', skillId: boundId, targetPos: targetEntity.position, targetId: targetEntity.id });
         } else {
-          InputHandler.requestAction({ type: 'skill', skillId: boundId, targetId: playerState.activeTargetId || undefined });
+          combatState.setTargetingSkill(boundId);
         }
       };
 
