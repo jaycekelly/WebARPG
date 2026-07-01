@@ -3,6 +3,7 @@ import { useStatsStore } from '../../store/useStatsStore';
 import { useInventoryStore } from '../../store/useInventoryStore';
 import { usePlayerStore } from '../../store/usePlayerStore';
 import { useWorldStore } from '../../store/useWorldStore';
+import { useAppStore } from '../../store/useAppStore';
 import { SKILLS } from '../../data/skills';
 import type { Skill } from '../skills/types';
 import { SkillExecutor } from '../skills/executor';
@@ -48,7 +49,7 @@ export class InputHandler {
   static readonly MOVE_QUEUE_BUFFER_MS = 50;
 
   static requestAction(action: InputRequest) {
-    const now = Date.now();
+    const now = useAppStore.getState().getGameTime();
     const combatState = useCombatStore.getState();
     
     // Check if free
@@ -92,13 +93,36 @@ export class InputHandler {
     const skill = SKILLS[skillId];
     if (!skill) return;
 
+    let tId = targetId;
+    let tPos = targetPos;
+
     const combatState = useCombatStore.getState();
     const playerState = usePlayerStore.getState();
     const worldState = useWorldStore.getState();
+    
+    // Auto-snap Ground skills (like Charge) to nearby enemies if they clicked the floor accidentally
+    if (skill.targeting === 'Ground' && tPos && !tId) {
+      // Find closest enemy within 1.5 tiles (Chebyshev distance <= 1)
+      let bestEnemy = null;
+      let bestDist = Infinity;
+      for (const e of worldState.enemies) {
+        if (e.isDead) continue;
+        const dist = Math.max(Math.abs(tPos.x - e.position.x), Math.abs(tPos.y - e.position.y));
+        if (dist <= 1 && dist < bestDist) {
+          bestDist = dist;
+          bestEnemy = e;
+        }
+      }
+      if (bestEnemy) {
+        tId = bestEnemy.id;
+        tPos = { ...bestEnemy.position };
+      }
+    }
+
     const { addLog, triggerGcd, setCasting } = combatState;
     const { position, currentMana } = playerState;
 
-    const target = targetId ? worldState.enemies.find(e => e.id === targetId) : undefined;
+    const target = tId ? worldState.enemies.find(e => e.id === tId) : undefined;
 
     // Check Mana
     const effectiveMana = getEffectiveManaCost(skill);
@@ -108,7 +132,7 @@ export class InputHandler {
     }
 
     // Enter Targeting Mode if required
-    if (!targetPos && !targetId && (skill.targeting === 'Ground' || skill.targeting === 'Directional' || skill.targeting === 'Area')) {
+    if (!tPos && !tId && (skill.targeting === 'Ground' || skill.targeting === 'Directional' || skill.targeting === 'Area')) {
       if (combatState.targetingSkillId === skill.id) {
         combatState.setTargetingSkill(null);
         return;
@@ -126,8 +150,8 @@ export class InputHandler {
         addLog(`Target is out of range for ${skill.name}.`, 'system');
         return;
       }
-    } else if (targetPos) {
-      const dist = getDistance(position, targetPos);
+    } else if (tPos) {
+      const dist = getDistance(position, tPos);
       if (dist > effectiveRange) {
         addLog(`Target area is out of range for ${skill.name}.`, 'system');
         return;
@@ -140,15 +164,26 @@ export class InputHandler {
     // Execute Skill or Start Cast
     const effCastTime = getEffectiveCastTime(skill);
     if (effCastTime > 0) {
-      setCasting(skill.id, effCastTime, targetId, targetPos);
+      setCasting(skill.id, effCastTime, tId, tPos);
       addLog(`Casting ${skill.name}...`, 'system');
     } else {
       triggerGcd(getEffectiveGcd(skill));
       if (skill.cooldownMs) {
          combatState.triggerSkillCooldown(skill.id, skill.cooldownMs);
       }
-      combatState.setLastAttackAnimationTime(Date.now());
-      SkillExecutor.execute(skill, targetId, targetPos);
+      combatState.setLastAttackAnimationTime(useAppStore.getState().getGameTime());
+      SkillExecutor.execute(skill, tId, tPos);
+    }
+
+    // Auto-unpause on successful skill cast
+    const appState = useAppStore.getState();
+    if (appState.isPaused) {
+      const shouldUnpause = skill.effects.some(e => e.type === 'damage') || 
+                            skill.tags.includes('Attack') || 
+                            skill.tags.includes('Movement');
+      if (shouldUnpause) {
+        appState.setPaused(false);
+      }
     }
   }
 }

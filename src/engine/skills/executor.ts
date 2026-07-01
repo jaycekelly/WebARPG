@@ -6,6 +6,7 @@ import { usePlayerStore } from '../../store/usePlayerStore';
 import { useWorldStore } from '../../store/useWorldStore';
 import { useBuffStore } from '../../store/useBuffStore';
 import { useInventoryStore } from '../../store/useInventoryStore';
+import { useAppStore } from '../../store/useAppStore';
 
 import { getAoETiles, getChebyshevDistance } from '../world/gridMath';
 import { DamageCalculator } from '../combat/DamageCalculator';
@@ -220,6 +221,69 @@ export class SkillExecutor {
     }
 
     for (const effect of skill.effects) {
+       if (effect.type === 'charge') {
+           let dest: {x: number, y: number} | null = null;
+           let focusPos = targetPos;
+
+           if (targetId) {
+               const targetEntity = worldState.enemies.find(e => e.id === targetId);
+               if (targetEntity) focusPos = targetEntity.position;
+           }
+
+           if (focusPos) {
+               const dist = getChebyshevDistance(playerState.position, focusPos);
+               if (dist > 1 || !targetId) {
+                   // If charging to ground (no targetId) and it's empty, we can just go there
+                   const isWall = worldState.grid.obstacles.some(o => o.x === focusPos!.x && o.y === focusPos!.y);
+                   const isEnemy = worldState.enemies.some(e => !e.isDead && e.position.x === focusPos!.x && e.position.y === focusPos!.y);
+                   
+                   if (!targetId && !isWall && !isEnemy) {
+                       dest = focusPos;
+                   } else {
+                       // Find adjacent tile closest to player
+                       const neighbors = [
+                          { x: focusPos.x, y: focusPos.y - 1 },
+                          { x: focusPos.x + 1, y: focusPos.y - 1 },
+                          { x: focusPos.x + 1, y: focusPos.y },
+                          { x: focusPos.x + 1, y: focusPos.y + 1 },
+                          { x: focusPos.x, y: focusPos.y + 1 },
+                          { x: focusPos.x - 1, y: focusPos.y + 1 },
+                          { x: focusPos.x - 1, y: focusPos.y },
+                          { x: focusPos.x - 1, y: focusPos.y - 1 }
+                       ];
+                       
+                       let bestNeighbor = null;
+                       let bestDist = Infinity;
+                       
+                       for (const n of neighbors) {
+                           if (n.x < 0 || n.x >= worldState.grid.width || n.y < 0 || n.y >= worldState.grid.height) continue;
+                           if (worldState.grid.obstacles.some(o => o.x === n.x && o.y === n.y)) continue;
+                           if (worldState.enemies.some(e => !e.isDead && e.position.x === n.x && e.position.y === n.y)) continue;
+                           
+                           const d = (n.x - playerState.position.x) ** 2 + (n.y - playerState.position.y) ** 2;
+                           if (d < bestDist) {
+                               bestDist = d;
+                               bestNeighbor = n;
+                           }
+                       }
+                       if (bestNeighbor) dest = bestNeighbor;
+                   }
+               }
+           }
+
+           if (dest) {
+               playerState.setPosition(dest.x, dest.y);
+               if (targetId) {
+                 const tName = worldState.enemies.find(e => e.id === targetId)?.name || 'target';
+                 addLog(`You charge at ${tName}!`, 'ability');
+               } else {
+                 addLog(`You charge forward!`, 'ability');
+               }
+           } else if (targetId || targetPos) {
+               addLog(`No path to charge!`, 'system');
+           }
+       }
+
        // 1. Gather all potential targets
        const allEntities = [
          { id: 'player', position: playerState.position, faction: 'player', name: 'You', isDead: playerState.currentHealth <= 0 },
@@ -245,7 +309,7 @@ export class SkillExecutor {
           // If lingering is enabled, spawn zones (only do this for the first effect to avoid spam, or tie it to the damage effect)
           if (effect.type === 'damage' && effectiveAoeParams?.lingering) {
              const { durationMs, hazardId, damagePerSecond, element } = effectiveAoeParams.lingering;
-             const expiresAt = Date.now() + durationMs;
+             const expiresAt = useAppStore.getState().getGameTime() + durationMs;
              for (const pt of affectedTiles) {
                  worldState.addZone({ position: pt, hazardId, damagePerSecond: damagePerSecond || 0, element: element || 'Strike', expiresAt });
              }
@@ -283,53 +347,7 @@ export class SkillExecutor {
              }
           }
 
-          if (effect.type === 'charge') {
-              if (targetId) {
-                  const targetEntity = worldState.enemies.find(e => e.id === targetId);
-                  if (targetEntity) {
-                      const dist = getChebyshevDistance(playerState.position, targetEntity.position);
-                      if (dist > 1) {
-                          // Find adjacent tile closest to player
-                          const neighbors = [
-                             { x: targetEntity.position.x, y: targetEntity.position.y - 1 },
-                             { x: targetEntity.position.x + 1, y: targetEntity.position.y - 1 },
-                             { x: targetEntity.position.x + 1, y: targetEntity.position.y },
-                             { x: targetEntity.position.x + 1, y: targetEntity.position.y + 1 },
-                             { x: targetEntity.position.x, y: targetEntity.position.y + 1 },
-                             { x: targetEntity.position.x - 1, y: targetEntity.position.y + 1 },
-                             { x: targetEntity.position.x - 1, y: targetEntity.position.y },
-                             { x: targetEntity.position.x - 1, y: targetEntity.position.y - 1 }
-                          ];
-                          
-                          let bestNeighbor = null;
-                          let bestDist = Infinity;
-                          
-                          for (const n of neighbors) {
-                              if (n.x < 0 || n.x >= worldState.grid.width || n.y < 0 || n.y >= worldState.grid.height) continue;
-                              const isWall = worldState.grid.obstacles.some(o => o.x === n.x && o.y === n.y);
-                              if (isWall) continue;
-                              
-                              const isEnemy = worldState.enemies.some(e => !e.isDead && e.position.x === n.x && e.position.y === n.y);
-                              if (isEnemy) continue;
-                              
-                              const d = (n.x - playerState.position.x) ** 2 + (n.y - playerState.position.y) ** 2;
-                              if (d < bestDist) {
-                                  bestDist = d;
-                                  bestNeighbor = n;
-                              }
-                          }
-                          
-                          if (bestNeighbor) {
-                              playerState.setPosition(bestNeighbor.x, bestNeighbor.y);
-                              addLog(`You charge at ${targetEntity.name}!`, 'ability');
-                          } else {
-                              addLog(`No path to charge!`, 'system');
-                          }
-                      }
-                  }
-              }
-          }
-          else if (effect.type === 'damage') {
+          if (effect.type === 'damage') {
              const isAttackSkill = skill.tags.includes('Attack') || skill.tags.includes('Melee') || skill.tags.includes('Projectile');
              
              let base = effect.baseValue || 0;

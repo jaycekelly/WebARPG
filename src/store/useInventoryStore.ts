@@ -3,6 +3,7 @@ import type { Item, EquipmentSlot, ItemType } from '../engine/items/types';
 import { useStatsStore } from './useStatsStore';
 import { useCombatStore } from './useCombatStore';
 import { usePlayerStore } from './usePlayerStore';
+import { useAppStore } from './useAppStore';
 import { ItemGenerator } from '../engine/items/ItemGenerator';
 
 interface InventoryState {
@@ -81,7 +82,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     if (item.itemType === 'weapon-1h' || item.itemType === 'weapon-2h' || item.itemType === 'shield') {
       const combatState = useCombatStore.getState();
       const lastAttack = Math.max(combatState.lastMainHandAttackTime, combatState.lastOffHandAttackTime);
-      if (Date.now() - lastAttack < 4000) {
+      if (useAppStore.getState().getGameTime() - lastAttack < 4000) {
         combatState.addLog(`Cannot change equipment while in combat.`, 'system');
         return;
       }
@@ -171,7 +172,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     if (slot === 'weapon1' || slot === 'weapon2') {
       const combatState = useCombatStore.getState();
       const lastAttack = Math.max(combatState.lastMainHandAttackTime, combatState.lastOffHandAttackTime);
-      if (Date.now() - lastAttack < 4000) {
+      if (useAppStore.getState().getGameTime() - lastAttack < 4000) {
         combatState.addLog(`Cannot change equipment while in combat.`, 'system');
         return;
       }

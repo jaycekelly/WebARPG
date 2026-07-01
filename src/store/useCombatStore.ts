@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { useAppStore } from './useAppStore';
 
 export interface CombatLogEntry {
   id: string;
@@ -100,7 +101,7 @@ export const useCombatStore = create<CombatState>((set) => ({
   }),
   
   addFloatingText: (x, y, text, color) => {
-    const expiresAt = Date.now() + 800; // Live for 800ms
+    const expiresAt = useAppStore.getState().getGameTime() + 800; // Live for 800ms
     const id = Math.random().toString();
     set((state) => ({
       floatingTexts: [
@@ -111,7 +112,7 @@ export const useCombatStore = create<CombatState>((set) => ({
   },
 
   addHitEffect: (targetId: string) => {
-    const expiresAt = Date.now() + 150; // 150ms flash duration
+    const expiresAt = useAppStore.getState().getGameTime() + 150; // 150ms flash duration
     const id = Math.random().toString();
     set((state) => {
       // Remove any existing hit effect for this target so it refreshes the timer
@@ -142,7 +143,7 @@ export const useCombatStore = create<CombatState>((set) => ({
 
   setAutoAttacking: (val) => set({ isAutoAttacking: val }),
   
-  triggerGcd: (durationMs) => set({ gcdEndTime: Date.now() + durationMs }),
+  triggerGcd: (durationMs) => set({ gcdEndTime: useAppStore.getState().getGameTime() + durationMs }),
   setLastMoveTime: (time) => set({ lastMoveTime: time }),
   setLastMainHandAttackTime: (time) => set({ lastMainHandAttackTime: time }),
   setLastOffHandAttackTime: (time) => set({ lastOffHandAttackTime: time }),
@@ -150,7 +151,7 @@ export const useCombatStore = create<CombatState>((set) => ({
   
   setCasting: (skillId, durationMs = 0, targetId, targetPos) => set({ 
     castingSkillId: skillId, 
-    castEndTime: skillId ? Date.now() + durationMs : 0,
+    castEndTime: skillId ? useAppStore.getState().getGameTime() + durationMs : 0,
     castTargetId: targetId,
     castTargetPos: targetPos
   }),
@@ -159,7 +160,7 @@ export const useCombatStore = create<CombatState>((set) => ({
   setHoveredSkill: (skillId) => set({ hoveredSkillId: skillId }),
 
   triggerSkillCooldown: (skillId, durationMs) => set((state) => ({
-    skillCooldowns: { ...state.skillCooldowns, [skillId]: Date.now() + durationMs }
+    skillCooldowns: { ...state.skillCooldowns, [skillId]: useAppStore.getState().getGameTime() + durationMs }
   })),
 
   queueAction: (action) => set({ queuedAction: action }),

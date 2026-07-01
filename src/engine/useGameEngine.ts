@@ -26,8 +26,9 @@ export function useGameEngine() {
     let lastRegenFlushTime = performance.now();
 
     const loop = (currentTime: number) => {
-      // Only run engine logic if we are in the dungeon
-      if (useAppStore.getState().location !== 'dungeon') {
+      const appState = useAppStore.getState();
+      // Only run engine logic if we are in the dungeon and not paused
+      if (appState.location !== 'dungeon' || appState.isPaused) {
         lastTick = currentTime;
         animationFrameId = requestAnimationFrame(loop);
         return;
@@ -36,7 +37,7 @@ export function useGameEngine() {
       const deltaTime = currentTime - lastTick;
       lastTick = currentTime;
 
-      const now = Date.now();
+      const now = useAppStore.getState().getGameTime();
       
       try {
         const playerState = usePlayerStore.getState();

@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useStatsStore } from './useStatsStore';
 import { useCombatStore } from './useCombatStore';
+import { useAppStore } from './useAppStore';
 import type { ClassType } from '../engine/player/types';
 
 interface PlayerState {
@@ -54,13 +55,13 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   gold: 0,
   normalPityCount: 0,
   magicPityCount: 0,
-  boundSkills: ['heavy_strike', 'fireball', null, null, null, null, null, null],
+  boundSkills: ['heavy_strike', 'charge_attack', 'fireball', null, null, null, null, null],
   flaskCharges: 4,
   maxFlaskCharges: 4,
   cameraMode: 'auto',
 
   move: (dx, dy) => set((state) => {
-    const now = Date.now();
+    const now = useAppStore.getState().getGameTime();
     const combatState = useCombatStore.getState();
     const moveSpeed = useStatsStore.getState().getStat('MoveSpeed');
     const moveCooldown = 1000 / Math.max(0.1, moveSpeed);

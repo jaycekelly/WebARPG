@@ -2,11 +2,13 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
 import { InputHandler, getEffectiveCastTime, getEffectiveManaCost, getMainHandAttackCooldown, getOffHandAttackCooldown, getEffectiveGcd } from '../engine/input/InputHandler';
+import { hasLineOfSight, getChebyshevDistance } from '../engine/world/gridMath';
 import { useStatsStore } from '../store/useStatsStore';
 import { useBuffStore } from '../store/useBuffStore';
 import { useSkillStore } from '../store/useSkillStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useTooltipStore } from '../store/useTooltipStore';
+import { useAppStore } from '../store/useAppStore';
 import { Crosshair, X, Flame, ShieldAlert, Footprints, ArrowUpCircle, Sword, Droplet, FlaskConical } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SKILLS } from '../data/skills';
@@ -34,6 +36,7 @@ export function CombatOverlay() {
   const { getStat } = useStatsStore();
   const { entityBuffs } = useBuffStore();
   const { unlockedActives } = useSkillStore();
+  const isPaused = useAppStore(state => state.isPaused);
   
   const playerBuffs = entityBuffs['player'] || [];
   const visiblePlayerBuffs = playerBuffs.filter(b => b.maxDurationMs !== null && b.maxDurationMs <= 30000 && b.buffId !== 'flask_recovery');
@@ -52,12 +55,12 @@ export function CombatOverlay() {
     return sum;
   }, 0);
 
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(useAppStore.getState().getGameTime());
   const [bindingSlotIndex, setBindingSlotIndex] = useState<number | null>(null);
   
   // Re-render frequently to update the GCD visual sweep smoothly
   useEffect(() => {
-    const interval = setInterval(() => setNow(Date.now()), 50);
+    const interval = setInterval(() => setNow(useAppStore.getState().getGameTime()), 50);
     return () => clearInterval(interval);
   }, []);
 
@@ -111,18 +114,52 @@ export function CombatOverlay() {
         return;
       }
 
+      const tryExecuteSkill = (boundId: string) => {
+        const skill = SKILLS[boundId];
+        if (!skill) return;
+
+        const appState = useAppStore.getState();
+        const playerState = usePlayerStore.getState();
+        const worldState = useWorldStore.getState();
+        const combatState = useCombatStore.getState();
+
+        // Auto-Aim Logic for Area/Ground skills
+        if (!appState.isPaused && (skill.targeting === 'Area' || skill.targeting === 'Ground' || skill.targeting === 'Directional')) {
+          if (playerState.activeTargetId) {
+            const target = worldState.enemies.find(e => e.id === playerState.activeTargetId);
+            if (target && !target.isDead) {
+              const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
+              const dist = getChebyshevDistance(playerState.position, target.position);
+              
+              const isSolid = (x: number, y: number) => {
+                if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
+                return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
+              };
+
+              if (dist <= effectiveRange && hasLineOfSight(playerState.position, target.position, isSolid)) {
+                // Valid target! Auto-aim at target's position
+                InputHandler.requestAction({ type: 'skill', skillId: boundId, targetPos: target.position, targetId: target.id });
+                return;
+              }
+            }
+          }
+        }
+
+        // Fallback: Manual Aiming
+        if (skill.targeting === 'Area' || skill.targeting === 'Ground' || skill.targeting === 'Directional') {
+          combatState.setTargetingSkill(boundId);
+        } else {
+          InputHandler.requestAction({ type: 'skill', skillId: boundId, targetId: playerState.activeTargetId || undefined });
+        }
+      };
+
       // Handle 1-6 Skill usage
       const skillKeys = ['1', '2', '3', '4', '5', '6'];
       if (skillKeys.includes(e.key)) {
          const index = parseInt(e.key) - 1;
          const boundId = usePlayerStore.getState().boundSkills[index];
          if (boundId) {
-            const skill = SKILLS[boundId];
-            if (skill && (skill.targeting === 'Area' || skill.targeting === 'Ground')) {
-                useCombatStore.getState().setTargetingSkill(boundId);
-            } else {
-                InputHandler.requestAction({ type: 'skill', skillId: boundId, targetId: usePlayerStore.getState().activeTargetId || undefined });
-            }
+            tryExecuteSkill(boundId);
          }
       }
 
@@ -161,6 +198,9 @@ export function CombatOverlay() {
 
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between px-8 py-4 z-10">
+      {isPaused && (
+        <div className="absolute inset-0 pointer-events-none ring-[8px] ring-sky-500/30 bg-sky-900/10 z-0 animate-pulse transition-all"></div>
+      )}
       
       {/* Target Frame (Top Center) */}
       <div className="flex justify-center pointer-events-none">
@@ -400,10 +440,36 @@ export function CombatOverlay() {
                   `}
                   onClick={() => {
                      if (!skill) return;
-                     if (skill && (skill.targeting === 'Area' || skill.targeting === 'Ground')) {
-                         useCombatStore.getState().setTargetingSkill(skill.id);
+                     // We use the same tryExecuteSkill logic. Since it's inside CombatOverlay, we can duplicate the helper or extract it.
+                     // Actually, we can just duplicate the logic here, or we can use the same pattern.
+                     // Wait, tryExecuteSkill was defined inside useEffect, so we don't have access to it here.
+                     // Let's just inline it here for the click handler.
+                     const appState = useAppStore.getState();
+                     const playerState = usePlayerStore.getState();
+                     const worldState = useWorldStore.getState();
+                     const combatState = useCombatStore.getState();
+                     let canAutoTarget = false;
+                     let targetEntity = null;
+
+                     if (playerState.activeTargetId) {
+                       targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId);
+                       if (targetEntity && !targetEntity.isDead) {
+                         const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
+                         const dist = getChebyshevDistance(playerState.position, targetEntity.position);
+                         const isSolid = (x: number, y: number) => {
+                           if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
+                           return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
+                         };
+                         if (dist <= effectiveRange && hasLineOfSight(playerState.position, targetEntity.position, isSolid)) {
+                           canAutoTarget = true;
+                         }
+                       }
+                     }
+                     
+                     if (!appState.isPaused && canAutoTarget && targetEntity) {
+                       InputHandler.requestAction({ type: 'skill', skillId: skill.id, targetPos: targetEntity.position, targetId: targetEntity.id });
                      } else {
-                         InputHandler.requestAction({ type: 'skill', skillId: skill.id, targetId: activeTargetId || undefined });
+                       combatState.setTargetingSkill(skill.id);
                      }
                   }}
                   onContextMenu={(e) => {
@@ -438,7 +504,7 @@ export function CombatOverlay() {
                   }}
                   onMouseLeave={() => setContent(null)}
                 >
-                  {IconComponent && <IconComponent className={`w-6 h-6 relative z-10 ${outOfRange ? 'text-red-900' : 'text-sky-400 group-hover:scale-110'} transition-transform`} />}
+                  {IconComponent && <IconComponent className={`w-6 h-6 relative z-10 ${(outOfRange || (skill && currentMana < getEffectiveManaCost(skill))) ? 'text-zinc-600' : 'text-sky-400 group-hover:scale-110'} transition-transform`} />}
 
                   {/* Cooldown/GCD Sweep Overlay */}
                   {skill && activePercent > 0 && (

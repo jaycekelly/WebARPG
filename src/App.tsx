@@ -53,6 +53,16 @@ function App() {
         return;
       }
 
+      // Tactical Pause
+      if (e.code === 'Space') {
+        const appState = useAppStore.getState();
+        if (appState.location === 'dungeon') {
+          e.preventDefault(); // Prevent scrolling
+          appState.togglePause();
+          return;
+        }
+      }
+
       if (e.key === 'Escape') {
         const appState = useAppStore.getState();
         const combatState = useCombatStore.getState();

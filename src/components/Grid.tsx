@@ -253,6 +253,14 @@ export function Grid() {
       // Ignore if typing in an input (though we don't have many)
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       
+      // Disable movement if game is paused
+      if (useAppStore.getState().isPaused) {
+         const movementKeys = ['w', 'a', 's', 'd', 'q', 'e', 'z', 'c', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'];
+         if (movementKeys.includes(e.key.toLowerCase())) {
+             return;
+         }
+      }
+
       const key = e.key.toLowerCase();
       pressedKeys.current.add(key);
       
@@ -330,18 +338,19 @@ export function Grid() {
           grid.width,
           grid.height
         );
-      } else if (skill.targeting === 'Single' && skill.range > 0 && !targetingSkillId) {
+      } else if (skill.targeting === 'Single' && !targetingSkillId) {
+        const effRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
         previewTiles = getAoETiles(
           position,
           null,
           'square', 
-          skill.range,
+          effRange,
           false,
           () => false,
           grid.width,
           grid.height
         );
-      } else if (targetingSkillId && hoveredCell && (skill.targeting === 'Ground' || skill.targeting === 'Directional' || skill.targeting === 'Area')) {
+      } else if (targetingSkillId && hoveredCell && (skill.targeting === 'Ground' || skill.targeting === 'Directional' || skill.targeting === 'Area' || skill.targeting === 'Single')) {
         const isSolid = (x: number, y: number) => {
           if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) return true;
           return grid.obstacles.some(o => o.x === x && o.y === y);
@@ -413,9 +422,10 @@ export function Grid() {
       let isOutOfRange = false;
       if (targetingSkillId) {
         const targetingSkill = SKILLS[targetingSkillId];
-        if (targetingSkill && targetingSkill.range > 0) {
+        if (targetingSkill) {
+           const effRange = targetingSkill.range > 0 ? targetingSkill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
            const dist = Math.max(Math.abs(position.x - x), Math.abs(position.y - y));
-           if (dist > targetingSkill.range) isOutOfRange = true;
+           if (dist > effRange) isOutOfRange = true;
         }
       }
       
@@ -436,7 +446,7 @@ export function Grid() {
                  return;
               }
               const targetingSkill = SKILLS[targetingSkillId];
-              if (targetingSkill && targetingSkill.range > 0) {
+              if (targetingSkill) {
                  const isSolid = (sx: number, sy: number) => {
                     if (sx < 0 || sx >= grid.width || sy < 0 || sy >= grid.height) return true;
                     return grid.obstacles.some(o => o.x === sx && o.y === sy);
