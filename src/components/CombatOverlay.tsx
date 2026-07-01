@@ -118,7 +118,7 @@ export function CombatOverlay() {
          const boundId = usePlayerStore.getState().boundSkills[index];
          if (boundId) {
             const skill = SKILLS[boundId];
-            if (skill && (skill.targeting === 'Area' || skill.targeting === 'Location')) {
+            if (skill && (skill.targeting === 'Area' || skill.targeting === 'Ground')) {
                 useCombatStore.getState().setTargetingSkill(boundId);
             } else {
                 InputHandler.requestAction({ type: 'skill', skillId: boundId, targetId: usePlayerStore.getState().activeTargetId || undefined });
@@ -158,10 +158,6 @@ export function CombatOverlay() {
   }, []);
 
   const healthPercent = target ? (target.health / target.stats.maxHealth) * 100 : 0;
-  
-  const gcdRemaining = Math.max(0, gcdEndTime - now);
-  const gcdPercent = (gcdRemaining / 2000) * 100; // Updated to match 2.0s GCD
-  const isGcdActive = gcdRemaining > 0;
 
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between px-8 py-4 z-10">
@@ -404,7 +400,7 @@ export function CombatOverlay() {
                   `}
                   onClick={() => {
                      if (!skill) return;
-                     if (skill.targeting === 'Area' || skill.targeting === 'Location') {
+                     if (skill && (skill.targeting === 'Area' || skill.targeting === 'Ground')) {
                          useCombatStore.getState().setTargetingSkill(skill.id);
                      } else {
                          InputHandler.requestAction({ type: 'skill', skillId: skill.id, targetId: activeTargetId || undefined });

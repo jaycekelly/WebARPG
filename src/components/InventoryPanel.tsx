@@ -2,7 +2,7 @@ import { useInventoryStore } from '../store/useInventoryStore';
 import { useAppStore } from '../store/useAppStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import type { EquipmentSlot, Rarity } from '../engine/items/types';
-import { Sword, Shield, Circle, HelpCircle, Backpack } from 'lucide-react';
+import { Sword, Shield, Circle, HelpCircle } from 'lucide-react';
 import { ItemTooltip } from './ItemTooltip';
 
 const SLOT_ICONS: Record<string, React.ElementType> = {

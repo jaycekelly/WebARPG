@@ -14,7 +14,7 @@ import { useAppStore } from '../store/useAppStore';
 import { useBuffStore } from '../store/useBuffStore';
 import type { Item } from './items/types';
 
-import { getChebyshevDistance, checkCornerBlock, hasLineOfSight, type Point } from './world/gridMath';
+import { getChebyshevDistance, checkCornerBlock, hasLineOfSight } from './world/gridMath';
 import { findPath } from './world/pathfinding';
 
 export function useGameEngine() {
@@ -138,7 +138,7 @@ export function useGameEngine() {
       };
 
       const { activeTargetId, position, currentHealth } = playerState;
-      const { lastMoveTime, castingSkillId, castEndTime, setCasting } = combatState;
+      const { castingSkillId, castEndTime, setCasting } = combatState;
       
       // Prevent anything if dead
       if (currentHealth <= 0) return;

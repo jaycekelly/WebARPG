@@ -9,7 +9,10 @@ interface Node {
 
 class MinHeap<T> {
   private data: T[] = [];
-  constructor(private compare: (a: T, b: T) => number) {}
+  private compare: (a: T, b: T) => number;
+  constructor(compare: (a: T, b: T) => number) {
+    this.compare = compare;
+  }
   
   push(val: T) {
     this.data.push(val);

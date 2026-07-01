@@ -1,6 +1,6 @@
 import { useStatsStore } from '../store/useStatsStore';
 import { usePlayerStore } from '../store/usePlayerStore';
-import { Sparkles, Sword, Shield, Zap, Activity, Heart, Book, Plus, ArrowUp } from 'lucide-react';
+import { Sword, Shield, Zap, Activity, Heart, Book, Plus, ArrowUp } from 'lucide-react';
 import type { StatType } from '../engine/stats/types';
 
 interface StatDefinition {
@@ -100,7 +100,7 @@ const STAT_CATEGORIES: StatCategory[] = [
 
 export function CharacterSheet() {
   const { getStat } = useStatsStore();
-  const { skillPoints, level, attributePoints, allocateAttribute } = usePlayerStore();
+  const { level, attributePoints, allocateAttribute } = usePlayerStore();
 
   return (
     <div className="space-y-6">

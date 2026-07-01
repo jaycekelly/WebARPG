@@ -61,14 +61,14 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   // Avoidance
   'DeflectChance': '% Deflect Chance',
   'DeflectEffect': '% Deflect Effect',
-  'BlockChance': '% Block Chance',
-  'SpellBlockChance': '% Spell Block Chance',
-  'ParryChance': '% Parry Chance',
-  'SpellParryChance': '% Spell Parry Chance',
+  'Block': '% Block Chance',
+  'SpellBlock': '% Spell Block Chance',
+  'Parry': '% Parry Chance',
+  'SpellParry': '% Spell Parry Chance',
 
   // Leech / Sustain
   'Lifesteal': '% Lifesteal',
-  'Spellvamp': '% Spellvamp',
+  'SpellVamp': '% Spellvamp',
   'LifeGainOnHit': 'Life on Hit',
   'ManaGainOnHit': 'Mana on Hit',
   'ManaLeech': '% Mana Leech',

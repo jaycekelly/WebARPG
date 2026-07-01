@@ -115,13 +115,6 @@ export function ItemTooltip({ item }: Props) {
            )}
         </div>
       )}
-      
-      {item.value > 0 && (
-        <div className="pt-2 border-t border-zinc-800/50 text-xs text-yellow-500/70 font-semibold flex justify-between">
-          <span>Sell Value</span>
-          <span>{item.value} Gold</span>
-        </div>
-      )}
     </div>
   );
 }

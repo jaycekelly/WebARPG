@@ -28,6 +28,8 @@ export class EnemySpawner {
       name: template.name,
       level: level,
       position: position,
+      spawnOrigin: { x: position.x, y: position.y },
+      rarity: 'Normal',
       health: Math.floor(template.stats.maxHealth * scaleFactor),
       aiProfile: template.aiProfile,
       faction: 'enemy',

@@ -125,6 +125,7 @@ export class LevelGenerator {
         goldReward: Math.floor((template.baseGoldReward || 0) * scaleFactor),
         groupId,
         spawnOrigin: spawnPos,
+        rarity: 'Normal',
         isAggroed: false
       });
     };

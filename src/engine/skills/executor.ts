@@ -441,7 +441,6 @@ export class SkillExecutor {
                     if (finalElement === 'Fire') dmgColor = 'text-orange-500';
                     else if (finalElement === 'Cold') dmgColor = 'text-blue-400';
                     else if (finalElement === 'Lightning') dmgColor = 'text-yellow-400';
-                    else if (finalElement === 'Poison') dmgColor = 'text-emerald-400';
                     
                     useCombatStore.getState().addFloatingText(enemy.position.x, enemy.position.y, actualDamage.toFixed(0), dmgColor);
                     
@@ -575,6 +574,8 @@ export class SkillExecutor {
              name: 'Summoned Minion',
              level: playerState.level,
              position: spawnPos,
+             spawnOrigin: { x: spawnPos.x, y: spawnPos.y },
+             rarity: 'Normal',
              health: 100, // Placeholder
              aiProfile: 'melee_rusher',
              faction: 'player', // Ally!
