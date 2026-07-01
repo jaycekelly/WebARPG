@@ -87,15 +87,6 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'ManaCostReduction': '% Mana Cost Reduction',
   'HealingReceived': '% Healing Received',
   'HealingDealt': '% Healing Dealt',
-
-  // Base Damage conversions (internal, but we format them just in case)
-  'StrikeDamageToWeapons': 'Strike Damage to Attacks',
-  'PierceDamageToWeapons': 'Pierce Damage to Attacks',
-  'PhysicalDamageToWeapons': 'Physical Damage to Attacks',
-  'FireDamageToWeapons': 'Fire Damage to Attacks',
-  'ColdDamageToWeapons': 'Cold Damage to Attacks',
-  'LightningDamageToWeapons': 'Lightning Damage to Attacks',
-  'WeaponElementalDamage': '% Weapon Elemental Damage',
   
   // Crit
   'AttackCriticalStrikeChance': '% Attack Crit Chance',
