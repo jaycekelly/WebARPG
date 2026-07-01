@@ -32,14 +32,15 @@ const DEADZONE_MANHATTAN = 3.0; // Crops the corners of the square deadzone
 const PlayerSprite = memo(() => {
   const position = usePlayerStore(state => state.position);
   const setTarget = usePlayerStore(state => state.setTarget);
+  const hitEffect = useCombatStore(state => state.hitEffects.find(h => h.targetId === 'player'));
 
   return (
     <div 
       style={{ gridColumn: position.x + 1, gridRow: position.y + 1 }} 
-      className="relative flex items-center justify-center z-20 pointer-events-auto cursor-pointer bg-emerald-500/10 text-emerald-400"
+      className={cn("relative flex items-center justify-center z-20 pointer-events-auto cursor-pointer bg-emerald-500/10 text-emerald-400", hitEffect && "animate-shake")}
       onClick={() => setTarget(null)}
     >
-      <User className="w-3/5 h-3/5 text-emerald-500 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] absolute" />
+      <User key={hitEffect?.id || 'idle'} className={cn("w-3/5 h-3/5 text-emerald-500 drop-shadow-[0_0_8px_rgba(52,211,153,0.5)] absolute", hitEffect && "text-white drop-shadow-none brightness-200")} />
     </div>
   );
 });
@@ -49,6 +50,7 @@ const EnemySprite = memo(({ id }: { id: string }) => {
   const isTargeted = usePlayerStore(state => state.activeTargetId === id);
   const setTarget = usePlayerStore(state => state.setTarget);
   const targetingSkillId = useCombatStore(state => state.targetingSkillId);
+  const hitEffect = useCombatStore(state => state.hitEffects.find(h => h.targetId === id));
 
   if (!enemy || enemy.isDead) return null;
 
@@ -58,16 +60,14 @@ const EnemySprite = memo(({ id }: { id: string }) => {
   return (
     <div 
       style={{ gridColumn: enemy.position.x + 1, gridRow: enemy.position.y + 1 }} 
-      className={cn("relative flex items-center justify-center z-20 pointer-events-auto", cursorClass, isTargeted && 'ring-2 ring-red-500 ring-inset bg-red-500/20')}
+      className={cn("relative flex items-center justify-center z-20 pointer-events-auto", cursorClass, isTargeted && 'ring-2 ring-red-500 ring-inset bg-red-500/20', hitEffect && "animate-shake")}
       onClick={() => {
         if (!targetingSkillId) {
           setTarget(id);
         }
-        // If targeting a skill, the click will pass through to the Grid cell underneath because of pointer-events?
-        // Actually, if we just let the click bubble, the parent grid cell won't catch it unless we explicitly don't stop propagation.
       }}
     >
-      <Ghost className={cn("w-3/5 h-3/5 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] absolute", isTargeted && 'animate-pulse')} />
+      <Ghost key={hitEffect?.id || 'idle'} className={cn("w-3/5 h-3/5 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] absolute", isTargeted && 'animate-pulse', hitEffect && "text-white drop-shadow-none brightness-200")} />
       <GridHealthBar currentHealth={enemy.health} maxHealth={enemy.stats.maxHealth} />
     </div>
   );
@@ -270,11 +270,9 @@ export function Grid() {
       if (pressedKeys.current.has('z')) { dx -= 1; dy += 1; }
       if (pressedKeys.current.has('c')) { dx += 1; dy += 1; }
 
-      // Normalize diagonal movement
-      if (dx !== 0 && dy !== 0) {
-         // Prefer horizontal or vertical over pure diagonal if we are stuck, but for simplicity we allow diagonal here
-         // The engine handles Chebyshev distance so diagonals are fine
-      }
+      // Normalize diagonal movement to prevent moving 2 tiles when combining keys
+      dx = Math.sign(dx);
+      dy = Math.sign(dy);
 
       if (dx !== 0 || dy !== 0) {
         const newX = position.x + dx;

@@ -25,6 +25,7 @@ export type QueuedAction = InputRequest & { expiresAt: number };
 interface CombatState {
   logs: CombatLogEntry[];
   floatingTexts: FloatingText[];
+  hitEffects: { targetId: string; id: string; expiresAt: number }[];
   isAutoAttacking: boolean;
   
   // Timers for the real-time engine
@@ -52,6 +53,7 @@ interface CombatState {
 
   addLog: (message: string, type: CombatLogEntry['type']) => void;
   addFloatingText: (x: number, y: number, text: string, color: string) => void;
+  addHitEffect: (targetId: string) => void;
   clearExpiredFloatingTexts: (now: number) => void;
   setAutoAttacking: (val: boolean) => void;
   
@@ -78,6 +80,7 @@ interface CombatState {
 export const useCombatStore = create<CombatState>((set) => ({
   logs: [],
   floatingTexts: [],
+  hitEffects: [],
   isAutoAttacking: false,
   gcdEndTime: 0,
   lastMoveTime: 0,
@@ -96,18 +99,46 @@ export const useCombatStore = create<CombatState>((set) => ({
     return { logs: [...state.logs, newLog].slice(-50) }; // Keep last 50 logs
   }),
   
-  addFloatingText: (x, y, text, color) => set((state) => {
-    const newText: FloatingText = {
-      id: Math.random().toString(),
-      x, y, text, color,
-      expiresAt: Date.now() + 800 // Live for 800ms
-    };
-    return { floatingTexts: [...state.floatingTexts, newText] };
-  }),
+  addFloatingText: (x, y, text, color) => {
+    const expiresAt = Date.now() + 800; // Live for 800ms
+    const id = Math.random().toString();
+    set((state) => ({
+      floatingTexts: [
+        ...state.floatingTexts,
+        { id, x, y, text, color, expiresAt }
+      ]
+    }));
+  },
 
-  clearExpiredFloatingTexts: (now) => set((state) => ({
-    floatingTexts: state.floatingTexts.filter(ft => ft.expiresAt > now)
-  })),
+  addHitEffect: (targetId: string) => {
+    const expiresAt = Date.now() + 150; // 150ms flash duration
+    const id = Math.random().toString();
+    set((state) => {
+      // Remove any existing hit effect for this target so it refreshes the timer
+      const filtered = state.hitEffects.filter(h => h.targetId !== targetId);
+      return {
+        hitEffects: [
+          ...filtered,
+          { targetId, id, expiresAt }
+        ]
+      };
+    });
+  },
+
+  clearExpiredFloatingTexts: (now: number) => {
+    set((state) => {
+      const activeTexts = state.floatingTexts.filter((ft) => ft.expiresAt > now);
+      const activeHits = state.hitEffects.filter((he) => he.expiresAt > now);
+      
+      if (activeTexts.length !== state.floatingTexts.length || activeHits.length !== state.hitEffects.length) {
+        return { 
+          floatingTexts: activeTexts,
+          hitEffects: activeHits
+        };
+      }
+      return state; // No change
+    });
+  },
 
   setAutoAttacking: (val) => set({ isAutoAttacking: val }),
   

@@ -13,7 +13,8 @@ This document outlines the core principles and architectural rules for the WebAR
   - `useSkillStore` (Trade skills, gathering, crafting)
   - `useClassStore` (Skill trees, XP, class specific mechanics)
   - `useCompanionStore` (AI companion stats, behaviors, party management)
-- **Store Communication**: When stores need to interact (e.g., `useCombatStore` needs to know stats from `usePlayerStore` and `useInventoryStore`), rely on pure functions or pass the derived state gracefully. Avoid circular dependencies between stores.
+- **Store Communication**: When stores need to interact (e.g., `useCombatStore` needs to know stats from `usePlayerStore` and `useInventoryStore`), rely on pure functions or pass the derived state gracefully. Avoid circular dependencies between stores. When one store needs to read from another outside of a React render, always use `useOtherStore.getState()`. Never place store hooks inside other store definitions.
+- **State Persistence**: When adding new Zustand stores, ensure they are compatible with middleware persistence (like `zustand/middleware/persist`) if they contain player progression. Differentiate between transient state (Combat Engine, current targeted enemy) and persistent state (Inventory, Skill Points).
 
 ## 3. Data-Driven Design
 - **Externalize Game Data**: Never hardcode items, skills, or enemy stats directly into components or store initializations. 
@@ -28,7 +29,7 @@ This document outlines the core principles and architectural rules for the WebAR
   - **Border Color**: `border-zinc-800`
   - **Major Text**: `text-zinc-100`
   - **Minor Text**: `text-zinc-400`
-  - **Highlight Color**: `sky-400` (e.g., `text-sky-400`, `border-sky-400` for active states, important callouts)
+  - **Highlight Color**: Defaults to `sky-400` (e.g., `text-sky-400`, `border-sky-400` for active states, important callouts), but respect existing color variables if established.
   - **Health Displays**: `red-600` for fills (`bg-red-600`), `red-500` for text/icons
   - **Mana Displays**: `blue-600` for fills (`bg-blue-600`), `blue-500` for text/icons
   - **Enemy Display Icons**: `text-red-500`
@@ -42,6 +43,9 @@ This document outlines the core principles and architectural rules for the WebAR
   - *Enemy Attack*: `text-red-500`
   - *Abilities*: `text-sky-400 font-semibold bg-sky-400/10`
 - **Micro-Animations**: Rely on subtle visual cues (`transition-colors`, `hover:scale-110`, `animate-pulse` on targeted units, Lucide icons) rather than massive blocks of text to convey information.
+- **Icons & Asset Management**: Always use `lucide-react` for icons. Do not import external SVG files or font-awesome unless absolutely necessary. Map game data strings (like `icon: 'flame'`) to Lucide components dynamically.
+- **Floating Text vs Combat Log**: Floating Combat Text should only be used for raw numbers (Damage, Healing) and critical status procs (e.g., 'Dodged'). The Combat Log is for detailed system breakdowns, loot acquisition, and narrative feedback.
+- **Tailwind v4 Specifics**: This project uses Tailwind CSS v4. Do NOT attempt to configure animations or theme extensions in `tailwind.config.js`. Define all custom `@keyframes` and `@theme` extensions directly in `src/index.css`.
 
 ## 5. Agent Workflow
 - **Plan Before Massive Changes**: Whenever a massive new system is requested (e.g., "Build the Trade Skill system"), stop and write out an implementation plan first to ensure the architecture remains clean.
@@ -59,7 +63,7 @@ This document outlines the core principles and architectural rules for the WebAR
 - **Damage Types**: Weapons dictate the `DamageType` (e.g., `Slashing`, `Piercing`, `Fire`) of auto-attacks.
 
 ## 7. Stat & Modifier System
-- **Formula**: `Final Stat = (FlatSum) * (1 + IncreasedSum/100) * (MoreMult)`.
+- **Formula**: `Final Stat = (FlatSum) * (1 + IncreasedSum/100) * (MoreMult1) * (MoreMult2)`. Increased modifiers are additive with each other. More multipliers are strictly multiplicative with each other.
 - **Penetration Separation**: Penetrations are explicitly split into two variables in `StatType` (e.g., `FirePenetrationFlat` and `FirePenetrationPercent`) because the combat formula requires them to be separated (`(Resist - FlatPen) * (1 - PercentPen)`). 
 - **MoveSpeed**: Defined as Tiles Per Second. A `MoveSpeed` of `1.33` translates to ~750ms grid movement cooldown. Do not hardcode movement cooldowns; derive them from `1000 / MoveSpeed`.
 
@@ -76,4 +80,4 @@ This document outlines the core principles and architectural rules for the WebAR
 
 ## 10. Combat Input & Targeting
 - **Controls**: `Tab` cycles through targets on the grid. `1-8` keys cast skills.
-- **Auto-Attacking**: Automatically triggers when a target is in range and standing still. Uses the equipped weapon's stats and damage type.
+- **Auto-Attacking & Action Queue**: Input commands should be routed through `InputHandler.ts` which respects the Global Cooldown (GCD), auto-attack swing timers, and buffers actions if the player is currently busy (e.g. casting or on GCD).

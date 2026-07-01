@@ -465,6 +465,7 @@ export class SkillExecutor {
                  if (enemy.id === 'player') {
                     playerState.takeDamage(actualDamage);
                     useCombatStore.getState().addFloatingText(playerState.position.x, playerState.position.y, actualDamage.toFixed(0), 'text-zinc-100');
+                    useCombatStore.getState().addHitEffect('player');
                     addLog(`You hit yourself for ${actualDamage.toFixed(0)} damage!${resultText}`, 'enemy-attack');
                  } else {
                     worldState.damageEnemy(enemy.id, actualDamage);
@@ -475,6 +476,7 @@ export class SkillExecutor {
                     else if (finalElement === 'Lightning') dmgColor = 'text-yellow-400';
                     
                     useCombatStore.getState().addFloatingText(enemy.position.x, enemy.position.y, actualDamage.toFixed(0), dmgColor);
+                    useCombatStore.getState().addHitEffect(enemy.id);
                     
                     addLog(`You hit ${enemy.name} for ${actualDamage.toFixed(0)} ${finalElement} damage.${resultText}`, 'ability');
                     

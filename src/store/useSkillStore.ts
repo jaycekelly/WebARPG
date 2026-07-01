@@ -14,7 +14,7 @@ interface SkillState {
 
 export const useSkillStore = create<SkillState>((set, get) => ({
   allocatedPoints: { 't1_active_heavy_strike': 1 },
-  unlockedActives: ['heavy_strike'],
+  unlockedActives: ['heavy_strike', 'fireball'],
 
   getTotalPointsSpent: () => {
     return Object.values(get().allocatedPoints).reduce((sum, points) => sum + points, 0);

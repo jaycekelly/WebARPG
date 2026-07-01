@@ -225,7 +225,7 @@ export function CombatOverlay() {
             <div className="w-full">
               <div className="h-1 w-full bg-zinc-900 rounded-sm border border-zinc-800 overflow-hidden shadow-lg">
                 <div 
-                  className="bg-yellow-500 h-full transition-all duration-75"
+                  className="bg-amber-500 h-full transition-all duration-75"
                   style={{ width: `${Math.max(0, 100 - (timeSinceOffAttack / offHandCooldown) * 100)}%` }}
                 />
               </div>
@@ -443,19 +443,27 @@ export function CombatOverlay() {
                   {/* Cooldown/GCD Sweep Overlay */}
                   {skill && activePercent > 0 && (
                     <div 
-                      className={`absolute bottom-0 left-0 right-0 z-20 transition-all ease-linear ${timeUntilSkillFree > timeUntilGcdFree ? 'bg-black/80' : 'bg-black/60'}`}
-                      style={{ height: `${activePercent}%` }}
-                    />
+                      className="absolute inset-0 z-20 flex items-center justify-center rounded"
+                      style={{ 
+                        background: `conic-gradient(transparent ${100 - activePercent}%, ${timeUntilSkillFree > timeUntilGcdFree ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.6)'} 0)` 
+                      }}
+                    >
+                      <span className="text-white font-bold text-xs drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+                        {(Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000).toFixed(1)}
+                      </span>
+                    </div>
                   )}
                   <span className="text-[10px] font-bold text-zinc-100 absolute bottom-0 left-1 z-10">{index + 1}</span>
                 </button>
 
                 {/* Mana Cost indicator */}
+                {/* 
                 {skill && (
                   <div className="absolute -top-1.5 -right-1.5 px-1 py-[1px] bg-blue-900 border border-blue-800 text-[8px] text-zinc-100 rounded font-bold z-10 shadow-md pointer-events-none">
                     {getEffectiveManaCost(skill)}
                   </div>
                 )}
+                */}
 
                 {/* Popover Menu */}
                 {isBinding && (

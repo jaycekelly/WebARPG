@@ -296,6 +296,7 @@ export function useGameEngine() {
                  else if (damageType === 'Lightning') dmgColor = 'text-yellow-400';
                  
                  combatState.addFloatingText(target.position.x, target.position.y, finalDamage.toFixed(0), dmgColor);
+                 combatState.addHitEffect(target.id);
                  
                  combatState.addLog(`You hit ${target.name} for ${finalDamage.toFixed(0)} damage with ${handName}.${resultText}`, 'player-attack');
                  
@@ -495,6 +496,7 @@ export function useGameEngine() {
              } else {
                 usePlayerStore.getState().takeDamage(finalDamage);
                 combatState.addFloatingText(position.x, position.y, finalDamage.toFixed(0), 'text-zinc-100');
+                combatState.addHitEffect('player');
                 let resultText = '';
                if (result === 'block') resultText = ' (Blocked)';
                else if (result === 'parry') resultText = ' (Parried)';

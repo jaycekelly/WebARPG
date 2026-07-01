@@ -54,7 +54,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   gold: 0,
   normalPityCount: 0,
   magicPityCount: 0,
-  boundSkills: ['heavy_strike', null, null, null, null, null, null, null],
+  boundSkills: ['heavy_strike', 'fireball', null, null, null, null, null, null],
   flaskCharges: 4,
   maxFlaskCharges: 4,
   cameraMode: 'auto',
