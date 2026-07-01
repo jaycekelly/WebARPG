@@ -26,6 +26,11 @@ export interface Buff {
   dotTickRateMs?: number;
   timeSinceLastTickMs?: number;
   dotDamageType?: string;
+  
+  // HoT specific
+  isHoT?: boolean;
+  hotHealPerTick?: number;
+  hotTickRateMs?: number;
 }
 
 interface BuffState {
@@ -34,7 +39,10 @@ interface BuffState {
   
   addBuff: (entityId: string, buff: Omit<Buff, 'id'>) => void;
   removeBuff: (entityId: string, buffInstanceId: string) => void;
-  tickBuffs: (deltaTime: number) => { entityId: string, damage: number, damageType: string }[];
+  tickBuffs: (deltaTime: number) => { 
+    dotEvents: { entityId: string, damage: number, damageType: string }[],
+    hotEvents: { entityId: string, healAmount: number }[]
+  };
 }
 
 export const useBuffStore = create<BuffState>((set) => ({
@@ -81,6 +89,7 @@ export const useBuffStore = create<BuffState>((set) => ({
 
   tickBuffs: (deltaTime) => {
     let dotEvents: { entityId: string, damage: number, damageType: string }[] = [];
+    let hotEvents: { entityId: string, healAmount: number }[] = [];
     
     set((state) => {
       let changed = false;
@@ -98,14 +107,29 @@ export const useBuffStore = create<BuffState>((set) => ({
             if (updatedBuff.durationMs <= 0) hasExpired = true;
           }
           
+          // Handle DoT
           if (updatedBuff.isDoT && updatedBuff.dotTickRateMs && updatedBuff.dotDamagePerTick) {
             updatedBuff.timeSinceLastTickMs = (updatedBuff.timeSinceLastTickMs || 0) + deltaTime;
             if (updatedBuff.timeSinceLastTickMs >= updatedBuff.dotTickRateMs) {
-              updatedBuff.timeSinceLastTickMs -= updatedBuff.dotTickRateMs;
-              dotEvents.push({
+              const ticks = Math.floor(updatedBuff.timeSinceLastTickMs / updatedBuff.dotTickRateMs);
+              updatedBuff.timeSinceLastTickMs -= ticks * updatedBuff.dotTickRateMs;
+              dotEvents.push({ 
+                entityId, 
+                damage: (updatedBuff.dotDamagePerTick * updatedBuff.stacks) * ticks,
+                damageType: updatedBuff.dotDamageType || 'Physical'
+              });
+            }
+          }
+
+          // Handle HoT
+          if (updatedBuff.isHoT && updatedBuff.hotTickRateMs && updatedBuff.hotHealPerTick) {
+            updatedBuff.timeSinceLastTickMs = (updatedBuff.timeSinceLastTickMs || 0) + deltaTime;
+            if (updatedBuff.timeSinceLastTickMs >= updatedBuff.hotTickRateMs) {
+              const ticks = Math.floor(updatedBuff.timeSinceLastTickMs / updatedBuff.hotTickRateMs);
+              updatedBuff.timeSinceLastTickMs -= ticks * updatedBuff.hotTickRateMs;
+              hotEvents.push({
                 entityId,
-                damage: updatedBuff.dotDamagePerTick,
-                damageType: updatedBuff.dotDamageType || 'Fire'
+                healAmount: (updatedBuff.hotHealPerTick * updatedBuff.stacks) * ticks
               });
             }
           }
@@ -124,7 +148,7 @@ export const useBuffStore = create<BuffState>((set) => ({
 
       return changed ? { entityBuffs: newEntityBuffs } : state;
     });
-    
-    return dotEvents;
+
+    return { dotEvents, hotEvents };
   }
 }));

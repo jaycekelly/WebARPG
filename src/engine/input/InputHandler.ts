@@ -81,11 +81,11 @@ export class InputHandler {
     if (action.type === 'move') {
       usePlayerStore.getState().move(action.dx, action.dy);
     } else if (action.type === 'skill') {
-      this.executeSkill(action.skillId, action.targetId);
+      this.executeSkill(action.skillId, action.targetId, action.targetPos);
     }
   }
 
-  static executeSkill(skillId: string, targetId?: string) {
+  static executeSkill(skillId: string, targetId?: string, targetPos?: {x: number, y: number}) {
     const skill = SKILLS[skillId];
     if (!skill) return;
 
@@ -93,7 +93,7 @@ export class InputHandler {
     const playerState = usePlayerStore.getState();
     const worldState = useWorldStore.getState();
     const { addLog, triggerGcd, setCasting } = combatState;
-    const { position, currentMana, useMana } = playerState;
+    const { position, currentMana } = playerState;
 
     const target = targetId ? worldState.enemies.find(e => e.id === targetId) : undefined;
 
@@ -104,6 +104,16 @@ export class InputHandler {
       return;
     }
 
+    // Enter Targeting Mode if required
+    if (!targetPos && !targetId && (skill.targeting === 'Ground' || skill.targeting === 'Directional' || skill.targeting === 'Area')) {
+      if (combatState.targetingSkillId === skill.id) {
+        combatState.setTargetingSkill(null);
+        return;
+      }
+      combatState.setTargetingSkill(skill.id);
+      return;
+    }
+
     // Check Range if we have a target
     if (target) {
       const dist = getDistance(position, target.position);
@@ -111,23 +121,25 @@ export class InputHandler {
         addLog(`Target is out of range for ${skill.name}.`, 'system');
         return;
       }
-    } else if (skill.range > 0) {
+    } else if (targetPos) {
+      const dist = getDistance(position, targetPos);
+      if (dist > skill.range && skill.range > 0) {
+        addLog(`Target area is out of range for ${skill.name}.`, 'system');
+        return;
+      }
+    } else if (skill.range > 0 && skill.targeting === 'Single') {
       addLog(`You need a target for ${skill.name}.`, 'system');
       return;
     }
 
-    // Note: Mana is only checked here, it is actually spent in SkillExecutor.execute()
-
-    // Trigger GCD
-    triggerGcd(getEffectiveGcd(skill));
-    
     // Execute Skill or Start Cast
     const effCastTime = getEffectiveCastTime(skill);
     if (effCastTime > 0) {
-      setCasting(skill.id, effCastTime);
+      setCasting(skill.id, effCastTime, targetId, targetPos);
       addLog(`Casting ${skill.name}...`, 'system');
     } else {
-      SkillExecutor.execute(skill, targetId);
+      triggerGcd(getEffectiveGcd(skill));
+      SkillExecutor.execute(skill, targetId, targetPos);
     }
   }
 }

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Backpack, User, BookOpen } from 'lucide-react';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useAppStore } from '../store/useAppStore';
 import { InventoryPanel } from './InventoryPanel';
@@ -23,22 +24,25 @@ export function Sidebar() {
           <div className="flex gap-4">
             <button 
               onClick={() => setActiveTab('inventory')}
-              className={`text-sm font-bold pb-2 border-b-2 transition-colors ${activeTab === 'inventory' ? 'text-cyan-500 border-cyan-500' : 'text-zinc-100 border-transparent hover:text-white'}`}
+              className={`text-sm font-bold pb-2 border-b-2 transition-colors flex items-center gap-1.5 ${activeTab === 'inventory' ? 'text-sky-400 border-sky-400' : 'text-zinc-100 border-transparent hover:text-zinc-100'}`}
             >
+              <Backpack size={20} className="mt-0.5" />
               Inventory
             </button>
             <button 
               onClick={() => setActiveTab('stats')}
-              className={`text-sm font-bold pb-2 border-b-2 transition-colors ${activeTab === 'stats' ? 'text-cyan-500 border-cyan-500' : 'text-zinc-100 border-transparent hover:text-white'}`}
+              className={`text-sm font-bold pb-2 border-b-2 transition-colors flex items-center gap-1.5 ${activeTab === 'stats' ? 'text-sky-400 border-sky-400' : 'text-zinc-100 border-transparent hover:text-zinc-100'}`}
             >
+              <User size={20} className="mt-0.5" />
               Stats
             </button>
             <button 
               onClick={() => setSkillTreeOpen(true)}
-              className={`text-sm font-bold pb-2 border-b-2 transition-colors text-zinc-100 border-transparent hover:text-white flex items-center gap-1.5`}
+              className={`text-sm font-bold pb-2 border-b-2 transition-colors text-zinc-100 border-transparent hover:text-zinc-100 flex items-center gap-1.5`}
             >
+              <BookOpen size={20} className="mt-0.5" />
               Skills
-              {skillPoints > 0 && <span className="bg-red-600 text-white w-4 h-4 rounded-full flex items-center justify-center text-[9px] animate-pulse">{skillPoints}</span>}
+              {skillPoints > 0 && <span className="bg-red-600 text-zinc-100 w-4 h-4 rounded-full flex items-center justify-center text-[9px] animate-pulse">{skillPoints}</span>}
             </button>
           </div>
         </div>

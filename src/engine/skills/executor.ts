@@ -80,7 +80,7 @@ export class SkillExecutor {
     return Math.max(0, 1 + (useStatsStore.getState().getStat('HealingReceived') / 100));
   }
 
-  static execute(skill: Skill, targetId?: string, cascadeDepth: number = 0) {
+  static execute(skill: Skill, targetId?: string, targetPos?: {x: number, y: number}, cascadeDepth: number = 0) {
     const { addLog } = useCombatStore.getState();
     const statsState = useStatsStore.getState();
     const worldState = useWorldStore.getState();
@@ -176,15 +176,15 @@ export class SkillExecutor {
     
     // Pre-calculate Area tiles if applicable
     let affectedTiles: {x: number, y: number}[] = [];
-    if (skill.targeting === 'Area') {
+    if (skill.targeting === 'Area' || skill.targeting === 'Ground' || skill.targeting === 'Directional') {
        const shape = effectiveAoeParams?.shape || 'square';
-       const radius = effectiveAoeParams?.radius || skill.range;
+       const radius = effectiveAoeParams?.radius || skill.range || 0;
        const respectWalls = effectiveAoeParams?.respectWalls || false;
        
-       let targetPos = null;
-       if (targetId) {
+       let finalTargetPos = targetPos;
+       if (!finalTargetPos && targetId) {
          const t = worldState.enemies.find(e => e.id === targetId);
-         if (t) targetPos = t.position;
+         if (t) finalTargetPos = t.position;
        }
 
        const isSolid = (x: number, y: number) => {
@@ -192,20 +192,31 @@ export class SkillExecutor {
          return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
        };
 
-       // For ranged AoE skills (like Fireball), the area is centered on the target.
-       // For point-blank AoE skills (like Nova), it is centered on the player.
-       const aoeCenter = (skill.range > 0 && targetPos) ? targetPos : playerPos;
+       let center = playerPos;
+       let target = null;
 
-       affectedTiles = getAoETiles(
-         aoeCenter,
-         targetPos,
-         shape,
-         radius,
-         respectWalls,
-         isSolid,
-         worldState.grid.width,
-         worldState.grid.height
-       );
+       if (skill.targeting === 'Area') {
+         // Area usually centers on the target if it's ranged, or player if point blank
+         center = (skill.range > 0 && finalTargetPos) ? finalTargetPos : playerPos;
+       } else if (skill.targeting === 'Ground') {
+         center = finalTargetPos || playerPos;
+       } else if (skill.targeting === 'Directional') {
+         center = playerPos;
+         target = finalTargetPos || playerPos;
+       }
+
+       if (effectiveAoeParams || skill.targeting === 'Ground') {
+         affectedTiles = getAoETiles(
+           center,
+           target,
+           shape,
+           radius,
+           respectWalls,
+           isSolid,
+           worldState.grid.width,
+           worldState.grid.height
+         );
+       }
     }
 
     for (const effect of skill.effects) {
@@ -230,7 +241,7 @@ export class SkillExecutor {
        // 2. Select targets based on TargetingType
        let finalTargets: { enemy: any, multiplier: number }[] = [];
        
-       if (skill.targeting === 'Area') {
+       if (skill.targeting === 'Area' || skill.targeting === 'Ground' || skill.targeting === 'Directional') {
           // If lingering is enabled, spawn zones (only do this for the first effect to avoid spam, or tie it to the damage effect)
           if (effect.type === 'damage' && effectiveAoeParams?.lingering) {
              const { durationMs, hazardId, damagePerSecond, element } = effectiveAoeParams.lingering;
@@ -372,9 +383,19 @@ export class SkillExecutor {
                  
                  if (enemy.id === 'player') {
                     playerState.takeDamage(actualDamage);
+                    useCombatStore.getState().addFloatingText(playerState.position.x, playerState.position.y, actualDamage.toFixed(0), 'text-zinc-100');
                     addLog(`You hit yourself for ${actualDamage.toFixed(0)} damage!${resultText}`, 'enemy-attack');
                  } else {
                     worldState.damageEnemy(enemy.id, actualDamage);
+                    
+                    let dmgColor = 'text-zinc-100';
+                    if (finalElement === 'Fire') dmgColor = 'text-orange-500';
+                    else if (finalElement === 'Cold') dmgColor = 'text-blue-400';
+                    else if (finalElement === 'Lightning') dmgColor = 'text-yellow-400';
+                    else if (finalElement === 'Poison') dmgColor = 'text-emerald-400';
+                    
+                    useCombatStore.getState().addFloatingText(enemy.position.x, enemy.position.y, actualDamage.toFixed(0), dmgColor);
+                    
                     addLog(`You hit ${enemy.name} for ${actualDamage.toFixed(0)} ${finalElement} damage.${resultText}`, 'ability');
                     
                     // Ailment Application removed as per design request

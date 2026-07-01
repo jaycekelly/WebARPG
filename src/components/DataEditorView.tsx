@@ -10,18 +10,18 @@ export function DataEditorView() {
   const { lootItem } = useInventoryStore();
 
   return (
-    <div className="flex-1 bg-zinc-950 p-8 flex flex-col h-screen overflow-hidden">
+    <div className="flex-1 bg-zinc-900 p-8 flex flex-col h-screen overflow-hidden">
       <div className="flex items-center gap-4 border-b border-zinc-800 pb-4 mb-8">
         <button 
           onClick={() => setLocation('town')}
-          className="text-zinc-500 hover:text-white transition-colors flex items-center gap-2"
+          className="text-zinc-400 hover:text-zinc-100 transition-colors flex items-center gap-2"
         >
           <ArrowLeft className="w-5 h-5" />
           Back to Game
         </button>
         <div className="h-6 w-px bg-zinc-800 mx-2" />
-        <Database className="w-6 h-6 text-emerald-500" />
-        <h1 className="text-2xl font-bold text-white tracking-tight">Game Data Editor</h1>
+        <Database className="w-6 h-6 text-sky-400" />
+        <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">Game Data Editor</h1>
       </div>
 
       <div className="flex-1 overflow-y-auto">
@@ -30,7 +30,7 @@ export function DataEditorView() {
           {/* Debug Spawner */}
           <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-xl">
             <h2 className="text-lg font-bold text-zinc-100 mb-4 flex items-center gap-2">
-              <PlusCircle className="w-5 h-5 text-cyan-500" />
+              <PlusCircle className="w-5 h-5 text-sky-400" />
               Debug Item Spawner
             </h2>
             <div className="flex gap-4">
@@ -39,7 +39,7 @@ export function DataEditorView() {
                    const item = ItemGenerator.generateLoot('rusty_sword', level);
                    if (item) lootItem(item);
                 }}
-                className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 py-3 px-4 rounded-lg text-zinc-300 transition-colors font-medium border border-zinc-700 hover:border-cyan-500/50"
+                className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 py-3 px-4 rounded-lg text-zinc-100 transition-colors font-medium border border-zinc-700 hover:border-sky-400/50"
               >
                 <PlusCircle className="w-4 h-4" /> Loot 1H Sword
               </button>
@@ -48,7 +48,7 @@ export function DataEditorView() {
                    const item = ItemGenerator.generateLoot('iron_greatsword', level);
                    if (item) lootItem(item);
                 }}
-                className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 py-3 px-4 rounded-lg text-zinc-300 transition-colors font-medium border border-zinc-700 hover:border-cyan-500/50"
+                className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 py-3 px-4 rounded-lg text-zinc-100 transition-colors font-medium border border-zinc-700 hover:border-sky-400/50"
               >
                 <PlusCircle className="w-4 h-4" /> Loot 2H Sword
               </button>
@@ -57,12 +57,12 @@ export function DataEditorView() {
                    const item = ItemGenerator.generateLoot('leather_tunic', level);
                    if (item) lootItem(item);
                 }}
-                className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 py-3 px-4 rounded-lg text-zinc-300 transition-colors font-medium border border-zinc-700 hover:border-cyan-500/50"
+                className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 py-3 px-4 rounded-lg text-zinc-100 transition-colors font-medium border border-zinc-700 hover:border-sky-400/50"
               >
                 <PlusCircle className="w-4 h-4" /> Loot Armor
               </button>
             </div>
-            <p className="text-sm text-zinc-500 mt-4">
+            <p className="text-sm text-zinc-400 mt-4">
               These items are pushed directly to your inventory (or ground if full). They scale to your current level ({level}).
             </p>
           </section>

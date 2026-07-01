@@ -3,7 +3,7 @@ import { useSkillStore } from '../store/useSkillStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import { SKILL_TREE, type TalentNode } from '../data/skillTrees';
-import { X, Flame, ShieldAlert, Footprints, ArrowUpCircle, Sword, Lock } from 'lucide-react';
+import { X, Flame, ShieldAlert, Footprints, ArrowUpCircle, Sword, Lock, BookOpen } from 'lucide-react';
 
 const ICONS: Record<string, React.ElementType> = {
   Flame,
@@ -40,20 +40,20 @@ export function SkillTreeModal() {
     const Icon = ICONS[node.icon] || Flame;
 
     const renderTooltip = () => (
-      <div className="w-64 bg-zinc-950 border border-zinc-700 rounded-lg p-3 shadow-2xl backdrop-blur-md">
-         <h3 className={`font-bold text-sm ${node.type === 'active' ? 'text-orange-500' : 'text-blue-500'}`}>{node.name}</h3>
+      <div className="w-64 bg-zinc-900 border border-zinc-700 rounded-lg p-3 shadow-2xl backdrop-blur-md">
+         <h3 className={`font-bold text-sm ${node.type === 'active' ? 'text-sky-400' : 'text-blue-500'}`}>{node.name}</h3>
          <p className="text-[11px] text-zinc-400 mt-1 pb-2 border-b border-zinc-800/50 leading-snug">{node.description}</p>
          {node.statModifiers && (
            <div className="mt-2 flex flex-col gap-0.5">
              {node.statModifiers.map((mod, i) => {
                 const sign = mod.value > 0 ? '+' : '';
                 const suffix = mod.type === 'increased' ? '%' : '';
-                return <div key={i} className="text-[10px] text-emerald-500">{sign}{mod.value}{suffix} {mod.stat} per point</div>;
+                return <div key={i} className="text-[10px] text-sky-400">{sign}{mod.value}{suffix} {mod.stat} per point</div>;
              })}
            </div>
          )}
          {node.type === 'active' && (
-           <div className="mt-2 text-[10px] text-cyan-500 font-bold">Unlocks an active skill.</div>
+           <div className="mt-2 text-[10px] text-sky-400 font-bold">Unlocks an active skill.</div>
          )}
          
          {!isUnlocked && (
@@ -80,19 +80,19 @@ export function SkillTreeModal() {
       >
         <div className={`relative w-12 h-12 flex items-center justify-center rounded-xl border-2 shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-colors
            ${node.type === 'active' 
-             ? (isMaxed ? 'border-cyan-500 bg-red-950/80' : isUnlocked ? 'border-red-500/50 bg-red-950/50 hover:border-cyan-500' : 'border-zinc-800 bg-zinc-950') 
-             : (isMaxed ? 'border-cyan-500 bg-blue-950/80' : isUnlocked ? 'border-blue-500/50 bg-blue-950/50 hover:border-cyan-500' : 'border-zinc-800 bg-zinc-950')}
+             ? (isMaxed ? 'border-sky-400 bg-red-950/80' : isUnlocked ? 'border-red-500/50 bg-red-950/50 hover:border-sky-400' : 'border-zinc-800 bg-zinc-900') 
+             : (isMaxed ? 'border-sky-400 bg-blue-950/80' : isUnlocked ? 'border-blue-500/50 bg-blue-950/50 hover:border-sky-400' : 'border-zinc-800 bg-zinc-900')}
            ${node.type === 'active' ? 'rounded-full' : 'rounded-lg'}
         `}>
-           <Icon className={`w-6 h-6 ${isMaxed ? 'text-cyan-500' : (node.type === 'active' ? 'text-orange-500' : 'text-blue-500')}`} />
+           <Icon className={`w-6 h-6 ${isMaxed ? 'text-sky-400' : (node.type === 'active' ? 'text-sky-400' : 'text-blue-500')}`} />
            
            {!isUnlocked && (
              <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10 backdrop-blur-[1px] rounded-[inherit]">
-                <Lock className="text-zinc-500 w-6 h-6" />
+                <Lock className="text-zinc-400 w-6 h-6" />
              </div>
            )}
 
-           <div className={`absolute -bottom-2 -right-2 text-[10px] font-black tracking-widest bg-zinc-950 px-1.5 py-0.5 rounded border shadow-lg z-20 ${isMaxed ? 'border-cyan-500 text-cyan-400' : 'border-zinc-700 text-zinc-300'}`}>
+           <div className={`absolute -bottom-2 -right-2 text-[10px] font-black tracking-widest bg-zinc-900 px-1.5 py-0.5 rounded border shadow-lg z-20 ${isMaxed ? 'border-sky-400 text-cyan-400' : 'border-zinc-700 text-zinc-100'}`}>
               {pointsSpent}/{node.maxPoints}
            </div>
         </div>
@@ -102,23 +102,23 @@ export function SkillTreeModal() {
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center p-8 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-3xl h-auto max-h-[90vh] bg-zinc-950 border border-zinc-800 shadow-2xl rounded-2xl flex flex-col overflow-hidden relative">
+      <div className="w-full max-w-3xl h-auto max-h-[90vh] bg-zinc-900 border border-zinc-800 shadow-2xl rounded-2xl flex flex-col overflow-hidden relative">
         
         {/* Header */}
         <header className="h-16 bg-zinc-900 border-b border-zinc-800 flex items-center justify-between px-6 shrink-0">
           <div>
             <h2 className="text-xl font-bold text-zinc-100 flex items-center gap-2">
-              <Sword className="w-5 h-5 text-white" />
+              <BookOpen className="w-5 h-5 text-zinc-100" />
               Skill Tree
             </h2>
-            <div className="text-xs text-zinc-500">Spend points to unlock powerful skills and passive buffs.</div>
+            <div className="text-xs text-zinc-400">Spend points to unlock powerful skills and passive buffs.</div>
           </div>
           <div className="flex items-center gap-6">
             <div className="flex items-center gap-2">
               <span className="text-sm font-bold text-zinc-400 uppercase tracking-widest">Points Available:</span>
-              <span className={`text-xl font-black mb-0.5 ${skillPoints > 0 ? 'text-emerald-500 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'text-zinc-600'}`}>{skillPoints}</span>
+              <span className={`text-xl font-black mb-0.5 ${skillPoints > 0 ? 'text-sky-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'text-zinc-600'}`}>{skillPoints}</span>
             </div>
-            <button onClick={() => setSkillTreeOpen(false)} className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-white transition-colors">
+            <button onClick={() => setSkillTreeOpen(false)} className="p-2 hover:bg-zinc-800 rounded text-zinc-400 hover:text-zinc-100 transition-colors">
               <X className="w-6 h-6" />
             </button>
           </div>
@@ -128,7 +128,7 @@ export function SkillTreeModal() {
         <div className="flex-1 flex overflow-hidden relative">
           
           {/* Actives Panel */}
-          <div className="flex-1 border-r border-zinc-800 bg-zinc-950/50 p-4 overflow-y-auto">
+          <div className="flex-1 border-r border-zinc-800 bg-zinc-900/50 p-4 overflow-y-auto">
             <h3 className="text-center font-black text-red-500/50 uppercase tracking-[0.2em] mb-4 pb-2 border-b border-red-900/30">Active Skills</h3>
             <div className="flex flex-col gap-8 items-center pt-2 pb-6">
               {[1, 2, 3, 4, 5].map(tier => (
@@ -144,13 +144,13 @@ export function SkillTreeModal() {
             {[1, 2, 3, 4, 5].map(tier => (
               <div key={`spine-tier-${tier}`} className="flex flex-col items-center justify-center w-full h-12 opacity-70">
                  {tier > 1 ? (
-                   <div className="flex flex-col items-center bg-zinc-950 px-2 py-1 rounded border border-zinc-800 shadow-md">
-                     <span className="text-[10px] font-black text-zinc-500">Tier {tier}</span>
-                     <span className={`text-[9px] font-bold ${totalSpent >= (tier - 1) * 10 ? 'text-emerald-500/80' : 'text-red-900/80'}`}>Req {(tier-1)*10} pts</span>
+                   <div className="flex flex-col items-center bg-zinc-900 px-2 py-1 rounded border border-zinc-800 shadow-md">
+                     <span className="text-[10px] font-black text-zinc-400">Tier {tier}</span>
+                     <span className={`text-[9px] font-bold ${totalSpent >= (tier - 1) * 10 ? 'text-sky-400/80' : 'text-red-900/80'}`}>Req {(tier-1)*10} pts</span>
                    </div>
                  ) : (
-                   <div className="flex flex-col items-center bg-zinc-950 px-2 py-1 rounded border border-zinc-800 shadow-md">
-                     <span className="text-[10px] font-black text-emerald-500/80">Tier 1</span>
+                   <div className="flex flex-col items-center bg-zinc-900 px-2 py-1 rounded border border-zinc-800 shadow-md">
+                     <span className="text-[10px] font-black text-sky-400/80">Tier 1</span>
                    </div>
                  )}
               </div>

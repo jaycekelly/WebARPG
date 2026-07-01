@@ -2,6 +2,8 @@ import { useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { useGameEngine } from './engine/useGameEngine';
 import { useAppStore } from './store/useAppStore';
+import { useCombatStore } from './store/useCombatStore';
+import { usePlayerStore } from './store/usePlayerStore';
 import { TownView } from './components/TownView';
 import { DungeonView } from './components/DungeonView';
 import { DataEditorView } from './components/DataEditorView';
@@ -18,6 +20,43 @@ function App() {
       if (e.ctrlKey && e.key.toLowerCase() === 'e') {
         e.preventDefault();
         setLocation(useAppStore.getState().location === 'editor' ? 'town' : 'editor');
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        const appState = useAppStore.getState();
+        const combatState = useCombatStore.getState();
+        const playerState = usePlayerStore.getState();
+
+        // 1. Close Modal Windows
+        if (appState.skillTreeOpen) {
+          appState.setSkillTreeOpen(false);
+          return;
+        }
+        if (appState.vendorOpen) {
+          appState.setVendorOpen(false);
+          return;
+        }
+        
+        // 2. Cancel Aiming Mode
+        if (combatState.targetingSkillId) {
+          combatState.setTargetingSkill(null);
+          return;
+        }
+
+        // 3. Cancel Casting
+        if (combatState.castingSkillId) {
+          combatState.setCasting(null);
+          combatState.triggerGcd(0);
+          combatState.addLog("Spell cast cancelled.", 'system');
+          return;
+        }
+
+        // 4. Clear Target
+        if (playerState.activeTargetId) {
+          playerState.setTarget(null);
+          return;
+        }
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);

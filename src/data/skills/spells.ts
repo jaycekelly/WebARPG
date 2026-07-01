@@ -9,7 +9,7 @@ export const SPELL_SKILLS: Record<string, Skill> = {
       'Hurl a fiery projectile that explodes on impact.',
     icon: 'Flame',
 
-    tags: ['Spell', 'Projectile', 'Fire', 'Area'],
+    tags: ['Spell', 'Fire', 'Area'],
 
     manaCost: 15,
     range: 5,
@@ -18,8 +18,9 @@ export const SPELL_SKILLS: Record<string, Skill> = {
 
     targeting: 'Area',
     aoeParams: {
-      shape: 'square',
-      radius: 2,
+      shape: 'cross',
+      radius: 1,
+      respectWalls: true,
     },
     skillReachScaling: [
       { required: 5, effect: 'radius', value: 1 },
@@ -37,7 +38,7 @@ export const SPELL_SKILLS: Record<string, Skill> = {
       },
     ],
     effects: [
-      { type: 'damage', element: 'Fire', baseValue: 40 },
+      { type: 'damage', element: 'Fire', baseValue: 25 },
     ],
   },
   blizzard: {

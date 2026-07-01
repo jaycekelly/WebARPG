@@ -5,3 +5,23 @@
     @apply bg-zinc-950 text-zinc-100 antialiased;
   }
 }
+
+@layer utilities {
+  @keyframes floatUpFade {
+    0% { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-20px); opacity: 0; }
+  }
+  .animate-float-up {
+    animation: floatUpFade 0.8s ease-out forwards;
+  }
+  @keyframes dropBounce {
+    0% { transform: translateY(-30%); opacity: 0; }
+    20% { opacity: 1; animation-timing-function: ease-in; }
+    50% { transform: translateY(0); animation-timing-function: ease-out; }
+    75% { transform: translateY(-15%); animation-timing-function: ease-in; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+  .animate-drop-bounce {
+    animation: dropBounce 0.5s forwards;
+  }
+}

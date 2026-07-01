@@ -17,6 +17,8 @@ interface PlayerState {
   normalPityCount: number;
   magicPityCount: number;
   boundSkills: (string | null)[];
+  flaskCharges: number;
+  maxFlaskCharges: number;
   
   move: (dx: number, dy: number) => void;
   setPosition: (x: number, y: number) => void;
@@ -32,6 +34,8 @@ interface PlayerState {
   incrementPity: (rarity: 'Normal' | 'Magic') => void;
   resetPity: (rarity: 'Normal' | 'Magic') => void;
   bindSkill: (slotIndex: number, skillId: string | null) => void;
+  addFlaskCharges: (amount: number) => void;
+  useFlask: () => boolean;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -48,6 +52,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   normalPityCount: 0,
   magicPityCount: 0,
   boundSkills: ['fireball', null, null, null, null, null],
+  flaskCharges: 4,
+  maxFlaskCharges: 4,
 
   move: (dx, dy) => set((state) => {
     const now = Date.now();
@@ -60,6 +66,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     // Cancel any active cast
     if (combatState.castingSkillId) {
       combatState.setCasting(null);
+      combatState.triggerGcd(0);
       combatState.addLog(`Cast cancelled (interrupted by movement).`, 'system');
     }
     
@@ -179,9 +186,20 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   bindSkill: (slotIndex, skillId) => set((state) => {
     const newBound = [...state.boundSkills];
-    // Optional: If skillId is already bound elsewhere, remove it?
-    // We'll just allow multiple binds or just overwrite.
     newBound[slotIndex] = skillId;
     return { boundSkills: newBound };
-  })
+  }),
+
+  addFlaskCharges: (amount) => set((state) => {
+    return { flaskCharges: Math.min(state.maxFlaskCharges, state.flaskCharges + amount) };
+  }),
+
+  useFlask: () => {
+    const { flaskCharges } = get();
+    if (flaskCharges >= 1) {
+      set({ flaskCharges: flaskCharges - 1 });
+      return true;
+    }
+    return false;
+  }
 }));

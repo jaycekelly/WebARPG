@@ -20,6 +20,10 @@ export interface Enemy {
   lastMoveTime: number;
   faction: 'enemy' | 'player';
   rewardsGranted?: boolean;
+  spawnOrigin: { x: number; y: number };
+  isAggroed?: boolean;
+  groupId?: string;
+  autoTargetChecked?: boolean;
 }
 
 export interface LootDrop {
@@ -60,6 +64,7 @@ interface WorldState {
   moveEnemy: (id: string, position: {x: number, y: number}) => void;
   getEnemyAt: (x: number, y: number) => Enemy | undefined;
   markEnemyRewardsGranted: (id: string) => void;
+  updateEnemy: (id: string, updates: Partial<Enemy>) => void;
   
   // Loot
   addLoot: (position: { x: number; y: number }, items: Item[]) => void;
@@ -80,14 +85,25 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   zones: [],
 
   spawnEnemy: (enemyData) => set((state) => ({
-    enemies: [...state.enemies, { ...enemyData, rarity: enemyData.rarity || 'Normal', id: Math.random().toString(), isDead: false, lastAttackTime: 0, lastMoveTime: 0, faction: enemyData.faction || 'enemy' }]
+    enemies: [...state.enemies, { 
+      ...enemyData, 
+      rarity: enemyData.rarity || 'Normal', 
+      id: Math.random().toString(), 
+      isDead: false, 
+      lastAttackTime: 0, 
+      lastMoveTime: 0, 
+      faction: enemyData.faction || 'enemy',
+      spawnOrigin: enemyData.spawnOrigin || { ...enemyData.position },
+      isAggroed: enemyData.isAggroed || false,
+      groupId: enemyData.groupId
+    }]
   })),
 
   damageEnemy: (id, amount) => set((state) => ({
     enemies: state.enemies.map(enemy => {
       if (enemy.id === id) {
         const newHealth = Math.max(0, enemy.health - amount);
-        return { ...enemy, health: newHealth, isDead: newHealth === 0 };
+        return { ...enemy, health: newHealth, isDead: newHealth === 0, isAggroed: true };
       }
       return enemy;
     })
@@ -102,6 +118,12 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   updateEnemyMoveTime: (id, time) => set((state) => ({
     enemies: state.enemies.map(enemy => 
       enemy.id === id ? { ...enemy, lastMoveTime: time } : enemy
+    )
+  })),
+
+  updateEnemy: (id, updates) => set((state) => ({
+    enemies: state.enemies.map(enemy => 
+      enemy.id === id ? { ...enemy, ...updates } : enemy
     )
   })),
 

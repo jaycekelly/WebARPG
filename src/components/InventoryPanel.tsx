@@ -2,7 +2,7 @@ import { useInventoryStore } from '../store/useInventoryStore';
 import { useAppStore } from '../store/useAppStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import type { EquipmentSlot, Rarity } from '../engine/items/types';
-import { Sword, Shield, Circle, HelpCircle } from 'lucide-react';
+import { Sword, Shield, Circle, HelpCircle, Backpack } from 'lucide-react';
 import { ItemTooltip } from './ItemTooltip';
 
 const SLOT_ICONS: Record<string, React.ElementType> = {
@@ -29,7 +29,7 @@ const RARITY_COLORS: Record<Rarity, string> = {
   'Magic': 'border-blue-500 text-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.2)]',
   'Rare': 'border-yellow-500 text-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.2)]',
   'Epic': 'border-purple-500 text-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.3)]',
-  'Legendary': 'border-orange-500 text-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.3)]',
+  'Legendary': 'border-orange-500 text-sky-400 shadow-[0_0_8px_rgba(249,115,22,0.3)]',
   'Unique': 'border-amber-500 text-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]',
 };
 
@@ -83,7 +83,7 @@ export function InventoryPanel() {
         </div>
 
         {/* Bag Header */}
-        <h3 className="text-sm font-bold text-zinc-100 mb-1">
+        <h3 className="text-sm font-bold text-zinc-400 mt-2 mb-1 flex items-center gap-1.5">
           Backpack
         </h3>
 
@@ -114,7 +114,7 @@ export function InventoryPanel() {
                 {item && (
                   (() => {
                     const ItemIcon = ICONS[item.icon] || HelpCircle;
-                    return <ItemIcon className="w-6 h-6 text-zinc-300" />;
+                    return <ItemIcon className="w-6 h-6 text-zinc-100" />;
                   })()
                 )}
               </button>

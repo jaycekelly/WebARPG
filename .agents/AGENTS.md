@@ -22,25 +22,25 @@ This document outlines the core principles and architectural rules for the WebAR
 
 ## 4. UI & Aesthetics (Tailwind)
 - **Premium Dark Aesthetic**: Maintain the clean, dark-themed, "Melvor Idle" inspired interface. 
-- **Base Backgrounds**: Use `bg-zinc-950` for the absolute lowest layer (e.g., the body or global container).
-- **Primary Panels & Modals**: Use `bg-zinc-900 border border-zinc-800` for primary UI blocks (Sidebars, Inventory, Skill Tree Modal, Action Bar container, Vitals display).
-- **Secondary/Nested Containers**: Use `bg-zinc-900/50` or `bg-zinc-950/50` for nested sub-panels, often with a subtle `backdrop-blur-md` if floating. Use `border-zinc-800` for their borders.
-- **Typography Colors**: 
-  - Primary text/Headers: `text-zinc-100`
-  - Secondary text/Descriptions: `text-zinc-400`
-- **Semantic/Highlight Colors**:
-  - **Rule**: ALWAYS use `500` for text/borders (e.g., `text-red-500`, `border-red-500`) and `600` for solid background fills (e.g., `bg-red-600`). Use `500/10` or `500/20` for faint backgrounds.
-  - **Player/Health/Enemies**: Red (`text-red-500`, `bg-red-600`, `bg-red-500/10`)
-  - **Mana/Magic/Passives**: Blue (`text-blue-500`, `bg-blue-600`)
-  - **XP**: Purple (`bg-purple-600`)
-  - **System/Friendly/Buffs**: Emerald (`text-emerald-500`, `border-emerald-500`)
-  - **Interactables/Actives/Highlights**: Cyan (`text-cyan-500`, `border-cyan-500`)
+- **Universal Base Background**: Use `bg-zinc-950` for the absolute lowest layer (e.g., the body or global container).
+- **Strict UI Palette**:
+  - **Background Color**: `bg-zinc-900` (Use `bg-zinc-900/50` or `bg-zinc-900/90` with `backdrop-blur-md` for floating elements)
+  - **Border Color**: `border-zinc-800`
+  - **Major Text**: `text-zinc-100`
+  - **Minor Text**: `text-zinc-400`
+  - **Highlight Color**: `sky-400` (e.g., `text-sky-400`, `border-sky-400` for active states, important callouts)
+  - **Health Displays**: `red-600` for fills (`bg-red-600`), `red-500` for text/icons
+  - **Mana Displays**: `blue-600` for fills (`bg-blue-600`), `blue-500` for text/icons
+  - **Enemy Display Icons**: `text-red-500`
+  - **Enemy Display Backgrounds**: `bg-red-950`
+  - **Player Display Icon**: `text-emerald-500`
+  - **Player Display Background**: `bg-emerald-950`
 - **Grid Layouts**: Combat grid tiles use `border-zinc-800/40`.
 - **Combat Log Formatting**:
-  - *System*: `text-emerald-500 italic`
-  - *Player Attack*: `text-blue-500`
+  - *System*: `text-zinc-400 italic`
+  - *Player Attack*: `text-zinc-100`
   - *Enemy Attack*: `text-red-500`
-  - *Abilities*: `text-cyan-500 font-semibold bg-cyan-500/10`
+  - *Abilities*: `text-sky-400 font-semibold bg-sky-400/10`
 - **Micro-Animations**: Rely on subtle visual cues (`transition-colors`, `hover:scale-110`, `animate-pulse` on targeted units, Lucide icons) rather than massive blocks of text to convey information.
 
 ## 5. Agent Workflow

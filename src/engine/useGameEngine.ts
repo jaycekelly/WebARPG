@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
-import { InputHandler, getMainHandAttackCooldown, getOffHandAttackCooldown } from './input/InputHandler';
+import { InputHandler, getMainHandAttackCooldown, getOffHandAttackCooldown, getEffectiveGcd } from './input/InputHandler';
 import { useStatsStore } from '../store/useStatsStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import type { SkillTag } from './skills/types';
@@ -14,7 +14,8 @@ import { useAppStore } from '../store/useAppStore';
 import { useBuffStore } from '../store/useBuffStore';
 import type { Item } from './items/types';
 
-import { getChebyshevDistance, checkCornerBlock, hasLineOfSight } from './world/gridMath';
+import { getChebyshevDistance, checkCornerBlock, hasLineOfSight, type Point } from './world/gridMath';
+import { findPath } from './world/pathfinding';
 
 export function useGameEngine() {
   useEffect(() => {
@@ -41,18 +42,34 @@ export function useGameEngine() {
       const statsState = useStatsStore.getState();
       const buffState = useBuffStore.getState();
 
-      const dotEvents = buffState.tickBuffs(deltaTime);
+      combatState.clearExpiredFloatingTexts(now);
+
+      const { dotEvents, hotEvents } = buffState.tickBuffs(deltaTime);
       
       dotEvents.forEach(event => {
         if (event.entityId === 'player') {
           usePlayerStore.getState().takeDamage(event.damage);
+          const { position } = usePlayerStore.getState();
+          combatState.addFloatingText(position.x, position.y, event.damage.toFixed(0), 'text-zinc-100');
           // Optional: combat log for player taking dot damage
         } else {
-          worldState.damageEnemy(event.entityId, event.damage);
           const enemy = worldState.enemies.find(e => e.id === event.entityId);
+          worldState.damageEnemy(event.entityId, event.damage);
+          if (enemy) {
+             combatState.addFloatingText(enemy.position.x, enemy.position.y, event.damage.toFixed(0), 'text-purple-400');
+          }
           if (enemy?.isDead && !enemy.rewardsGranted) {
              combatState.addLog(`${enemy.name} died to ${event.damageType} damage over time.`, 'system');
           }
+        }
+      });
+
+      hotEvents.forEach(event => {
+        if (event.entityId === 'player') {
+          usePlayerStore.getState().heal(event.healAmount);
+          // Removed floating text for HoTs to prevent visual clutter
+        } else {
+          // Implement enemy healing if necessary in the future
         }
       });
 
@@ -63,7 +80,7 @@ export function useGameEngine() {
       const hpRegenFlat = statsState.getStat('HealthRegeneration');
       const hpRegenPercent = statsState.getStat('HealthRegenPercent');
       
-      const baseHpRegen = (maxHp * 0.005) + hpRegenFlat;
+      const baseHpRegen = (maxHp * 0.0025) + hpRegenFlat;
       const totalHpRegen = baseHpRegen * (1 + (hpRegenPercent / 100));
       const hpTick = totalHpRegen * dtSec;
       
@@ -75,7 +92,7 @@ export function useGameEngine() {
       const manaRegenFlat = statsState.getStat('ManaRegeneration');
       const manaRegenPercent = statsState.getStat('ManaRegenPercent');
       
-      const baseManaRegen = (maxMana * 0.01) + manaRegenFlat;
+      const baseManaRegen = (maxMana * 0.015) + manaRegenFlat;
       const totalManaRegen = baseManaRegen * (1 + (manaRegenPercent / 100));
       const manaTick = totalManaRegen * dtSec;
       if (manaTick > 0 && playerState.currentMana < maxMana && playerState.currentHealth > 0) {
@@ -90,12 +107,14 @@ export function useGameEngine() {
           // Player on zone
           if (position.x === zone.position.x && position.y === zone.position.y) {
              usePlayerStore.getState().takeDamage(tickDamage);
+             combatState.addFloatingText(position.x, position.y, tickDamage.toFixed(0), 'text-zinc-100');
           }
           
           // Enemy on zone
           const enemy = worldState.getEnemyAt(zone.position.x, zone.position.y);
           if (enemy && !enemy.isDead) {
              worldState.damageEnemy(enemy.id, tickDamage);
+             combatState.addFloatingText(enemy.position.x, enemy.position.y, tickDamage.toFixed(0), 'text-orange-500');
              const updated = useWorldStore.getState().enemies.find(e => e.id === enemy.id);
              if (updated?.isDead && !updated.rewardsGranted) {
                combatState.addLog(`${enemy.name} died to ${zone.hazardId}.`, 'system');
@@ -130,14 +149,41 @@ export function useGameEngine() {
       if (castingSkillId && castEndTime > 0 && now >= castEndTime) {
         const skill = SKILLS[castingSkillId];
         if (skill) {
-          SkillExecutor.execute(skill, activeTargetId || undefined);
+          SkillExecutor.execute(skill, combatState.castTargetId, combatState.castTargetPos);
+          combatState.triggerGcd(getEffectiveGcd(skill));
         }
         setCasting(null);
       }
 
+      // Auto Target Checking (1-time check per enemy)
+      const inventoryState = useInventoryStore.getState();
+      const mainHand = inventoryState.equipment['weapon1'];
+      const offHand = inventoryState.equipment['weapon2'];
+      const playerWeapon = mainHand || offHand;
+      const weaponRange = playerWeapon?.weaponRange || 1;
+      
+      let acquiredTargetId = activeTargetId;
+      worldState.enemies.forEach(e => {
+         if (e.isDead || e.autoTargetChecked) return;
+         const dist = getChebyshevDistance(position, e.position);
+         if (dist <= weaponRange) {
+            let canHit = false;
+            if (weaponRange <= 1) canHit = !checkCornerBlock(position, e.position, isSolid);
+            else canHit = hasLineOfSight(position, e.position, isSolid);
+            
+            if (canHit) {
+               worldState.updateEnemy(e.id, { autoTargetChecked: true });
+               if (!acquiredTargetId) {
+                  usePlayerStore.getState().setTarget(e.id);
+                  acquiredTargetId = e.id;
+               }
+            }
+         }
+      });
+
       // Auto Attack Logic
-      if (activeTargetId) {
-        const target = worldState.enemies.find(e => e.id === activeTargetId);
+      if (acquiredTargetId) {
+        const target = worldState.enemies.find(e => e.id === acquiredTargetId);
         
         if (target && !target.isDead && (now - lastMoveTime) > 300) {
           const dist = getChebyshevDistance(position, target.position);
@@ -232,6 +278,14 @@ export function useGameEngine() {
                  else if (result === 'crit') resultText = ' (Critical Strike!)';
                 
                  worldState.damageEnemy(target.id, finalDamage);
+                 
+                 let dmgColor = 'text-zinc-100';
+                 if (damageType === 'Fire') dmgColor = 'text-orange-500';
+                 else if (damageType === 'Cold') dmgColor = 'text-blue-400';
+                 else if (damageType === 'Lightning') dmgColor = 'text-yellow-400';
+                 
+                 combatState.addFloatingText(target.position.x, target.position.y, finalDamage.toFixed(0), dmgColor);
+                 
                  combatState.addLog(`You hit ${target.name} for ${finalDamage.toFixed(0)} damage with ${handName}.${resultText}`, 'player-attack');
                  
                  const lifeOnHit = statsState.getStat('LifeGainOnHit');
@@ -275,9 +329,78 @@ export function useGameEngine() {
           }
         }
 
+      // Pre-calculate Aggro State Changes
+      const groupsToDropAggro = new Set<string>();
+      const enemiesToDropAggro = new Set<string>();
+      const groupsToAggro = new Set<string>();
+      const enemiesToAggro = new Set<string>();
+
+      worldState.enemies.forEach(enemy => {
+        if (enemy.isDead) return;
+        if (enemy.isAggroed) {
+          const distFromSpawn = getChebyshevDistance(enemy.position, enemy.spawnOrigin);
+          if (distFromSpawn > 10) {
+            if (enemy.groupId) groupsToDropAggro.add(enemy.groupId);
+            else enemiesToDropAggro.add(enemy.id);
+          }
+        } else {
+          const distToPlayer = getChebyshevDistance(enemy.position, position);
+          if (distToPlayer <= enemy.stats.aggroRange) {
+            if (hasLineOfSight(enemy.position, position, isSolid)) {
+              if (enemy.groupId) groupsToAggro.add(enemy.groupId);
+              else enemiesToAggro.add(enemy.id);
+            }
+          }
+        }
+      });
+
+      const isStaticSolid = (x: number, y: number) => {
+        return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
+      };
+
       // Enemy AI Logic
       worldState.enemies.forEach(enemy => {
         if (enemy.isDead) return;
+
+        let isAggroed = enemy.isAggroed;
+        
+        if (isAggroed) {
+            if (enemy.groupId && groupsToDropAggro.has(enemy.groupId)) isAggroed = false;
+            else if (!enemy.groupId && enemiesToDropAggro.has(enemy.id)) isAggroed = false;
+        } else {
+            if (enemy.groupId && groupsToAggro.has(enemy.groupId)) isAggroed = true;
+            else if (!enemy.groupId && enemiesToAggro.has(enemy.id)) isAggroed = true;
+        }
+        
+        if (isAggroed !== enemy.isAggroed) {
+           if (!isAggroed) {
+              worldState.updateEnemy(enemy.id, { isAggroed: false, health: enemy.stats.maxHealth });
+           } else {
+              worldState.updateEnemy(enemy.id, { isAggroed: true });
+           }
+        }
+
+        if (!isAggroed) {
+           const distToOrigin = getChebyshevDistance(enemy.position, enemy.spawnOrigin);
+           if (distToOrigin > 0) {
+               const moveCooldown = 1000 / Math.max(0.1, enemy.stats.moveSpeed);
+               if (now - (enemy.lastMoveTime || 0) >= moveCooldown) {
+                  const path = findPath(enemy.position, enemy.spawnOrigin, isStaticSolid);
+                  if (path && path.length > 0) {
+                     const nextPos = path[0];
+                     const collidingEnemy = worldState.getEnemyAt(nextPos.x, nextPos.y);
+                     const collidingPlayer = (nextPos.x === position.x && nextPos.y === position.y);
+                     const collidingObstacle = worldState.grid.obstacles.some(o => o.x === nextPos.x && o.y === nextPos.y);
+                     
+                     if (!collidingEnemy && !collidingPlayer && !collidingObstacle) {
+                        worldState.moveEnemy(enemy.id, nextPos);
+                        worldState.updateEnemyMoveTime(enemy.id, now);
+                     }
+                  }
+               }
+           }
+           return; // Stop processing further AI logic if not aggroed
+        }
         
         const dist = getChebyshevDistance(enemy.position, position);
         const enemyAttackCooldown = 1000 / Math.max(0.1, enemy.stats.attackSpeed);
@@ -331,47 +454,37 @@ export function useGameEngine() {
 
             if (result === 'deflect') {
                combatState.addLog(`${enemy.name}'s attack was deflected!`, 'player-attack');
-            } else {
-               usePlayerStore.getState().takeDamage(finalDamage);
-               let resultText = '';
+             } else {
+                usePlayerStore.getState().takeDamage(finalDamage);
+                combatState.addFloatingText(position.x, position.y, finalDamage.toFixed(0), 'text-zinc-100');
+                let resultText = '';
                if (result === 'block') resultText = ' (Blocked)';
                else if (result === 'parry') resultText = ' (Parried)';
                combatState.addLog(`${enemy.name} hits you for ${Math.floor(finalDamage)} damage!${resultText}`, 'enemy-attack');
             }
           }
-        } else if (dist <= enemy.stats.aggroRange && enemy.aiProfile === 'melee_rusher') {
+        } else if (enemy.aiProfile === 'melee_rusher') {
           // AI Movement
           const moveCooldown = 1000 / Math.max(0.1, enemy.stats.moveSpeed);
           if (now - (enemy.lastMoveTime || 0) >= moveCooldown) {
-            let dx = 0;
-            let dy = 0;
             
-            if (position.x > enemy.position.x) dx = 1;
-            else if (position.x < enemy.position.x) dx = -1;
+            const isDynamicSolid = (sx: number, sy: number) => {
+               if (sx < 0 || sx >= worldState.grid.width || sy < 0 || sy >= worldState.grid.height) return true;
+               if (worldState.grid.obstacles.some(o => o.x === sx && o.y === sy)) return true;
+               const otherEnemy = worldState.getEnemyAt(sx, sy);
+               if (otherEnemy && otherEnemy.id !== enemy.id) return true;
+               return false;
+            };
+
+            const path = findPath(enemy.position, position, isDynamicSolid);
             
-            if (position.y > enemy.position.y) dy = 1;
-            else if (position.y < enemy.position.y) dy = -1;
-            
-            // We keep enemy movement slightly dumb for now, but use isSolid for collisions
-            // Force orthagonal movement like the player
-            if (dx !== 0 && dy !== 0) {
-              if (Math.random() > 0.5) dx = 0;
-              else dy = 0;
-            }
-            
-            if (dx !== 0 || dy !== 0) {
-              const newX = enemy.position.x + dx;
-              const newY = enemy.position.y + dy;
+            if (path && path.length > 0) {
+              const nextPos = path[0];
+              const collidingPlayer = (nextPos.x === position.x && nextPos.y === position.y);
               
-              if (newX >= 0 && newX < worldState.grid.width && newY >= 0 && newY < worldState.grid.height) {
-                const collidingEnemy = worldState.getEnemyAt(newX, newY);
-                const collidingPlayer = (newX === position.x && newY === position.y);
-                const collidingObstacle = worldState.grid.obstacles.some(o => o.x === newX && o.y === newY);
-                
-                if (!collidingEnemy && !collidingPlayer && !collidingObstacle) {
-                  worldState.moveEnemy(enemy.id, { x: newX, y: newY });
-                  worldState.updateEnemyMoveTime(enemy.id, now);
-                }
+              if (!collidingPlayer) {
+                worldState.moveEnemy(enemy.id, nextPos);
+                worldState.updateEnemyMoveTime(enemy.id, now);
               }
             }
           }
@@ -392,6 +505,13 @@ export function useGameEngine() {
            usePlayerStore.getState().addXp(xpGain);
            usePlayerStore.getState().addGold(goldGain);
            combatState.addLog(`Gained ${xpGain} XP and ${goldGain} Gold.`, 'system');
+           
+           // Flask Charges
+           let chargesGained = 0;
+           if (enemy.rarity === 'Normal') chargesGained = 1 / 3;
+           else if (enemy.rarity === 'Magic') chargesGained = 0.5;
+           else if (enemy.rarity === 'Rare' || enemy.rarity === 'Boss') chargesGained = 2;
+           if (chargesGained > 0) usePlayerStore.getState().addFlaskCharges(chargesGained);
            
            // Drop Loot
            let dropChance = 0;
@@ -443,22 +563,29 @@ export function useGameEngine() {
                };
 
                drops.forEach(item => {
-                 const adjacent: {x: number, y: number}[] = [];
-                 for (let dx = -1; dx <= 1; dx++) {
-                   for (let dy = -1; dy <= 1; dy++) {
-                     const nx = origin.x + dx;
-                     const ny = origin.y + dy;
-                     if (isTileEmpty(nx, ny)) {
-                       adjacent.push({ x: nx, y: ny });
+                 let targetPos = origin;
+                 
+                 if (isTileEmpty(origin.x, origin.y)) {
+                   targetPos = { x: origin.x, y: origin.y };
+                   claimedSpots.add(`${targetPos.x},${targetPos.y}`);
+                 } else {
+                   const adjacent: {x: number, y: number}[] = [];
+                   for (let dx = -1; dx <= 1; dx++) {
+                     for (let dy = -1; dy <= 1; dy++) {
+                       if (dx === 0 && dy === 0) continue;
+                       const nx = origin.x + dx;
+                       const ny = origin.y + dy;
+                       if (isTileEmpty(nx, ny)) {
+                         adjacent.push({ x: nx, y: ny });
+                       }
                      }
                    }
-                 }
-                 
-                 let targetPos = origin;
-                 if (adjacent.length > 0) {
-                   const r = Math.floor(Math.random() * adjacent.length);
-                   targetPos = adjacent[r];
-                   claimedSpots.add(`${targetPos.x},${targetPos.y}`);
+                   
+                   if (adjacent.length > 0) {
+                     const r = Math.floor(Math.random() * adjacent.length);
+                     targetPos = adjacent[r];
+                     claimedSpots.add(`${targetPos.x},${targetPos.y}`);
+                   }
                  }
                  
                  worldState.addLoot(targetPos, [item]);

@@ -12,7 +12,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const RARITY_COLORS = {
-  Normal: 'text-zinc-300',
+  Normal: 'text-zinc-100',
   Magic: 'text-blue-400',
   Rare: 'text-yellow-400',
   Epic: 'text-purple-400',
@@ -70,7 +70,7 @@ export function LootPopup({ dropId, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50">
           <h2 className="text-lg font-bold text-zinc-100 tracking-tight">Loot Nearby</h2>
-          <button onClick={onClose} className="p-1 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-white transition-colors">
+          <button onClick={onClose} className="p-1 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-100 transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -106,7 +106,7 @@ export function LootPopup({ dropId, onClose }: Props) {
         <div className="p-4 border-t border-zinc-800 bg-zinc-900/50">
           <button 
             onClick={handleLootAll}
-            className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-bold rounded-lg transition-colors border border-zinc-700 hover:border-zinc-600"
+            className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold rounded-lg transition-colors border border-zinc-700 hover:border-zinc-600"
           >
             Loot All
           </button>

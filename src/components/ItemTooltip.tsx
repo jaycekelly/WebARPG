@@ -14,7 +14,7 @@ const RARITY_COLORS: Record<Rarity, string> = {
   Magic: 'text-blue-500',
   Rare: 'text-yellow-500',
   Epic: 'text-purple-500',
-  Legendary: 'text-orange-500',
+  Legendary: 'text-sky-400',
   Unique: 'text-amber-500'
 };
 
@@ -27,19 +27,18 @@ export function ItemTooltip({ item }: Props) {
   const { getStat } = useStatsStore();
   
   return (
-    <div className="bg-zinc-950/95 border border-zinc-700 shadow-2xl rounded-lg p-4 w-64 backdrop-blur-md text-sm">
-      <div className={cn("font-bold text-base tracking-tight mb-1", RARITY_COLORS[item.rarity])}>
+    <div className="bg-zinc-900/95 border border-zinc-700 shadow-2xl rounded-lg pt-2 pb-3 px-3 w-64 backdrop-blur-md text-sm flex flex-col gap-2">
+      <div className={cn("font-bold text-base tracking-tight", RARITY_COLORS[item.rarity])}>
         {item.name}
       </div>
       
-      <div className="flex justify-between items-center text-xs text-zinc-400 border-b border-zinc-800 pb-2 mb-2 uppercase tracking-widest">
+      <div className="flex justify-between items-center text-xs text-zinc-400 border-b border-zinc-800 pb-2 uppercase tracking-widest">
         <span>{item.itemType.replace('weapon-', 'Weapon (').replace('1h', '1H)').replace('2h', '2H)')}</span>
         <span>iLvl {item.iLvl}</span>
       </div>
 
-
       {item.baseStats.length > 0 && (
-        <div className="space-y-1 mb-3">
+        <div className="space-y-1">
           {item.baseStats.map((stat, i) => {
             const sign = stat.value > 0 ? '+' : '';
             let suffix = stat.type === 'increased' ? '%' : '';
@@ -77,7 +76,7 @@ export function ItemTooltip({ item }: Props) {
       )}
 
       {item.affixes.length > 0 && (
-        <div className="space-y-1 mb-2 pt-2 border-t border-zinc-800/50">
+        <div className="space-y-1 pt-2 border-t border-zinc-800/50">
           {item.affixes.map((affix) => (
             <div key={affix.id} className="text-blue-500">
               {affix.description}
@@ -87,8 +86,8 @@ export function ItemTooltip({ item }: Props) {
       )}
       
       {item.requirements && (
-        <div className="mt-2 pt-2 border-t border-zinc-800/50 text-xs space-y-1">
-           <div className="text-zinc-500 font-bold mb-1">Requires:</div>
+        <div className="pt-2 border-t border-zinc-800/50 text-xs space-y-1">
+           <div className="text-zinc-400 font-bold">Requires:</div>
            {item.requirements.level && (
               <div className={level >= item.requirements.level ? 'text-zinc-400' : 'text-red-500'}>
                  Level {item.requirements.level}
@@ -116,7 +115,13 @@ export function ItemTooltip({ item }: Props) {
            )}
         </div>
       )}
-
+      
+      {item.value > 0 && (
+        <div className="pt-2 border-t border-zinc-800/50 text-xs text-yellow-500/70 font-semibold flex justify-between">
+          <span>Sell Value</span>
+          <span>{item.value} Gold</span>
+        </div>
+      )}
     </div>
   );
 }

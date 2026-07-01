@@ -11,7 +11,7 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
     baseGoldReward: 5,
     stats: {
       maxHealth: 60,
-      attackPower: 10,
+      attackPower: 15,
       attackSpeed: 0.5,
       attackRange: 1,
       moveSpeed: 1.0,

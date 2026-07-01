@@ -107,7 +107,7 @@ export function CharacterSheet() {
       <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
         <div>
           <h2 className="text-lg font-bold text-zinc-100">Character Stats</h2>
-          <div className="text-xs text-zinc-500">Level {level}</div>
+          <div className="text-xs text-zinc-400">Level {level}</div>
         </div>
         <div className="flex gap-2">
           {attributePoints > 0 && (
@@ -117,7 +117,7 @@ export function CharacterSheet() {
             </div>
           )}
           {skillPoints > 0 && (
-            <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 px-2 py-1 rounded text-xs font-bold flex items-center gap-1.5 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+            <div className="bg-sky-400/10 border border-sky-400/20 text-sky-400 px-2 py-1 rounded text-xs font-bold flex items-center gap-1.5 animate-pulse shadow-[0_0_10px_rgba(16,185,129,0.2)]">
               <Sparkles className="w-3 h-3" />
               {skillPoints} SP
             </div>
@@ -127,13 +127,13 @@ export function CharacterSheet() {
 
       {/* Core Attributes */}
       <div className="space-y-3 pb-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-2">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
           <Activity className="w-4 h-4 opacity-70" />
           Attributes
         </h3>
         <div className="grid grid-cols-2 gap-2">
           {(['Strength', 'Dexterity', 'Intelligence', 'Vitality'] as const).map(attr => (
-            <div key={attr} className="bg-zinc-950/50 rounded-xl border border-zinc-800/50 overflow-hidden shadow-inner flex items-center justify-between p-2">
+            <div key={attr} className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden shadow-inner flex items-center justify-between p-2">
                <div className="flex flex-col px-2">
                  <span className="text-zinc-400 text-xs uppercase tracking-wide">{attr}</span>
                  <span className="font-mono text-zinc-200">{getStat(attr).toFixed(0)}</span>
@@ -141,7 +141,7 @@ export function CharacterSheet() {
                {attributePoints > 0 && (
                  <button 
                    onClick={() => allocateAttribute(attr)}
-                   className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 shadow-lg shadow-blue-500/20"
+                   className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-zinc-100 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 shadow-lg shadow-blue-500/20"
                  >
                    <Plus className="w-4 h-4" />
                  </button>
@@ -154,11 +154,11 @@ export function CharacterSheet() {
       <div className="space-y-6 pb-8">
         {STAT_CATEGORIES.map((category) => (
           <div key={category.title} className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-500 flex items-center gap-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
               <category.icon className="w-4 h-4 opacity-70" />
               {category.title}
             </h3>
-            <div className="bg-zinc-950/50 rounded-xl border border-zinc-800/50 overflow-hidden shadow-inner">
+            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden shadow-inner">
               {category.stats.map((statDef, index) => {
                 const val = getStat(statDef.id);
                 // Highlight non-zero stats to make them pop

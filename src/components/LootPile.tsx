@@ -10,7 +10,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const RARITY_COLORS = {
-  Normal: 'text-zinc-300 drop-shadow-[0_0_8px_rgba(212,212,216,0.5)]',
+  Normal: 'text-zinc-100 drop-shadow-[0_0_8px_rgba(212,212,216,0.5)]',
   Magic: 'text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]',
   Rare: 'text-yellow-300 drop-shadow-[0_0_8px_rgba(253,224,71,0.5)]',
   Epic: 'text-purple-400 drop-shadow-[0_0_8px_rgba(192,132,252,0.5)]',
@@ -44,7 +44,7 @@ export function LootPile({ items }: Props) {
 
   return (
     <div 
-      className="w-full h-full flex items-center justify-center animate-bounce [animation-iteration-count:1] z-10 relative group"
+      className="w-full h-full flex items-center justify-center animate-drop-bounce z-10 relative group"
       onMouseEnter={() => {
         if (!isMultiple) {
           setContent(<ItemTooltip item={items[0]} />);

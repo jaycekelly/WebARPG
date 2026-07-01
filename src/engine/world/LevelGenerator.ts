@@ -65,28 +65,18 @@ export class LevelGenerator {
     playerStore.setPosition(playerSpawn.x, playerSpawn.y);
     playerStore.setTarget(null);
 
-    // For the test level, we just spawn 2 goblins far away
-    const enemyCount = 2; 
-    
-    // Filter valid enemies for this level
-    const validTemplates = Object.values(ENEMY_TEMPLATES).filter(t => t.minLevel <= playerLevel);
-    
-    for (let i = 0; i < enemyCount; i++) {
-      if (validTemplates.length === 0) break;
-      // Always spawn goblin for test level as requested
-      const template = ENEMY_TEMPLATES['goblin'];
-      // Spawn at least 8 tiles away from player
-      const spawnPos = this.getValidSpawnPoint(grid, playerSpawn, 8);
-      
-      // Calculate scaled stats based on level difference
+    // For the test level, we spawn 1 solo goblin, and 1 group of 2 goblins
+    const template = ENEMY_TEMPLATES['goblin'];
+    if (!template) return;
+
+    // Helper to spawn a goblin
+    const spawnGoblin = (spawnPos: {x: number, y: number}, groupId?: string) => {
       const levelDiff = Math.max(0, playerLevel - template.minLevel);
-      const scaledStats = { ...template.stats };
-      
-      // +10% Health and Damage per level above minLevel
       const scaleFactor = 1 + (levelDiff * 0.10);
+      const scaledStats = { ...template.stats };
       scaledStats.maxHealth = Math.floor(scaledStats.maxHealth * scaleFactor);
       scaledStats.attackPower = Math.floor(scaledStats.attackPower * scaleFactor);
-      
+
       worldStore.spawnEnemy({
         templateId: template.id,
         name: template.name,
@@ -98,7 +88,25 @@ export class LevelGenerator {
         faction: 'enemy',
         xpReward: Math.floor(template.baseXpReward * scaleFactor),
         goldReward: Math.floor((template.baseGoldReward || 0) * scaleFactor),
+        groupId,
+        spawnOrigin: spawnPos,
+        isAggroed: false
       });
+    };
+
+    // Spawn 1 Solo Goblin
+    const soloPos = this.getValidSpawnPoint(grid, playerSpawn, 8);
+    spawnGoblin(soloPos);
+
+    // Spawn Group of 2 Goblins
+    const groupOrigin = this.getValidSpawnPoint(grid, playerSpawn, 8);
+    spawnGoblin(groupOrigin, 'test-group-1');
+    
+    // Find an adjacent tile for the second group member
+    let member2Pos = { x: groupOrigin.x + 1, y: groupOrigin.y };
+    if (grid.obstacles.some(o => o.x === member2Pos.x && o.y === member2Pos.y) || member2Pos.x >= grid.width) {
+       member2Pos = { x: groupOrigin.x - 1, y: groupOrigin.y };
     }
+    spawnGoblin(member2Pos, 'test-group-1');
   }
 }
