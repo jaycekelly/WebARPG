@@ -129,7 +129,7 @@ export function CharacterSheet() {
           {(['Strength', 'Dexterity', 'Intelligence', 'Vitality'] as const).map(attr => (
             <div key={attr} className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden shadow-inner flex items-center justify-between p-2">
                <div className="flex flex-col px-2">
-                 <span className="text-zinc-400 text-xs uppercase tracking-wide">{attr}</span>
+                 <span className="text-zinc-400 text-xs uppercase tracking-wide">{attr.substring(0, 3)}</span>
                  <span className="font-mono text-zinc-200">{getStat(attr).toFixed(0)}</span>
                </div>
                {attributePoints > 0 && (
