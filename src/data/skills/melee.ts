@@ -5,7 +5,7 @@ export const MELEE_SKILLS: Record<string, Skill> = {
     id: 'charge_attack',
     name: 'Charge',
     description: 'Instantly dash to your target and strike them for base weapon damage.',
-    icon: 'Sword',
+    icon: 'Zap',
     tags: ['Attack', 'Melee', 'Physical', 'Strike', 'Movement'],
     manaCost: 20,
     range: 3,

@@ -9,7 +9,7 @@ import { useSkillStore } from '../store/useSkillStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import { useAppStore } from '../store/useAppStore';
-import { Crosshair, X, Flame, ShieldAlert, Footprints, ArrowUpCircle, Sword, Droplet, FlaskConical } from 'lucide-react';
+import { Crosshair, X, Flame, ShieldAlert, Footprints, ArrowUpCircle, Sword, Droplet, FlaskConical, Zap } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SKILLS } from '../data/skills';
 
@@ -21,7 +21,8 @@ const ICONS: Record<string, React.ElementType> = {
   ArrowUpCircle,
   Sword,
   Droplet,
-  FlaskConical
+  FlaskConical,
+  Zap
 };
 
 const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => {
@@ -233,6 +234,11 @@ export function CombatOverlay() {
         
         {/* Timers Container */}
         <div className="flex flex-col items-center gap-1 w-64 pointer-events-auto">
+          {isPaused && (
+            <div className="text-sky-400 font-bold text-xs uppercase tracking-widest animate-pulse drop-shadow-md mb-1">
+              Tactical Pause
+            </div>
+          )}
           {/* Cast Bar */}
           {castingSkillId && castEndTime > 0 && SKILLS[castingSkillId] && (
             <div className="w-full">

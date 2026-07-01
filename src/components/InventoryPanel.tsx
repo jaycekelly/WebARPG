@@ -2,15 +2,15 @@ import { useInventoryStore } from '../store/useInventoryStore';
 import { useAppStore } from '../store/useAppStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import type { EquipmentSlot, Rarity } from '../engine/items/types';
-import { Sword, Shield, Circle, HelpCircle } from 'lucide-react';
+import { Sword, Shield, Circle, HelpCircle, Crown, Shirt, Hexagon, Hand, Footprints, Book, ShieldAlert } from 'lucide-react';
 import { ItemTooltip } from './ItemTooltip';
 
 const SLOT_ICONS: Record<string, React.ElementType> = {
-  'helm': HelpCircle, // Add proper icons later
-  'chest': Shield,
-  'gloves': HelpCircle,
-  'legs': HelpCircle,
-  'boots': HelpCircle,
+  'helm': Crown,
+  'chest': Shirt,
+  'gloves': Hand,
+  'legs': Hexagon,
+  'boots': Footprints,
   'weapon1': Sword,
   'weapon2': Sword,
   'amulet': Circle,
@@ -22,6 +22,13 @@ const ICONS: Record<string, React.ElementType> = {
   'Sword': Sword,
   'Shield': Shield,
   'Circle': Circle,
+  'Crown': Crown,
+  'Shirt': Shirt,
+  'Hexagon': Hexagon,
+  'Hand': Hand,
+  'Footprints': Footprints,
+  'Book': Book,
+  'ShieldAlert': ShieldAlert
 };
 
 const RARITY_COLORS: Record<Rarity, string> = {

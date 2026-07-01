@@ -1,6 +1,6 @@
 import { useWorldStore } from '../store/useWorldStore';
 import { useInventoryStore } from '../store/useInventoryStore';
-import { X, Sword, Shield, Circle, CircleDashed } from 'lucide-react';
+import { X, Sword, Shield, Circle, CircleDashed, Crown, Shirt, Hexagon, Hand, Footprints, Book, ShieldAlert } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { Item } from '../engine/items/types';
@@ -25,6 +25,13 @@ const getIcon = (iconName: string) => {
     case 'Sword': return Sword;
     case 'Shield': return Shield;
     case 'Circle': return Circle;
+    case 'Crown': return Crown;
+    case 'Shirt': return Shirt;
+    case 'Hexagon': return Hexagon;
+    case 'Hand': return Hand;
+    case 'Footprints': return Footprints;
+    case 'Book': return Book;
+    case 'ShieldAlert': return ShieldAlert;
     default: return CircleDashed;
   }
 };
