@@ -32,7 +32,7 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'SpellDamage': '% Spell Damage',
   'AreaDamage': '% Area Damage',
 
-  // Penetration (Flat & Percent)
+  // Penetration
   'StrikePenetrationFlat': 'Strike Penetration',
   'StrikePenetrationPercent': '% Strike Penetration',
   'PiercePenetrationFlat': 'Pierce Penetration',
@@ -48,14 +48,37 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'ElementalPenetrationFlat': 'Elemental Penetration',
   'ElementalPenetrationPercent': '% Elemental Penetration',
 
+  // Critical
+  'AttackCriticalStrikeChance': '% Attack Crit Chance',
+  'SpellCriticalStrikeChance': '% Spell Crit Chance',
+  'CriticalStrikeMultiplier': '% Crit Multiplier',
+
+  // Weapon Enhancements
+  'StrikeDamageToWeapons': 'Strike Damage to Attacks',
+  'PierceDamageToWeapons': 'Pierce Damage to Attacks',
+  'FireDamageToWeapons': 'Fire Damage to Attacks',
+  'ColdDamageToWeapons': 'Cold Damage to Attacks',
+  'LightningDamageToWeapons': 'Lightning Damage to Attacks',
+  'WeaponElementalDamage': '% Weapon Elemental Damage',
+
+  // DoT & Status
+  'DoTDamage': '% Damage Over Time',
+  'DoTDuration': '% DoT Duration',
+  'StatusEffectPower': '% Status Effect Power',
+  'StatusEffectDuration': '% Status Effect Duration',
+  'BurnEffect': '% Burn Effect',
+  'ChillEffect': '% Chill Effect',
+  'ShockEffect': '% Shock Effect',
+
   // Defenses
   'Armor': 'Armor',
-  'FireResist': 'Fire Resistance',
-  'ColdResist': 'Cold Resistance',
-  'LightningResist': 'Lightning Resistance',
+  'DamageReduction': '% Damage Reduction',
   'StrikeResist': 'Strike Resistance',
   'PierceResist': 'Pierce Resistance',
   'PhysicalResist': 'Physical Resistance',
+  'FireResist': 'Fire Resistance',
+  'ColdResist': 'Cold Resistance',
+  'LightningResist': 'Lightning Resistance',
   'AllElementalResist': 'All Elemental Resistances',
 
   // Avoidance
@@ -63,35 +86,34 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'DeflectEffect': '% Deflect Effect',
   'Block': '% Block Chance',
   'SpellBlock': '% Spell Block Chance',
+  'BlockEffect': '% Block Effect',
   'Parry': '% Parry Chance',
   'SpellParry': '% Spell Parry Chance',
+  'ParryEffect': '% Parry Effect',
 
   // Leech / Sustain
+  'HealingDealt': '% Healing Dealt',
+  'HealingReceived': '% Healing Received',
   'Lifesteal': '% Lifesteal',
   'SpellVamp': '% Spellvamp',
   'LifeGainOnHit': 'Life on Hit',
-  'ManaGainOnHit': 'Mana on Hit',
-  'ManaLeech': '% Mana Leech',
   'LifeOnKill': 'Life on Kill',
+  'ManaLeech': '% Mana Leech',
+  'ManaGainOnHit': 'Mana on Hit',
   'ManaOnKill': 'Mana on Kill',
 
-  // Other Utility
-  'MoveSpeed': '% Movement Speed',
-  'ExperienceGain': '% Experience Gain',
-  'GoldFind': '% Gold Find',
-  'MagicFind': '% Magic Find',
-  'BuffEffect': '% Buff Effect',
-  'BuffDuration': '% Buff Duration',
+  // Misc
   'SkillReach': 'Skill Reach',
   'CooldownReduction': '% Cooldown Reduction',
+  'MoveSpeed': '% Move Speed',
   'ManaCostReduction': '% Mana Cost Reduction',
-  'HealingReceived': '% Healing Received',
-  'HealingDealt': '% Healing Dealt',
-  
-  // Crit
-  'AttackCriticalStrikeChance': '% Attack Crit Chance',
-  'SpellCriticalStrikeChance': '% Spell Crit Chance',
-  'CriticalStrikeMultiplier': '% Crit Multiplier'
+  'Tenacity': '% Tenacity',
+  'BuffEffect': '% Buff Effect',
+  'BuffDuration': '% Buff Duration',
+  'ExperienceGain': '% Experience Gain',
+  'MagicFind': '% Magic Find',
+  'GoldFind': '% Gold Find',
+  'ThreatMultiplier': '% Threat Multiplier',
 };
 
 export function formatStatName(stat: StatType): string {
