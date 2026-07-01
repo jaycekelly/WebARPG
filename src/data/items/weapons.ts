@@ -82,7 +82,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     weaponAttackSpeed: 0.5,
     weaponRange: 2,
     baseCritChance: 5,
-    baseStats: [Stat('Damage', 12)],
+    baseStats: [Stat('Damage', 12), Stat('SpellDamage', 25, 'increased')],
   },
   // #endregion
   // #endregion
@@ -100,7 +100,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     weaponAttackSpeed: 0.6,
     weaponRange: 2,
     baseCritChance: 5,
-    baseStats: [Stat('Damage', 6)],
+    baseStats: [Stat('Damage', 6), Stat('SpellDamage', 15, 'increased')],
   },
   // #endregion
   // #endregion

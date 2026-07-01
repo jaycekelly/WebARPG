@@ -1,7 +1,7 @@
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
-import { InputHandler, getEffectiveCastTime, getEffectiveManaCost, getMainHandAttackCooldown, getOffHandAttackCooldown } from '../engine/input/InputHandler';
+import { InputHandler, getEffectiveCastTime, getEffectiveManaCost, getMainHandAttackCooldown, getOffHandAttackCooldown, getEffectiveGcd } from '../engine/input/InputHandler';
 import { useStatsStore } from '../store/useStatsStore';
 import { useBuffStore } from '../store/useBuffStore';
 import { useSkillStore } from '../store/useSkillStore';
@@ -30,12 +30,13 @@ export function CombatOverlay() {
   const { activeTargetId, setTarget, position, currentMana, currentHealth, level, currentXp, boundSkills, bindSkill, flaskCharges, maxFlaskCharges, useFlask } = usePlayerStore();
   const setContent = useTooltipStore(state => state.setContent);
   const { enemies } = useWorldStore();
-  const { gcdEndTime, castingSkillId, castEndTime, lastMainHandAttackTime, lastOffHandAttackTime } = useCombatStore();
+  const { gcdEndTime, castingSkillId, castEndTime, lastMainHandAttackTime, lastOffHandAttackTime, skillCooldowns } = useCombatStore();
   const { getStat } = useStatsStore();
   const { entityBuffs } = useBuffStore();
   const { unlockedActives } = useSkillStore();
   
   const playerBuffs = entityBuffs['player'] || [];
+  const visiblePlayerBuffs = playerBuffs.filter(b => b.maxDurationMs !== null && b.maxDurationMs <= 30000 && b.buffId !== 'flask_recovery');
   
   const maxHealth = getStat('Health');
   const maxMana = getStat('Mana');
@@ -79,23 +80,27 @@ export function CombatOverlay() {
       if (e.key === 'Tab') {
         e.preventDefault(); // Prevent browser UI focus shift
         const playerPos = usePlayerStore.getState().position;
+        const TARGET_MAX_DIST_SQ = 10 * 10; // 10 tiles
         const allEnemies = [...useWorldStore.getState().enemies]
           .filter(en => !en.isDead)
+          .map(en => {
+            const dx = playerPos.x - en.position.x;
+            const dy = playerPos.y - en.position.y;
+            return { enemy: en, distSq: dx * dx + dy * dy };
+          })
+          .filter(item => item.distSq <= TARGET_MAX_DIST_SQ)
           .sort((a, b) => {
-            const dxA = playerPos.x - a.position.x;
-            const dyA = playerPos.y - a.position.y;
-            const distA = dxA * dxA + dyA * dyA; // Euclidean distance squared
-            
-            const dxB = playerPos.x - b.position.x;
-            const dyB = playerPos.y - b.position.y;
-            const distB = dxB * dxB + dyB * dyB;
-            if (distA === distB) {
-              return a.id.localeCompare(b.id);
+            if (a.distSq === b.distSq) {
+              return a.enemy.id.localeCompare(b.enemy.id);
             }
-            return distA - distB;
-          });
+            return a.distSq - b.distSq;
+          })
+          .map(item => item.enemy);
           
-        if (allEnemies.length === 0) return;
+        if (allEnemies.length === 0) {
+          // If no enemies in range, clear target if we had one, or do nothing
+          return;
+        }
         
         const currentTargetId = usePlayerStore.getState().activeTargetId;
         const currentIndex = allEnemies.findIndex(en => en.id === currentTargetId);
@@ -159,12 +164,12 @@ export function CombatOverlay() {
   const isGcdActive = gcdRemaining > 0;
 
   return (
-    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-8 z-10">
+    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between px-8 py-4 z-10">
       
       {/* Target Frame (Top Center) */}
-      <div className="flex justify-center pointer-events-none pt-2">
+      <div className="flex justify-center pointer-events-none">
         {target && (
-          <div className="bg-zinc-900 border border-zinc-700 shadow-2xl rounded-lg p-3 pr-8 flex items-center gap-4 min-w-[280px] relative pointer-events-auto">
+          <div className="bg-zinc-900 border border-zinc-800 shadow-2xl rounded-lg p-3 pr-8 flex items-center gap-4 min-w-[280px] relative pointer-events-auto">
             <button onClick={() => setTarget(null)} className="absolute top-3 right-3 text-zinc-400 hover:text-zinc-100 transition-colors">
               <X className="w-4 h-4" />
             </button>
@@ -172,7 +177,7 @@ export function CombatOverlay() {
               <Crosshair className="text-red-500 w-6 h-6 animate-[spin_4s_linear_infinite]" />
             </div>
             <div className="flex-1 flex flex-col justify-center pb-0.5">
-              <div className="font-bold text-red-50 text-sm mb-1.5 leading-none">{target.name}</div>
+              <div className="font-bold text-zinc-100 text-sm mb-1.5 leading-none">{target.name}</div>
               <div className="relative h-2.5 w-full bg-zinc-800 rounded-sm overflow-hidden shadow-inner">
                 <div 
                   className="absolute top-0 left-0 h-full bg-red-600 transition-all duration-150 z-20"
@@ -188,7 +193,7 @@ export function CombatOverlay() {
       </div>
 
       {/* HUD & Action Bar (Bottom Center) */}
-      <div className="flex flex-col items-center pointer-events-none gap-3 relative">
+      <div className="flex flex-col items-center pointer-events-none gap-1.5 relative">
         
         {/* Timers Container */}
         <div className="flex flex-col items-center gap-1 w-64 pointer-events-auto">
@@ -198,7 +203,7 @@ export function CombatOverlay() {
               <div className="text-[10px] text-center text-zinc-100 mb-0.5 font-bold shadow-sm drop-shadow-md">
                 Casting {SKILLS[castingSkillId].name}...
               </div>
-              <div className="h-1.5 w-full bg-zinc-900 rounded-sm border border-zinc-700 overflow-hidden shadow-lg">
+              <div className="h-1.5 w-full bg-zinc-900 rounded-sm border border-zinc-800 overflow-hidden shadow-lg">
                     <div 
                       className="bg-sky-400 h-full transition-all duration-75"
                       style={{ width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%` }}
@@ -210,7 +215,7 @@ export function CombatOverlay() {
           {/* Main Hand Swing Timer */}
           {isMainTimerActive && (
             <div className="w-full">
-              <div className="h-1 w-full bg-zinc-900 rounded-sm border border-zinc-700 overflow-hidden shadow-lg">
+              <div className="h-1 w-full bg-zinc-900 rounded-sm border border-zinc-800 overflow-hidden shadow-lg">
                 <div 
                   className="bg-amber-500 h-full transition-all duration-75"
                   style={{ width: `${Math.max(0, 100 - (timeSinceMainAttack / mainHandCooldown) * 100)}%` }}
@@ -222,7 +227,7 @@ export function CombatOverlay() {
           {/* Off-Hand Swing Timer */}
           {isOffTimerActive && (
             <div className="w-full">
-              <div className="h-1 w-full bg-zinc-900 rounded-sm border border-zinc-700 overflow-hidden shadow-lg">
+              <div className="h-1 w-full bg-zinc-900 rounded-sm border border-zinc-800 overflow-hidden shadow-lg">
                 <div 
                   className="bg-yellow-500 h-full transition-all duration-75"
                   style={{ width: `${Math.max(0, 100 - (timeSinceOffAttack / offHandCooldown) * 100)}%` }}
@@ -233,9 +238,9 @@ export function CombatOverlay() {
         </div>
 
         {/* Active Buffs */}
-        {playerBuffs.length > 0 && (
+        {visiblePlayerBuffs.length > 0 && (
           <div className="flex gap-1.5 justify-center mb-1">
-            {playerBuffs.map(buff => {
+            {visiblePlayerBuffs.map(buff => {
               const BuffIcon = ICONS[buff.icon] || ArrowUpCircle;
               return (
                 <div key={buff.id} className="relative group">
@@ -363,21 +368,37 @@ export function CombatOverlay() {
              const skill = skillId ? SKILLS[skillId] : null;
              const IconComponent = skill ? (ICONS[skill.icon] || Flame) : null;
              
-             // Range check visual
              let outOfRange = false;
-             if (skill && target && skill.range > 0) {
+             if (skill && target) {
+                const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
                 const dist = getDistance(position, target.position);
-                outOfRange = dist > skill.range;
+                outOfRange = dist > effectiveRange;
              }
 
              const isBinding = bindingSlotIndex === index;
+             
+             // Cooldown & GCD logic
+             const timeUntilGcdFree = Math.max(0, gcdEndTime - now);
+             const skillCdEndTime = skill ? (skillCooldowns[skill.id] || 0) : 0;
+             const timeUntilSkillFree = Math.max(0, skillCdEndTime - now);
+             
+             let activePercent = 0;
+             let onCooldown = false;
+             
+             if (timeUntilSkillFree > timeUntilGcdFree) {
+                 activePercent = skill && skill.cooldownMs ? (timeUntilSkillFree / skill.cooldownMs) * 100 : 0;
+                 onCooldown = true;
+             } else if (timeUntilGcdFree > 0) {
+                 activePercent = skill ? (timeUntilGcdFree / getEffectiveGcd(skill)) * 100 : 0;
+                 onCooldown = true;
+             }
 
              return (
               <div key={index} className="relative group">
                 <button 
-                  disabled={!skill || isGcdActive || currentMana < (skill ? getEffectiveManaCost(skill) : 0)}
+                  disabled={skill ? (onCooldown || currentMana < getEffectiveManaCost(skill)) : false}
                   className={`relative w-14 h-14 rounded border flex items-center justify-center transition-all group overflow-hidden
-                    ${!skill ? 'bg-zinc-900/50 border-zinc-800/50 border-dashed hover:border-sky-400/50 hover:bg-zinc-800' : isGcdActive ? 'bg-zinc-800 border-zinc-800 cursor-not-allowed' : 'bg-zinc-800 border-zinc-800 hover:border-sky-400 hover:bg-zinc-700'}
+                    ${!skill ? 'bg-zinc-900/50 border-zinc-800/50 border-dashed hover:border-sky-400/50 hover:bg-zinc-800' : onCooldown ? 'bg-zinc-800 border-zinc-800 cursor-not-allowed' : 'bg-zinc-800 border-zinc-800 hover:border-sky-400 hover:bg-zinc-700'}
                     ${outOfRange ? 'opacity-30' : ''}
                     ${isBinding ? 'ring-2 ring-sky-400' : ''}
                   `}
@@ -421,15 +442,15 @@ export function CombatOverlay() {
                   }}
                   onMouseLeave={() => setContent(null)}
                 >
-                  {/* GCD Sweep Overlay */}
-                  {skill && isGcdActive && (
+                  {IconComponent && <IconComponent className={`w-6 h-6 relative z-10 ${outOfRange ? 'text-red-900' : 'text-sky-400 group-hover:scale-110'} transition-transform`} />}
+
+                  {/* Cooldown/GCD Sweep Overlay */}
+                  {skill && activePercent > 0 && (
                     <div 
-                      className="absolute inset-0 bg-black/60 origin-bottom transition-all ease-linear"
-                      style={{ height: `${gcdPercent}%` }}
+                      className={`absolute bottom-0 left-0 right-0 z-20 transition-all ease-linear ${timeUntilSkillFree > timeUntilGcdFree ? 'bg-black/80' : 'bg-black/60'}`}
+                      style={{ height: `${activePercent}%` }}
                     />
                   )}
-
-                  {IconComponent && <IconComponent className={`w-6 h-6 relative z-10 ${outOfRange ? 'text-red-900' : 'text-sky-400 group-hover:scale-110'} transition-transform`} />}
                   <span className="text-[10px] font-bold text-zinc-100 absolute bottom-0 left-1 z-10">{index + 1}</span>
                 </button>
 
@@ -477,6 +498,16 @@ export function CombatOverlay() {
         </div>
       </div>
       
+      {/* Camera Toggle Button */}
+      <div className="absolute top-4 right-4 pointer-events-auto z-50">
+         <button 
+           onClick={() => usePlayerStore.getState().toggleCameraMode()}
+           className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-sky-400 hover:border-sky-400 rounded shadow-md transition-colors"
+         >
+           Camera: {usePlayerStore(state => state.cameraMode) === 'auto' ? 'Auto (Y)' : 'Free (Y)'}
+         </button>
+      </div>
+
     </div>
   );
 }

@@ -14,7 +14,7 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
       attackPower: 15,
       attackSpeed: 0.5,
       attackRange: 1,
-      moveSpeed: 1.0,
+      moveSpeed: 1.67,
       aggroRange: 5,
       armor: 10,
       strikeResist: 0,

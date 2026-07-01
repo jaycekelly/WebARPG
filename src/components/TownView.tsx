@@ -8,7 +8,7 @@ export function TownView() {
   const { gold } = usePlayerStore();
 
   const handleEnterDungeon = () => {
-    LevelGenerator.initializeDungeon(15, 15, usePlayerStore.getState().level);
+    LevelGenerator.initializeDungeon(40, 40, usePlayerStore.getState().level);
     setLocation('dungeon');
   };
 

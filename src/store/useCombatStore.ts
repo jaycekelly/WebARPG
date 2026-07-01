@@ -32,6 +32,7 @@ interface CombatState {
   lastMoveTime: number;
   lastMainHandAttackTime: number;
   lastOffHandAttackTime: number;
+  lastAttackAnimationTime: number;
   
   // Cast Bar State
   castingSkillId: string | null;
@@ -42,6 +43,9 @@ interface CombatState {
   // Targeting & Preview State
   targetingSkillId: string | null;
   hoveredSkillId: string | null;
+
+  // Skill Cooldowns
+  skillCooldowns: Record<string, number>;
 
   // Input Queue
   queuedAction: QueuedAction | null;
@@ -56,11 +60,15 @@ interface CombatState {
   setLastMoveTime: (time: number) => void;
   setLastMainHandAttackTime: (time: number) => void;
   setLastOffHandAttackTime: (time: number) => void;
+  setLastAttackAnimationTime: (time: number) => void;
   setCasting: (skillId: string | null, durationMs?: number, targetId?: string, targetPos?: {x: number, y: number}) => void;
   
   // Targeting setters
   setTargetingSkill: (skillId: string | null) => void;
   setHoveredSkill: (skillId: string | null) => void;
+  
+  // Specific Cooldown
+  triggerSkillCooldown: (skillId: string, durationMs: number) => void;
 
   // Queue methods
   queueAction: (action: QueuedAction) => void;
@@ -75,10 +83,12 @@ export const useCombatStore = create<CombatState>((set) => ({
   lastMoveTime: 0,
   lastMainHandAttackTime: 0,
   lastOffHandAttackTime: 0,
+  lastAttackAnimationTime: 0,
   castingSkillId: null,
   castEndTime: 0,
   targetingSkillId: null,
   hoveredSkillId: null,
+  skillCooldowns: {},
   queuedAction: null,
 
   addLog: (message, type) => set((state) => {
@@ -105,6 +115,7 @@ export const useCombatStore = create<CombatState>((set) => ({
   setLastMoveTime: (time) => set({ lastMoveTime: time }),
   setLastMainHandAttackTime: (time) => set({ lastMainHandAttackTime: time }),
   setLastOffHandAttackTime: (time) => set({ lastOffHandAttackTime: time }),
+  setLastAttackAnimationTime: (time) => set({ lastAttackAnimationTime: time }),
   
   setCasting: (skillId, durationMs = 0, targetId, targetPos) => set({ 
     castingSkillId: skillId, 
@@ -115,6 +126,10 @@ export const useCombatStore = create<CombatState>((set) => ({
   
   setTargetingSkill: (skillId) => set({ targetingSkillId: skillId }),
   setHoveredSkill: (skillId) => set({ hoveredSkillId: skillId }),
+
+  triggerSkillCooldown: (skillId, durationMs) => set((state) => ({
+    skillCooldowns: { ...state.skillCooldowns, [skillId]: Date.now() + durationMs }
+  })),
 
   queueAction: (action) => set({ queuedAction: action }),
   clearQueue: () => set({ queuedAction: null })

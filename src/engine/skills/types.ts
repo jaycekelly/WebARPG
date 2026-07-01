@@ -9,7 +9,7 @@ export type SkillTag =
 
 export type TargetingType = 'Single' | 'Self' | 'Directional' | 'Ground' | 'Area';
 
-export type EffectType = 'damage' | 'heal' | 'status' | 'buff' | 'summon';
+export type EffectType = 'damage' | 'heal' | 'status' | 'buff' | 'summon' | 'charge';
 
 export type TargetFilter = 'Enemy' | 'Ally' | 'Self' | 'All';
 
@@ -55,6 +55,7 @@ export interface SkillEffect {
   targetFilter?: TargetFilter; // Defaults to 'Enemy' for damage/debuffs, 'Ally' for heals/buffs
   
   baseValue?: number; // Optional now, since buffs don't use it
+  damageMultiplier?: number; // e.g. 1.5 for 150% weapon damage
   // If damage, what element is it?
   element?: DamageType;
   // If status, what is it?
@@ -80,6 +81,7 @@ export interface Skill {
   
   manaCost: number;
   range: number; // 0 for self, >0 for targeted
+  cooldownMs?: number; // Specific cooldown for this skill
   gcdDuration: number;
   castTime: number; // 0 for instant, >0 for a cast bar
   

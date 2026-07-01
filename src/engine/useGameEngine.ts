@@ -21,6 +21,9 @@ export function useGameEngine() {
   useEffect(() => {
     let animationFrameId: number;
     let lastTick = performance.now();
+    let accumulatedHpRegen = 0;
+    let accumulatedManaRegen = 0;
+    let lastRegenFlushTime = performance.now();
 
     const loop = (currentTime: number) => {
       // Only run engine logic if we are in the dungeon
@@ -82,11 +85,7 @@ export function useGameEngine() {
       
       const baseHpRegen = (maxHp * 0.0025) + hpRegenFlat;
       const totalHpRegen = baseHpRegen * (1 + (hpRegenPercent / 100));
-      const hpTick = totalHpRegen * dtSec;
-      
-      if (hpTick > 0 && playerState.currentHealth < maxHp && playerState.currentHealth > 0) {
-          usePlayerStore.getState().heal(hpTick);
-      }
+      accumulatedHpRegen += totalHpRegen * dtSec;
       
       const maxMana = statsState.getStat('Mana');
       const manaRegenFlat = statsState.getStat('ManaRegeneration');
@@ -94,9 +93,19 @@ export function useGameEngine() {
       
       const baseManaRegen = (maxMana * 0.015) + manaRegenFlat;
       const totalManaRegen = baseManaRegen * (1 + (manaRegenPercent / 100));
-      const manaTick = totalManaRegen * dtSec;
-      if (manaTick > 0 && playerState.currentMana < maxMana && playerState.currentHealth > 0) {
-          usePlayerStore.getState().restoreMana(manaTick);
+      accumulatedManaRegen += totalManaRegen * dtSec;
+
+      // Flush to Zustand Store max 4 times a second, or if we accumulated at least 1 whole point
+      if (currentTime - lastRegenFlushTime >= 250 || accumulatedHpRegen >= 1 || accumulatedManaRegen >= 1) {
+        if (accumulatedHpRegen > 0 && playerState.currentHealth < maxHp && playerState.currentHealth > 0) {
+            usePlayerStore.getState().heal(accumulatedHpRegen);
+        }
+        if (accumulatedManaRegen > 0 && playerState.currentMana < maxMana && playerState.currentHealth > 0) {
+            usePlayerStore.getState().restoreMana(accumulatedManaRegen);
+        }
+        accumulatedHpRegen = 0;
+        accumulatedManaRegen = 0;
+        lastRegenFlushTime = currentTime;
       }
 
       // Handle Ground Zones
@@ -139,7 +148,7 @@ export function useGameEngine() {
       if (queuedAction) {
         if (now > queuedAction.expiresAt) {
           clearQueue();
-        } else if (InputHandler.canExecute(queuedAction.type, now, combatState)) {
+        } else if (InputHandler.canExecute(queuedAction, now, combatState)) {
           InputHandler.executeAction(queuedAction);
           clearQueue();
         }
@@ -149,6 +158,7 @@ export function useGameEngine() {
       if (castingSkillId && castEndTime > 0 && now >= castEndTime) {
         const skill = SKILLS[castingSkillId];
         if (skill) {
+          combatState.setLastAttackAnimationTime(now);
           SkillExecutor.execute(skill, combatState.castTargetId, combatState.castTargetPos);
           combatState.triggerGcd(getEffectiveGcd(skill));
         }
@@ -182,10 +192,10 @@ export function useGameEngine() {
       });
 
       // Auto Attack Logic
-      if (acquiredTargetId) {
+      if (acquiredTargetId && !castingSkillId) {
         const target = worldState.enemies.find(e => e.id === acquiredTargetId);
         
-        if (target && !target.isDead && (now - lastMoveTime) > 300) {
+        if (target && !target.isDead) {
           const dist = getChebyshevDistance(position, target.position);
           
           const executeWeaponAttack = (weapon: any, isOffHand: boolean) => {
@@ -207,6 +217,7 @@ export function useGameEngine() {
             const timeSinceLastAttack = now - lastAttackTime;
             
             if (timeSinceLastAttack >= attackCooldown) {
+              combatState.setLastAttackAnimationTime(now);
               if (isOffHand) {
                 combatState.setLastOffHandAttackTime(now);
               } else {
@@ -339,24 +350,44 @@ export function useGameEngine() {
         if (enemy.isDead) return;
         if (enemy.isAggroed) {
           const distFromSpawn = getChebyshevDistance(enemy.position, enemy.spawnOrigin);
-          if (distFromSpawn > 10) {
+          const leashRange = Math.max(10, enemy.stats.aggroRange * 2);
+          if (distFromSpawn > leashRange) {
             if (enemy.groupId) groupsToDropAggro.add(enemy.groupId);
             else enemiesToDropAggro.add(enemy.id);
+          } else {
+            // Keep the group aggroed if one member is safely fighting
+            if (enemy.groupId) groupsToAggro.add(enemy.groupId);
           }
         } else {
-          const distToPlayer = getChebyshevDistance(enemy.position, position);
-          if (distToPlayer <= enemy.stats.aggroRange) {
-            if (hasLineOfSight(enemy.position, position, isSolid)) {
-              if (enemy.groupId) groupsToAggro.add(enemy.groupId);
-              else enemiesToAggro.add(enemy.id);
-            }
+          // Hysteresis: Enemies cannot gain aggro if they are outside their home territory.
+          const distFromSpawn = getChebyshevDistance(enemy.position, enemy.spawnOrigin);
+          if (distFromSpawn <= 2) {
+             const distToPlayer = getChebyshevDistance(enemy.position, position);
+             if (distToPlayer <= enemy.stats.aggroRange) {
+               if (hasLineOfSight(enemy.position, position, isSolid)) {
+                 if (enemy.groupId) groupsToAggro.add(enemy.groupId);
+                 else enemiesToAggro.add(enemy.id);
+               }
+             }
           }
         }
       });
 
+      // Pre-compute solids for O(1) pathfinding lookups
+      const staticSolidSet = new Set<string>();
+      worldState.grid.obstacles.forEach(o => staticSolidSet.add(`${o.x},${o.y}`));
+      
+      const dynamicSolidSet = new Set<string>(staticSolidSet);
+      worldState.enemies.forEach(e => {
+         if (!e.isDead) dynamicSolidSet.add(`${e.position.x},${e.position.y}`);
+      });
+
       const isStaticSolid = (x: number, y: number) => {
-        return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
+        return staticSolidSet.has(`${x},${y}`);
       };
+
+      let pathfindingOperationsThisFrame = 0;
+      const MAX_PATHFINDING_PER_FRAME = 3;
 
       // Enemy AI Logic
       worldState.enemies.forEach(enemy => {
@@ -368,13 +399,14 @@ export function useGameEngine() {
             if (enemy.groupId && groupsToDropAggro.has(enemy.groupId)) isAggroed = false;
             else if (!enemy.groupId && enemiesToDropAggro.has(enemy.id)) isAggroed = false;
         } else {
-            if (enemy.groupId && groupsToAggro.has(enemy.groupId)) isAggroed = true;
+            if (enemy.groupId && groupsToDropAggro.has(enemy.groupId)) isAggroed = false; // Leashing overrides gaining aggro
+            else if (enemy.groupId && groupsToAggro.has(enemy.groupId)) isAggroed = true;
             else if (!enemy.groupId && enemiesToAggro.has(enemy.id)) isAggroed = true;
         }
         
         if (isAggroed !== enemy.isAggroed) {
            if (!isAggroed) {
-              worldState.updateEnemy(enemy.id, { isAggroed: false, health: enemy.stats.maxHealth });
+              worldState.updateEnemy(enemy.id, { isAggroed: false });
            } else {
               worldState.updateEnemy(enemy.id, { isAggroed: true });
            }
@@ -385,16 +417,22 @@ export function useGameEngine() {
            if (distToOrigin > 0) {
                const moveCooldown = 1000 / Math.max(0.1, enemy.stats.moveSpeed);
                if (now - (enemy.lastMoveTime || 0) >= moveCooldown) {
+                  // Throttle pathfinding
+                  if (pathfindingOperationsThisFrame >= MAX_PATHFINDING_PER_FRAME) return;
+                  pathfindingOperationsThisFrame++;
+
                   const path = findPath(enemy.position, enemy.spawnOrigin, isStaticSolid);
                   if (path && path.length > 0) {
                      const nextPos = path[0];
-                     const collidingEnemy = worldState.getEnemyAt(nextPos.x, nextPos.y);
+                     const collidingEnemy = dynamicSolidSet.has(`${nextPos.x},${nextPos.y}`);
                      const collidingPlayer = (nextPos.x === position.x && nextPos.y === position.y);
-                     const collidingObstacle = worldState.grid.obstacles.some(o => o.x === nextPos.x && o.y === nextPos.y);
                      
-                     if (!collidingEnemy && !collidingPlayer && !collidingObstacle) {
+                     if (!collidingEnemy && !collidingPlayer) {
                         worldState.moveEnemy(enemy.id, nextPos);
                         worldState.updateEnemyMoveTime(enemy.id, now);
+                        // Update dynamic map so other enemies this frame don't walk into it
+                        dynamicSolidSet.delete(`${enemy.position.x},${enemy.position.y}`);
+                        dynamicSolidSet.add(`${nextPos.x},${nextPos.y}`);
                      }
                   }
                }
@@ -468,23 +506,67 @@ export function useGameEngine() {
           const moveCooldown = 1000 / Math.max(0.1, enemy.stats.moveSpeed);
           if (now - (enemy.lastMoveTime || 0) >= moveCooldown) {
             
-            const isDynamicSolid = (sx: number, sy: number) => {
-               if (sx < 0 || sx >= worldState.grid.width || sy < 0 || sy >= worldState.grid.height) return true;
-               if (worldState.grid.obstacles.some(o => o.x === sx && o.y === sy)) return true;
-               const otherEnemy = worldState.getEnemyAt(sx, sy);
-               if (otherEnemy && otherEnemy.id !== enemy.id) return true;
-               return false;
-            };
+            // Throttle pathfinding
+            if (pathfindingOperationsThisFrame >= MAX_PATHFINDING_PER_FRAME) return;
+            pathfindingOperationsThisFrame++;
 
-            const path = findPath(enemy.position, position, isDynamicSolid);
+            // Use static solids for BFS so enemies don't path in crazy circles around each other
+            const path = findPath(enemy.position, position, isStaticSolid);
             
             if (path && path.length > 0) {
-              const nextPos = path[0];
-              const collidingPlayer = (nextPos.x === position.x && nextPos.y === position.y);
+              const idealNextPos = path[0];
+              const collidingPlayer = (idealNextPos.x === position.x && idealNextPos.y === position.y);
               
               if (!collidingPlayer) {
+                const collidingEnemy = dynamicSolidSet.has(`${idealNextPos.x},${idealNextPos.y}`);
+                let nextPos = idealNextPos;
+                
+                if (collidingEnemy) {
+                   // Local Avoidance: Find a valid adjacent tile that brings us closer (or keeps us sliding)
+                   const neighbors = [
+                     { x: enemy.position.x, y: enemy.position.y - 1 },
+                     { x: enemy.position.x + 1, y: enemy.position.y - 1 },
+                     { x: enemy.position.x + 1, y: enemy.position.y },
+                     { x: enemy.position.x + 1, y: enemy.position.y + 1 },
+                     { x: enemy.position.x, y: enemy.position.y + 1 },
+                     { x: enemy.position.x - 1, y: enemy.position.y + 1 },
+                     { x: enemy.position.x - 1, y: enemy.position.y },
+                     { x: enemy.position.x - 1, y: enemy.position.y - 1 }
+                   ];
+                   
+                   let bestNeighbor = null;
+                   let bestDist = Infinity;
+                   const currentDist = (enemy.position.x - position.x)**2 + (enemy.position.y - position.y)**2;
+                   
+                   for (const n of neighbors) {
+                      if (n.x < 0 || n.x >= worldState.grid.width || n.y < 0 || n.y >= worldState.grid.height) continue;
+                      if (isStaticSolid(n.x, n.y)) continue;
+                      if (dynamicSolidSet.has(`${n.x},${n.y}`)) continue;
+                      if (n.x === position.x && n.y === position.y) continue;
+                      
+                      const dist = (n.x - position.x)**2 + (n.y - position.y)**2;
+                      // Only allow neighbors that bring us strictly closer (prevents vibrating in place)
+                      if (dist < currentDist && dist < bestDist) {
+                         bestDist = dist;
+                         bestNeighbor = n;
+                      }
+                   }
+                   
+                   if (bestNeighbor) {
+                      nextPos = bestNeighbor;
+                   } else {
+                      // Completely blocked from moving closer, just wait
+                      // We update the move time so we don't spam pathfinding
+                      worldState.updateEnemyMoveTime(enemy.id, now);
+                      return;
+                   }
+                }
+
                 worldState.moveEnemy(enemy.id, nextPos);
                 worldState.updateEnemyMoveTime(enemy.id, now);
+                // Update dynamic map so other enemies this frame don't walk into it
+                dynamicSolidSet.delete(`${enemy.position.x},${enemy.position.y}`);
+                dynamicSolidSet.add(`${nextPos.x},${nextPos.y}`);
               }
             }
           }

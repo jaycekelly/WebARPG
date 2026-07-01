@@ -52,7 +52,7 @@ export class InputHandler {
     const combatState = useCombatStore.getState();
     
     // Check if free
-    if (this.canExecute(action.type, now, combatState)) {
+    if (this.canExecute(action, now, combatState)) {
       this.executeAction(action);
     } else {
       // Queue it
@@ -64,15 +64,18 @@ export class InputHandler {
     }
   }
 
-  static canExecute(type: 'move' | 'skill', now: number, combatState: ReturnType<typeof useCombatStore.getState>) {
+  static canExecute(action: InputRequest, now: number, combatState: ReturnType<typeof useCombatStore.getState>) {
     if (combatState.castingSkillId) return false;
     
-    if (type === 'move') {
+    if (action.type === 'move') {
       const moveSpeed = useStatsStore.getState().getStat('MoveSpeed');
       const moveCooldown = 1000 / Math.max(0.1, moveSpeed);
       return (now - combatState.lastMoveTime) >= moveCooldown;
-    } else if (type === 'skill') {
-      return now >= combatState.gcdEndTime;
+    } else if (action.type === 'skill') {
+      if (now < combatState.gcdEndTime) return false;
+      const cdEnd = combatState.skillCooldowns[action.skillId];
+      if (cdEnd && now < cdEnd) return false;
+      return true;
     }
     return false;
   }
@@ -115,19 +118,21 @@ export class InputHandler {
     }
 
     // Check Range if we have a target
+    const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
+
     if (target) {
       const dist = getDistance(position, target.position);
-      if (dist > skill.range && skill.range > 0) {
+      if (dist > effectiveRange) {
         addLog(`Target is out of range for ${skill.name}.`, 'system');
         return;
       }
     } else if (targetPos) {
       const dist = getDistance(position, targetPos);
-      if (dist > skill.range && skill.range > 0) {
+      if (dist > effectiveRange) {
         addLog(`Target area is out of range for ${skill.name}.`, 'system');
         return;
       }
-    } else if (skill.range > 0 && skill.targeting === 'Single') {
+    } else if (skill.targeting === 'Single') {
       addLog(`You need a target for ${skill.name}.`, 'system');
       return;
     }
@@ -139,6 +144,10 @@ export class InputHandler {
       addLog(`Casting ${skill.name}...`, 'system');
     } else {
       triggerGcd(getEffectiveGcd(skill));
+      if (skill.cooldownMs) {
+         combatState.triggerSkillCooldown(skill.id, skill.cooldownMs);
+      }
+      combatState.setLastAttackAnimationTime(Date.now());
       SkillExecutor.execute(skill, targetId, targetPos);
     }
   }

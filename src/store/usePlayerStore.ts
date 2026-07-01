@@ -19,6 +19,8 @@ interface PlayerState {
   boundSkills: (string | null)[];
   flaskCharges: number;
   maxFlaskCharges: number;
+  cameraMode: 'auto' | 'free';
+  
   
   move: (dx: number, dy: number) => void;
   setPosition: (x: number, y: number) => void;
@@ -36,6 +38,7 @@ interface PlayerState {
   bindSkill: (slotIndex: number, skillId: string | null) => void;
   addFlaskCharges: (amount: number) => void;
   useFlask: () => boolean;
+  toggleCameraMode: () => void;
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -46,14 +49,15 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   activeTargetId: null,
   level: 1,
   currentXp: 0,
-  skillPoints: 0,
+  skillPoints: 100,
   attributePoints: 0,
   gold: 0,
   normalPityCount: 0,
   magicPityCount: 0,
-  boundSkills: ['fireball', null, null, null, null, null],
+  boundSkills: [null, null, null, null, null, null, null, null],
   flaskCharges: 4,
   maxFlaskCharges: 4,
+  cameraMode: 'auto',
 
   move: (dx, dy) => set((state) => {
     const now = Date.now();
@@ -62,6 +66,9 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const moveCooldown = 1000 / Math.max(0.1, moveSpeed);
     
     if (now - combatState.lastMoveTime < moveCooldown) return state;
+    
+    // Attack Animation Root
+    if (now - combatState.lastAttackAnimationTime < 500) return state;
     
     // Cancel any active cast
     if (combatState.castingSkillId) {
@@ -140,11 +147,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     if (leveledUp) {
       set({ currentXp: newXp, level: newLevel, skillPoints: newSkillPoints, attributePoints: newAttrPoints });
-      // Heal player completely on level up (wait till next tick to get updated max health)
-      setTimeout(() => {
-          const maxHealth = useStatsStore.getState().getStat('Health');
-          usePlayerStore.setState({ currentHealth: maxHealth });
-      }, 0);
+
       return { leveledUp: true, newLevel };
     } else {
       set({ currentXp: newXp });
@@ -201,5 +204,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       return true;
     }
     return false;
-  }
+  },
+  toggleCameraMode: () => set((state) => ({ cameraMode: state.cameraMode === 'auto' ? 'free' : 'auto' })),
 }));

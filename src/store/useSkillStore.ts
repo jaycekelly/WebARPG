@@ -14,7 +14,7 @@ interface SkillState {
 
 export const useSkillStore = create<SkillState>((set, get) => ({
   allocatedPoints: {},
-  unlockedActives: ['fireball'], // Everyone starts with fireball
+  unlockedActives: [],
 
   getTotalPointsSpent: () => {
     return Object.values(get().allocatedPoints).reduce((sum, points) => sum + points, 0);
@@ -75,6 +75,13 @@ export const useSkillStore = create<SkillState>((set, get) => ({
        const { unlockedActives } = get();
        if (!unlockedActives.includes(node.grantedSkillId)) {
          set({ unlockedActives: [...unlockedActives, node.grantedSkillId] });
+         
+         // Auto-bind to next available slot
+         const bound = playerStore.boundSkills;
+         const emptyIndex = bound.findIndex(s => s === null);
+         if (emptyIndex !== -1) {
+             playerStore.bindSkill(emptyIndex, node.grantedSkillId);
+         }
        }
     }
 

@@ -1,38 +1,37 @@
 import type { Skill } from '../../engine/skills/types';
 
-
 export const MELEE_SKILLS: Record<string, Skill> = {
+  charge_attack: {
+    id: 'charge_attack',
+    name: 'Charge',
+    description: 'Instantly dash to your target and strike them for base weapon damage.',
+    icon: 'Sword',
+    tags: ['Attack', 'Melee', 'Physical', 'Strike'],
+    manaCost: 20,
+    range: 3,
+    cooldownMs: 8000,
+    gcdDuration: 1500,
+    castTime: 0,
+    targeting: 'Single',
+    effects: [
+      { type: 'charge' },
+      { type: 'damage' }
+    ],
+  },
   heavy_strike: {
     id: 'heavy_strike',
     name: 'Heavy Strike',
-    description: 'A powerful melee swing.',
-    icon: 'Flame',
-
-    tags: ['Attack', 'Melee', 'Physical'],
-
-    manaCost: 10,
-    range: 1.5,
-    gcdDuration: 2000,
-    castTime: 0,
-
-    targeting: 'Single',
-    effects: [{ type: 'damage', baseValue: 25 }],
-  },
-  cleave: {
-    id: 'cleave',
-    name: 'Cleave',
-    description:
-      'A sweeping physical attack that hits all adjacent enemies.',
+    description: 'A crushing blow that deals 150% weapon damage.',
     icon: 'Sword',
-
-    tags: ['Attack', 'Melee', 'Physical', 'AoE'],
-
-    manaCost: 25,
-    range: 1.5,
-    gcdDuration: 2000,
+    tags: ['Attack', 'Melee', 'Physical', 'Strike'],
+    manaCost: 10,
+    range: 0,
+    cooldownMs: 5000,
+    gcdDuration: 1500,
     castTime: 0,
-
-    targeting: 'Area',
-    effects: [{ type: 'damage', baseValue: 35 }],
-  },
+    targeting: 'Single',
+    effects: [
+      { type: 'damage', damageMultiplier: 1.5 }
+    ],
+  }
 };

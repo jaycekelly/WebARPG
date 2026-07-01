@@ -283,13 +283,62 @@ export class SkillExecutor {
              }
           }
 
-          if (effect.type === 'damage') {
+          if (effect.type === 'charge') {
+              if (targetId) {
+                  const targetEntity = worldState.enemies.find(e => e.id === targetId);
+                  if (targetEntity) {
+                      const dist = getChebyshevDistance(playerState.position, targetEntity.position);
+                      if (dist > 1) {
+                          // Find adjacent tile closest to player
+                          const neighbors = [
+                             { x: targetEntity.position.x, y: targetEntity.position.y - 1 },
+                             { x: targetEntity.position.x + 1, y: targetEntity.position.y - 1 },
+                             { x: targetEntity.position.x + 1, y: targetEntity.position.y },
+                             { x: targetEntity.position.x + 1, y: targetEntity.position.y + 1 },
+                             { x: targetEntity.position.x, y: targetEntity.position.y + 1 },
+                             { x: targetEntity.position.x - 1, y: targetEntity.position.y + 1 },
+                             { x: targetEntity.position.x - 1, y: targetEntity.position.y },
+                             { x: targetEntity.position.x - 1, y: targetEntity.position.y - 1 }
+                          ];
+                          
+                          let bestNeighbor = null;
+                          let bestDist = Infinity;
+                          
+                          for (const n of neighbors) {
+                              if (n.x < 0 || n.x >= worldState.grid.width || n.y < 0 || n.y >= worldState.grid.height) continue;
+                              const isWall = worldState.grid.obstacles.some(o => o.x === n.x && o.y === n.y);
+                              if (isWall) continue;
+                              
+                              const isEnemy = worldState.enemies.some(e => !e.isDead && e.position.x === n.x && e.position.y === n.y);
+                              if (isEnemy) continue;
+                              
+                              const d = (n.x - playerState.position.x) ** 2 + (n.y - playerState.position.y) ** 2;
+                              if (d < bestDist) {
+                                  bestDist = d;
+                                  bestNeighbor = n;
+                              }
+                          }
+                          
+                          if (bestNeighbor) {
+                              playerState.setPosition(bestNeighbor.x, bestNeighbor.y);
+                              addLog(`You charge at ${targetEntity.name}!`, 'ability');
+                          } else {
+                              addLog(`No path to charge!`, 'system');
+                          }
+                      }
+                  }
+              }
+          }
+          else if (effect.type === 'damage') {
              const isAttackSkill = skill.tags.includes('Attack') || skill.tags.includes('Melee') || skill.tags.includes('Projectile');
              
              let base = effect.baseValue || 0;
              if (isAttackSkill) {
                 base += statsState.getStat('Damage'); // Add weapon base damage
-                
+             
+                if (effect.damageMultiplier) {
+                    base *= effect.damageMultiplier;
+                }   
                 // Weapon Enhancements
                 if (finalElement === 'Strike') {
                     base += statsState.getStat('StrikeDamageToWeapons');
