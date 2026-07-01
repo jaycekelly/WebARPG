@@ -12,6 +12,7 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
     stats: {
       maxHealth: 60,
       attackPower: 15,
+      damageType: 'Strike',
       attackSpeed: 0.5,
       attackRange: 1,
       moveSpeed: 1.67,

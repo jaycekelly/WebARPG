@@ -4,7 +4,7 @@ import type { WeaponCategory } from '../items/types';
 import type { DamageType } from '../stats/types';
 
 export type SkillTag = 
-  | 'Attack' | 'Spell' | 'Melee' | 'Projectile' | 'Area' | 'AoE' | 'Buff'
+  | 'Attack' | 'Spell' | 'Melee' | 'Projectile' | 'Area' | 'AoE' | 'Buff' | 'Aura' | 'Movement'
   | 'Physical' | 'Fire' | 'Cold' | 'Lightning' | 'Minion' | 'Strike' | 'Pierce';
 
 export type TargetingType = 'Single' | 'Self' | 'Directional' | 'Ground' | 'Area';

@@ -1,9 +1,12 @@
+import type { DamageType } from '../stats/types';
+
 export type AIProfile = 'melee_rusher' | 'static' | 'ranged_kiter';
 export type EnemyRarity = 'Normal' | 'Magic' | 'Rare' | 'Boss';
 
 export interface EnemyStats {
   maxHealth: number;
   attackPower: number;
+  damageType: DamageType;
   attackSpeed: number; // Attacks per second. e.g. 0.5 = 1 attack every 2s
   attackRange: number; // Grid tiles
   moveSpeed: number;   // Tiles per second. e.g. 1.0 = 1 tile per second (1000ms cooldown)
@@ -17,6 +20,14 @@ export interface EnemyStats {
   strikeResist?: number;
   pierceResist?: number;
   physicalResist?: number;
+  deflectChance?: number;
+  deflectEffect?: number;
+  block?: number;
+  spellBlock?: number;
+  blockEffect?: number;
+  parry?: number;
+  spellParry?: number;
+  parryEffect?: number;
 }
 
 export interface EnemyTemplate {

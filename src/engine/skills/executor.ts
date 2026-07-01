@@ -358,7 +358,23 @@ export class SkillExecutor {
                 }
              }
              
-             let finalDamage = base * damageMultiplier * multiplier;
+             let tagIncreasedSum = 0;
+             if (skill.tags.includes('Melee')) tagIncreasedSum += statsState.getStat('MeleeDamage') / 100;
+             if (skill.tags.includes('Spell')) tagIncreasedSum += statsState.getStat('SpellDamage') / 100;
+             if (skill.tags.includes('Area') || skill.tags.includes('AoE')) tagIncreasedSum += statsState.getStat('AreaDamage') / 100;
+             if (skill.tags.includes('Projectile')) tagIncreasedSum += statsState.getStat('RangedDamage') / 100;
+             if (skill.id !== 'basic_attack') tagIncreasedSum += statsState.getStat('SkillDamage') / 100;
+
+             if (finalElement === 'Strike') tagIncreasedSum += statsState.getStat('StrikeDamage') / 100;
+             if (finalElement === 'Pierce') tagIncreasedSum += statsState.getStat('PierceDamage') / 100;
+             if (finalElement === 'Fire') tagIncreasedSum += statsState.getStat('FireDamage') / 100;
+             if (finalElement === 'Cold') tagIncreasedSum += statsState.getStat('ColdDamage') / 100;
+             if (finalElement === 'Lightning') tagIncreasedSum += statsState.getStat('LightningDamage') / 100;
+
+             if (finalElement === 'Strike' || finalElement === 'Pierce') tagIncreasedSum += statsState.getStat('PhysicalDamage') / 100;
+             if (finalElement === 'Fire' || finalElement === 'Cold' || finalElement === 'Lightning') tagIncreasedSum += statsState.getStat('ElementalDamage') / 100;
+
+             let finalDamage = base * damageMultiplier * multiplier * (1 + tagIncreasedSum);
              
              let defenderHasWeapon = true;
              let defenderHasShield = false;
@@ -383,8 +399,24 @@ export class SkillExecutor {
                       'LightningResist': targetObj.stats.lightningResist,
                       'StrikeResist': (targetObj.stats.strikeResist || 0) + (targetObj.stats.physicalResist || 0),
                       'PierceResist': (targetObj.stats.pierceResist || 0) + (targetObj.stats.physicalResist || 0),
-                      'PhysicalResist': targetObj.stats.physicalResist || 0
+                      'PhysicalResist': targetObj.stats.physicalResist || 0,
+                      'DeflectChance': targetObj.stats.deflectChance || 0,
+                      'DeflectEffect': targetObj.stats.deflectEffect || 0,
+                      'Block': targetObj.stats.block || 0,
+                      'SpellBlock': targetObj.stats.spellBlock || 0,
+                      'BlockEffect': targetObj.stats.blockEffect || 0,
+                      'Parry': targetObj.stats.parry || 0,
+                      'SpellParry': targetObj.stats.spellParry || 0,
+                      'ParryEffect': targetObj.stats.parryEffect || 0,
                    };
+                   
+                   // Enemies with block stats are assumed to have a shield for mechanic purposes
+                   if (targetObj.stats.block || targetObj.stats.spellBlock) {
+                      defenderHasShield = true;
+                      defenderHasWeapon = true;
+                   } else if (targetObj.stats.parry || targetObj.stats.spellParry) {
+                      defenderHasWeapon = true;
+                   }
                 }
              }
              
@@ -584,11 +616,26 @@ export class SkillExecutor {
              stats: {
                 maxHealth: 100,
                 attackPower: 10,
+                damageType: 'Strike',
                 attackSpeed: 1,
                 attackRange: 1,
-                moveSpeed: 1.5,
+                moveSpeed: 1,
                 aggroRange: 5,
-                armor: 0, fireResist: 0, coldResist: 0, lightningResist: 0
+                armor: 5,
+                fireResist: 0,
+                coldResist: 0,
+                lightningResist: 0,
+                strikeResist: 0,
+                pierceResist: 0,
+                physicalResist: 0,
+                deflectChance: 0,
+                deflectEffect: 0,
+                block: 0,
+                spellBlock: 0,
+                blockEffect: 0,
+                parry: 0,
+                spellParry: 0,
+                parryEffect: 0,
              }
           });
           addLog(`Summoned a minion!`, 'ability');

@@ -38,6 +38,7 @@ export class EnemySpawner {
       stats: {
         maxHealth: Math.floor(template.stats.maxHealth * scaleFactor),
         attackPower: Math.floor(template.stats.attackPower * scaleFactor),
+        damageType: template.stats.damageType,
         // We usually don't scale attack speed, range, or move speed with level to keep their "feel" consistent
         attackSpeed: template.stats.attackSpeed,
         attackRange: template.stats.attackRange,
@@ -47,6 +48,17 @@ export class EnemySpawner {
         fireResist: template.stats.fireResist,
         coldResist: template.stats.coldResist,
         lightningResist: template.stats.lightningResist,
+        strikeResist: template.stats.strikeResist,
+        pierceResist: template.stats.pierceResist,
+        physicalResist: template.stats.physicalResist,
+        deflectChance: template.stats.deflectChance,
+        deflectEffect: template.stats.deflectEffect,
+        block: template.stats.block,
+        spellBlock: template.stats.spellBlock,
+        blockEffect: template.stats.blockEffect,
+        parry: template.stats.parry,
+        spellParry: template.stats.spellParry,
+        parryEffect: template.stats.parryEffect,
       }
     });
   }
