@@ -1,15 +1,15 @@
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
-import { InputHandler, getEffectiveCastTime, getEffectiveManaCost, getMainHandAttackCooldown, getOffHandAttackCooldown, getEffectiveGcd } from '../engine/input/InputHandler';
+import { InputHandler, getEffectiveCastTime, getEffectiveManaCost, getEffectiveGcd } from '../engine/input/InputHandler';
 import { hasLineOfSight, getChebyshevDistance } from '../engine/world/gridMath';
 import { useStatsStore } from '../store/useStatsStore';
 import { useBuffStore } from '../store/useBuffStore';
 import { useSkillStore } from '../store/useSkillStore';
+import { useAppStore } from '../store/useAppStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useTooltipStore } from '../store/useTooltipStore';
-import { useAppStore } from '../store/useAppStore';
-import { Crosshair, X, Flame, ShieldAlert, Footprints, ArrowUpCircle, Sword, Droplet, FlaskConical, Zap } from 'lucide-react';
+import { Crosshair, X, Flame, ShieldAlert, Footprints, ArrowUpCircle, Sword, Droplet, FlaskConical, Zap, Backpack, User, BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SKILLS } from '../data/skills';
 
@@ -33,7 +33,7 @@ export function CombatOverlay() {
   const { activeTargetId, setTarget, position, currentMana, currentHealth, level, currentXp, boundSkills, bindSkill, flaskCharges, maxFlaskCharges, useFlask } = usePlayerStore();
   const setContent = useTooltipStore(state => state.setContent);
   const { enemies } = useWorldStore();
-  const { gcdEndTime, castingSkillId, castEndTime, lastMainHandAttackTime, lastOffHandAttackTime, skillCooldowns } = useCombatStore();
+  const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns } = useCombatStore();
   const { getStat } = useStatsStore();
   const { entityBuffs } = useBuffStore();
   const { unlockedActives } = useSkillStore();
@@ -42,19 +42,20 @@ export function CombatOverlay() {
   const playerBuffs = entityBuffs['player'] || [];
   const visiblePlayerBuffs = playerBuffs.filter(b => b.maxDurationMs !== null && b.maxDurationMs <= 30000 && b.buffId !== 'flask_recovery');
   
+  let expectedHealAmount = 0;
+  for (const b of playerBuffs) {
+      if (b.isHoT && b.hotHealPerTick && b.durationMs && b.hotTickRateMs) {
+          const ticksRemaining = Math.floor(b.durationMs / b.hotTickRateMs);
+          expectedHealAmount += ticksRemaining * b.hotHealPerTick;
+      }
+  }
+  
   const maxHealth = getStat('Health');
   const maxMana = getStat('Mana');
   const xpRequired = 100 * Math.pow(level, 2);
 
   const target = enemies.find(e => e.id === activeTargetId);
 
-  const pendingHealing = playerBuffs.reduce((sum, buff) => {
-    if (buff.isHoT && buff.durationMs && buff.hotTickRateMs && buff.hotHealPerTick) {
-      const ticksRemaining = Math.floor(buff.durationMs / buff.hotTickRateMs);
-      return sum + (ticksRemaining * buff.hotHealPerTick * buff.stacks);
-    }
-    return sum;
-  }, 0);
 
   const [now, setNow] = useState(useAppStore.getState().getGameTime());
   const [bindingSlotIndex, setBindingSlotIndex] = useState<number | null>(null);
@@ -66,16 +67,16 @@ export function CombatOverlay() {
   }, []);
 
   // Swing Timer logic
-  const mainHandCooldown = getMainHandAttackCooldown();
-  const offHandCooldown = getOffHandAttackCooldown();
-  const weapon2 = useInventoryStore.getState().equipment['weapon2'];
-  const hasOffHandWeapon = weapon2 && weapon2.itemType !== 'shield';
-  
-  const timeSinceMainAttack = now - lastMainHandAttackTime;
-  const timeSinceOffAttack = now - lastOffHandAttackTime;
-  
-  const isMainTimerActive = timeSinceMainAttack < mainHandCooldown;
-  const isOffTimerActive = hasOffHandWeapon && timeSinceOffAttack < offHandCooldown;
+  // const mainHandCooldown = getMainHandAttackCooldown();
+  // const offHandCooldown = getOffHandAttackCooldown();
+  // const weapon2 = useInventoryStore.getState().equipment['weapon2'];
+  // const hasOffHandWeapon = weapon2 && weapon2.itemType !== 'shield';
+  // 
+  // const timeSinceMainAttack = now - lastMainHandAttackTime;
+  // const timeSinceOffAttack = now - lastOffHandAttackTime;
+  // 
+  // const isMainTimerActive = timeSinceMainAttack < mainHandCooldown;
+  // const isOffTimerActive = hasOffHandWeapon && timeSinceOffAttack < offHandCooldown;
 
   // Global Keyboard Shortcuts
   useEffect(() => {
@@ -124,28 +125,21 @@ export function CombatOverlay() {
         const worldState = useWorldStore.getState();
         const combatState = useCombatStore.getState();
 
-        let canAutoTarget = false;
         let targetEntity = null;
-
         if (playerState.activeTargetId) {
           targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId);
-          if (targetEntity && !targetEntity.isDead) {
-            const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
-            const dist = getChebyshevDistance(playerState.position, targetEntity.position);
-            const isSolid = (x: number, y: number) => {
-              if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
-              return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
-            };
-            if (dist <= effectiveRange && hasLineOfSight(playerState.position, targetEntity.position, isSolid)) {
-              canAutoTarget = true;
-            }
-          }
         }
         
-        if (!appState.isPaused && canAutoTarget && targetEntity) {
-          InputHandler.requestAction({ type: 'skill', skillId: boundId, targetPos: targetEntity.position, targetId: targetEntity.id });
-        } else {
+        const now = appState.getGameTime();
+        const cdEnd = combatState.skillCooldowns[boundId] || 0;
+        if (now < cdEnd) {
+           return; // Do not open targeting if skill is on cooldown
+        }
+
+        if (!targetEntity || appState.isPaused) {
           combatState.setTargetingSkill(boundId);
+        } else {
+          InputHandler.requestAction({ type: 'skill', skillId: boundId, targetPos: targetEntity.position, targetId: targetEntity.id });
         }
       };
 
@@ -157,6 +151,14 @@ export function CombatOverlay() {
          if (boundId) {
             tryExecuteSkill(boundId);
          }
+      }
+
+
+
+      // Handle Camera Toggle
+      if (e.key.toLowerCase() === 'y') {
+        e.preventDefault();
+        usePlayerStore.getState().toggleCameraMode();
       }
 
       // Handle Flask
@@ -201,21 +203,21 @@ export function CombatOverlay() {
       {/* Target Frame (Top Center) */}
       <div className="flex justify-center pointer-events-none">
         {target && (
-          <div className="bg-zinc-900 border border-zinc-800 shadow-2xl rounded-lg p-3 pr-8 flex items-center gap-4 min-w-[280px] relative pointer-events-auto">
-            <button onClick={() => setTarget(null)} className="absolute top-3 right-3 text-zinc-400 hover:text-zinc-100 transition-colors">
+          <div className="bg-surface-base border border-border-subtle shadow-2xl rounded-lg p-3 pr-8 flex items-center gap-4 min-w-[280px] relative pointer-events-auto">
+            <button onClick={() => setTarget(null)} className="absolute top-3 right-3 text-text-secondary hover:text-text-primary transition-colors">
               <X className="w-4 h-4" />
             </button>
             <div className="w-11 h-11 bg-red-950 rounded border border-red-800 flex items-center justify-center shadow-inner flex-shrink-0">
               <Crosshair className="text-red-500 w-6 h-6 animate-[spin_4s_linear_infinite]" />
             </div>
             <div className="flex-1 flex flex-col justify-center pb-0.5">
-              <div className="font-bold text-zinc-100 text-sm mb-1.5 leading-none">{target.name}</div>
-              <div className="relative h-2.5 w-full bg-zinc-800 rounded-sm overflow-hidden shadow-inner">
+              <div className="font-bold text-text-primary text-sm mb-1.5 leading-none">{target.name}</div>
+              <div className="relative h-2.5 w-full bg-surface-raised rounded-sm overflow-hidden shadow-inner">
                 <div 
                   className="absolute top-0 left-0 h-full bg-red-600 transition-all duration-150 z-20"
                   style={{ width: `${healthPercent}%` }}
                 />
-                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-zinc-100 shadow-black drop-shadow-md pb-[1px] z-30">
+                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-text-primary shadow-black drop-shadow-md pb-[1px] z-30">
                   {Math.ceil(target.health)} / {target.stats.maxHealth}
                 </div>
               </div>
@@ -226,6 +228,21 @@ export function CombatOverlay() {
 
       {/* HUD & Action Bar (Bottom Center) */}
       <div className="flex flex-col items-center pointer-events-none gap-1.5 relative">
+
+        {/* Cast Bar — floats high above the action bar */}
+        {castingSkillId && castEndTime > 0 && SKILLS[castingSkillId] && (
+          <div className="absolute -top-10 left-1/2 -translate-x-1/2 flex flex-col items-center pointer-events-none" style={{ width: '12rem' }}>
+            <div className="text-xs text-center text-text-primary mb-1 font-bold drop-shadow-[0_1px_3px_rgba(0,0,0,1)] tracking-wide">
+              Casting {SKILLS[castingSkillId].name}...
+            </div>
+            <div className="h-2 w-full bg-surface-base rounded border border-border-subtle overflow-hidden shadow-lg">
+              <div
+                className="bg-sky-400 h-full transition-all duration-75"
+                style={{ width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%` }}
+              />
+            </div>
+          </div>
+        )}
         
         {/* Timers Container */}
         <div className="flex flex-col items-center gap-1 w-64 pointer-events-auto">
@@ -234,22 +251,10 @@ export function CombatOverlay() {
               Tactical Pause
             </div>
           )}
-          {/* Cast Bar */}
-          {castingSkillId && castEndTime > 0 && SKILLS[castingSkillId] && (
-            <div className="w-full">
-              <div className="text-[10px] text-center text-zinc-100 mb-0.5 font-bold shadow-sm drop-shadow-md">
-                Casting {SKILLS[castingSkillId].name}...
-              </div>
-              <div className="h-1.5 w-full bg-zinc-900 rounded-sm border border-zinc-800 overflow-hidden shadow-lg">
-                    <div 
-                      className="bg-sky-400 h-full transition-all duration-75"
-                      style={{ width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%` }}
-                    />
-              </div>
-            </div>
-          )}
+
 
           {/* Main Hand Swing Timer */}
+          {/*
           {isMainTimerActive && (
             <div className="w-full">
               <div className="h-1 w-full bg-zinc-900 rounded-sm border border-zinc-800 overflow-hidden shadow-lg">
@@ -260,8 +265,10 @@ export function CombatOverlay() {
               </div>
             </div>
           )}
+          */}
 
           {/* Off-Hand Swing Timer */}
+          {/*
           {isOffTimerActive && (
             <div className="w-full">
               <div className="h-1 w-full bg-zinc-900 rounded-sm border border-zinc-800 overflow-hidden shadow-lg">
@@ -272,6 +279,7 @@ export function CombatOverlay() {
               </div>
             </div>
           )}
+          */}
         </div>
 
         {/* Active Buffs */}
@@ -281,10 +289,10 @@ export function CombatOverlay() {
               const BuffIcon = ICONS[buff.icon] || ArrowUpCircle;
               return (
                 <div key={buff.id} className="relative group">
-                  <div className={`w-8 h-8 rounded-sm border flex flex-col items-center justify-center bg-zinc-900 overflow-hidden shadow-lg ${buff.type === 'buff' ? 'border-sky-400/50 text-sky-400' : 'border-red-500/50 text-red-500'}`}>
+                  <div className={`w-8 h-8 rounded-sm border flex flex-col items-center justify-center bg-surface-base overflow-hidden shadow-lg ${buff.type === 'buff' ? 'border-sky-400/50 text-sky-400' : 'border-red-500/50 text-red-500'}`}>
                     <BuffIcon className="w-4 h-4 opacity-80" />
                     {buff.stacks > 1 && (
-                      <span className="absolute bottom-0 right-0 text-[8px] font-bold bg-zinc-900/80 px-1 rounded-tl">{buff.stacks}</span>
+                      <span className="absolute bottom-0 right-0 text-[8px] font-bold bg-surface-base/80 px-1 rounded-tl">{buff.stacks}</span>
                     )}
                     {/* Visual duration wipe */}
                     {buff.durationMs && buff.maxDurationMs && (
@@ -295,17 +303,17 @@ export function CombatOverlay() {
                     )}
                   </div>
                   {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-zinc-900 border border-zinc-700 rounded p-2 text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-2xl">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-surface-overlay border border-border-strong rounded p-2 text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-2xl">
                     <div className={`font-bold mb-1 ${buff.type === 'buff' ? 'text-sky-400' : 'text-red-500'}`}>{buff.name}</div>
                     {buff.durationMs ? (
-                       <div className="text-zinc-400 mb-1 font-mono">{(buff.durationMs / 1000).toFixed(1)}s remaining</div>
+                       <div className="text-text-secondary mb-1 font-mono">{(buff.durationMs / 1000).toFixed(1)}s remaining</div>
                     ) : (
-                       <div className="text-zinc-400 mb-1 italic">Permanent</div>
+                       <div className="text-text-secondary mb-1 italic">Permanent</div>
                     )}
                     {buff.statModifiers.map((mod, i) => {
                       const sign = mod.value > 0 ? '+' : '';
                       const suffix = mod.type === 'increased' ? '%' : '';
-                      return <div key={i} className="text-zinc-100">{sign}{mod.value * buff.stacks}{suffix} {mod.stat}</div>;
+                      return <div key={i} className="text-text-primary">{sign}{mod.value * buff.stacks}{suffix} {mod.stat}</div>;
                     })}
                   </div>
                 </div>
@@ -314,59 +322,34 @@ export function CombatOverlay() {
           </div>
         )}
 
-        {/* HP / MP / XP Bars */}
-        <div className="flex flex-col gap-1 w-80 bg-zinc-900 border border-zinc-800 p-2 rounded-lg shadow-xl">
-          {/* Health */}
-          <div className="relative h-3 w-full bg-zinc-800 rounded-sm overflow-hidden">
-             {/* Heal Projection */}
-             {pendingHealing > 0 && (
-               <div 
-                 className="absolute top-0 left-0 h-full bg-red-500/50 transition-all duration-150 z-10"
-                 style={{ width: `${Math.min(100, ((currentHealth + pendingHealing) / maxHealth) * 100)}%` }}
-               />
-             )}
-             <div 
-               className="absolute top-0 left-0 h-full bg-red-600 transition-all duration-150 z-30"
-               style={{ width: `${Math.min(100, (currentHealth / maxHealth) * 100)}%` }}
-             />
-             <div className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-zinc-100 shadow-black drop-shadow-md pb-[1px] z-40">
-                {Math.floor(currentHealth)} / {Math.floor(maxHealth)}
-             </div>
-          </div>
-          {/* Mana */}
-          <div className="relative h-3 w-full bg-zinc-800 rounded-sm overflow-hidden">
-             <div 
-               className="absolute top-0 left-0 h-full bg-blue-600 transition-all duration-150 z-30"
-               style={{ width: `${Math.min(100, (currentMana / maxMana) * 100)}%` }}
-             />
-             <div className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-zinc-100 shadow-black drop-shadow-md pb-[1px] z-40">
-                {Math.floor(currentMana)} / {Math.floor(maxMana)}
-             </div>
-          </div>
-          {/* XP row */}
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <div className="bg-zinc-800 text-zinc-100 border border-zinc-700 text-[8px] font-black w-4 h-4 flex-shrink-0 flex items-center justify-center rounded-sm">
-              {level}
+        {/* HUD Assembly (Flat Minimalist) */}
+        <div className="flex items-end justify-center pointer-events-auto z-40 translate-y-[11px]">
+          
+          {/* HP Globe + Flask */}
+          <div className="relative shrink-0 z-20 mb-2">
+            <div className="w-[140px] h-[140px] rounded-full border border-border-subtle bg-surface-base backdrop-blur-md relative overflow-hidden flex items-center justify-center shadow-lg">
+              
+              {/* Expected Healing Overlay */}
+              <div 
+                className="absolute bottom-0 left-0 w-full bg-red-400/30 transition-all duration-75"
+                style={{ height: `${Math.min(100, ((currentHealth + expectedHealAmount) / maxHealth) * 100)}%` }}
+              />
+              <div 
+                className="absolute bottom-0 left-0 w-full bg-red-700 transition-all duration-75"
+                style={{ height: `${Math.min(100, (currentHealth / maxHealth) * 100)}%` }}
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-sm font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] tracking-wider">
+                  {Math.floor(currentHealth)}
+                </span>
+              </div>
             </div>
-            <div className="relative h-1.5 flex-1 bg-zinc-800 rounded-sm overflow-hidden">
-               <div 
-                 className="absolute top-0 left-0 h-full bg-purple-600 transition-all duration-300 shadow-[0_0_8px_rgba(147,51,234,0.5)]"
-                 style={{ width: `${Math.min(100, (currentXp / xpRequired) * 100)}%` }}
-               />
-            </div>
-            {/* Invisible spacer to perfectly center the XP bar under the HP/MP bars */}
-            <div className="w-4 flex-shrink-0" />
-          </div>
-        </div>
 
-        {/* Action Bar Container */}
-        <div className="relative">
-           {/* Flask Button */}
-           <div className="absolute right-full mr-4 top-1/2 -translate-y-1/2 group pointer-events-auto">
-             <div className="w-[4rem] h-[4rem] flex items-center justify-center bg-zinc-900/90 backdrop-blur-md rounded-full border border-zinc-800 shadow-2xl">
+            {/* Flask Button */}
+            <div className="absolute -bottom-0 -left-4 z-30">
                <button 
-                 className={`relative w-11 h-11 rounded-full border flex items-center justify-center transition-all shadow-md
-                   ${flaskCharges >= 1 ? 'bg-zinc-800 border-zinc-800 hover:border-sky-400 hover:bg-zinc-700' : 'bg-zinc-800 border-zinc-800 opacity-50 cursor-not-allowed'}
+                 className={`relative w-10 h-10 rounded-full border flex items-center justify-center transition-all focus:outline-none focus:ring-0
+                   ${flaskCharges >= 1 ? 'bg-surface-deep border-border-subtle hover:border-border-strong hover:bg-surface-raised' : 'bg-surface-deep border-border-subtle cursor-not-allowed'}
                  `}
                  onClick={() => {
                    if (currentHealth < maxHealth && flaskCharges >= 1) {
@@ -390,193 +373,348 @@ export function CombatOverlay() {
                       useCombatStore.getState().addLog('Used Healing Flask.', 'system');
                    }
                  }}
+                 onMouseEnter={() => setContent(
+                  <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 text-left pointer-events-none">
+                    <div className="font-bold text-red-400 mb-1">
+                      Healing Flask
+                    </div>
+                    <div className="text-[10px] text-text-secondary pb-1 mb-1 border-b border-border-subtle uppercase tracking-widest">
+                      {Math.floor(flaskCharges)} / {maxFlaskCharges} charges
+                    </div>
+                    <div className="text-xs text-text-primary leading-snug mb-1">
+                      Restores <span className="text-red-400 font-bold">50%</span> of your maximum health over <span className="text-text-primary font-bold">4 seconds</span>.
+                    </div>
+                    <div className="text-[10px] text-text-secondary leading-snug mt-1 pt-1 border-t border-border-subtle">
+                      Recharges by killing monsters.
+                    </div>
+                  </div>
+                )}
+                onMouseLeave={() => setContent(null)}
                >
-                  <FlaskConical className="w-6 h-6 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] z-10" />
-                  <span className="absolute -top-2 -right-2 text-[10px] font-black text-zinc-100 z-10">{Math.floor(flaskCharges)}/{maxFlaskCharges}</span>
-                  <span className="absolute -bottom-1 -left-0.5 text-[10px] font-bold text-zinc-100 z-10">R</span>
+                  <FlaskConical className="w-5 h-5 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] z-10" />
+                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[12px] font-black text-text-primary z-10 px-1">{Math.floor(flaskCharges)}</span>
+                   <span className="absolute top-1/2 -left-4 -translate-y-1/2 text-[10px] font-bold text-text-secondary z-10 px-1.5 bg-surface-deep rounded border border-border-subtle">{`R`}</span>
                </button>
-             </div>
-           </div>
+            </div>
+          </div>
 
-           {/* Action Bar */}
-           <div className="w-fit flex gap-2 p-2 bg-zinc-900/90 backdrop-blur-md rounded-xl border border-zinc-800 shadow-2xl pointer-events-auto">
-           
-           {boundSkills.slice(0, 6).map((skillId, index) => {
-             const skill = skillId ? SKILLS[skillId] : null;
-             const IconComponent = skill ? (ICONS[skill.icon] || Flame) : null;
-             
-             let outOfRange = false;
-             if (skill && target) {
-                const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
-                const dist = getDistance(position, target.position);
-                outOfRange = dist > effectiveRange;
-             }
+          {/* Center Console (XP + Action Bar + Hotkeys) */}
+          <div className="flex flex-col mx-8 z-10 w-fit gap-1 relative">
+            
 
-             const isBinding = bindingSlotIndex === index;
-             
-             // Cooldown & GCD logic
-             const timeUntilGcdFree = Math.max(0, gcdEndTime - now);
-             const skillCdEndTime = skill ? (skillCooldowns[skill.id] || 0) : 0;
-             const timeUntilSkillFree = Math.max(0, skillCdEndTime - now);
-             
-             let activePercent = 0;
-             let onCooldown = false;
-             
-             if (timeUntilSkillFree > timeUntilGcdFree) {
-                 activePercent = skill && skill.cooldownMs ? (timeUntilSkillFree / skill.cooldownMs) * 100 : 0;
-                 onCooldown = true;
-             } else if (timeUntilGcdFree > 0) {
-                 activePercent = skill ? (timeUntilGcdFree / getEffectiveGcd(skill)) * 100 : 0;
-                 onCooldown = true;
-             }
+            {/* XP Bar */}
+            <div className="flex items-center w-full relative">
+               <div className="absolute -left-6 flex items-center z-10">
+                  <span className="text-[10px] text-text-secondary font-bold bg-surface-deep border border-border-subtle rounded w-5 h-5 flex items-center justify-center">
+                     {level}
+                  </span>
+               </div>
+               <div className="relative flex-1 h-[7px] bg-surface-deep overflow-hidden border border-border-subtle rounded-sm w-full">
+                  <div 
+                    className="absolute top-0 left-0 h-full bg-amber-500 transition-all duration-300"
+                    style={{ width: `${Math.min(100, (currentXp / xpRequired) * 100)}%` }}
+                  />
+               </div>
+            </div>
 
-             return (
-              <div key={index} className="relative group">
-                <button 
-                  disabled={skill ? (onCooldown || currentMana < getEffectiveManaCost(skill)) : false}
-                  className={`relative w-14 h-14 rounded border flex items-center justify-center transition-all group overflow-hidden
-                    ${!skill ? 'bg-zinc-900/50 border-zinc-800/50 border-dashed hover:border-sky-400/50 hover:bg-zinc-800' : onCooldown ? 'bg-zinc-800 border-zinc-800 cursor-not-allowed' : 'bg-zinc-800 border-zinc-800 hover:border-sky-400 hover:bg-zinc-700'}
-                    ${outOfRange ? 'opacity-30' : ''}
-                    ${isBinding ? 'ring-2 ring-sky-400' : ''}
-                  `}
-                  onClick={() => {
-                     if (!skill) return;
-                     // We use the same tryExecuteSkill logic. Since it's inside CombatOverlay, we can duplicate the helper or extract it.
-                     // Actually, we can just duplicate the logic here, or we can use the same pattern.
-                     // Wait, tryExecuteSkill was defined inside useEffect, so we don't have access to it here.
-                     // Let's just inline it here for the click handler.
-                     const appState = useAppStore.getState();
-                     const playerState = usePlayerStore.getState();
-                     const worldState = useWorldStore.getState();
-                     const combatState = useCombatStore.getState();
-                     let canAutoTarget = false;
-                     let targetEntity = null;
 
-                     if (playerState.activeTargetId) {
-                       targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId);
-                       if (targetEntity && !targetEntity.isDead) {
-                         const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
-                         const dist = getChebyshevDistance(playerState.position, targetEntity.position);
-                         const isSolid = (x: number, y: number) => {
-                           if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
-                           return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
-                         };
-                         if (dist <= effectiveRange && hasLineOfSight(playerState.position, targetEntity.position, isSolid)) {
-                           canAutoTarget = true;
-                         }
-                       }
-                     }
-                     
-                     if (!appState.isPaused && canAutoTarget && targetEntity) {
-                       InputHandler.requestAction({ type: 'skill', skillId: skill.id, targetPos: targetEntity.position, targetId: targetEntity.id });
-                     } else {
-                       combatState.setTargetingSkill(skill.id);
-                     }
-                  }}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setBindingSlotIndex(isBinding ? null : index);
-                  }}
-                  onMouseEnter={() => {
-                    if (!isBinding && skill) {
-                      setContent(
-                        <div className="w-48 bg-zinc-900 border border-zinc-700 rounded-lg shadow-2xl p-2 text-left pointer-events-none">
-                          <div className="font-bold text-sky-400 mb-1">{skill.name}</div>
-                          <div className="flex justify-between text-[10px] text-zinc-400 mb-2 pb-1 border-b border-zinc-800 uppercase tracking-widest">
-                             <span>{skill.range > 0 ? `Range ${skill.range}` : 'Melee'}</span>
-                             <span>{getEffectiveManaCost(skill)} Mana</span>
-                          </div>
-                          {skill.effects.some(e => e.type === 'damage') && (
-                            <div className="mb-2 pb-2 border-b border-zinc-800">
-                              {skill.effects.filter(e => e.type === 'damage').map((effect, i) => (
-                                <div key={i} className="text-xs font-bold text-zinc-400">
-                                  {effect.baseValue} {effect.element} Damage
+            {/* Action Bar Container (Only wraps skills) */}
+            <div className="bg-surface-deep border border-border-subtle px-1.5 py-1.5 rounded-sm flex gap-1.5 relative">
+              {boundSkills.slice(0, 8).map((skillId, index) => {
+                const skill = skillId ? SKILLS[skillId] : null;
+                const IconComponent = skill ? (ICONS[skill.icon] || Flame) : null;
+                
+                let outOfRange = false;
+                if (skill && target) {
+                   const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
+                   const dist = getDistance(position, target.position);
+                   outOfRange = dist > effectiveRange;
+                }
+
+                const isBinding = bindingSlotIndex === index;
+                
+                // Cooldown & GCD logic
+                const timeUntilGcdFree = Math.max(0, gcdEndTime - now);
+                const skillCdEndTime = skill ? (skillCooldowns[skill.id] || 0) : 0;
+                const timeUntilSkillFree = Math.max(0, skillCdEndTime - now);
+                
+                let activePercent = 0;
+                let onCooldown = false;
+                
+                if (timeUntilSkillFree > timeUntilGcdFree) {
+                    activePercent = skill && skill.cooldownMs ? (timeUntilSkillFree / skill.cooldownMs) * 100 : 0;
+                    onCooldown = true;
+                } else if (timeUntilGcdFree > 0) {
+                    activePercent = skill ? (timeUntilGcdFree / getEffectiveGcd(skill)) * 100 : 0;
+                    onCooldown = true;
+                }
+
+                const isOnGcd = timeUntilGcdFree > 0 && timeUntilGcdFree >= timeUntilSkillFree;
+                
+                const isCastingThis = castingSkillId === skillId;
+                let castPercent = 0;
+                if (isCastingThis && skill && skill.castTime) {
+                   const elapsed = now - (castEndTime - skill.castTime);
+                   castPercent = Math.min(100, (elapsed / skill.castTime) * 100);
+                }
+
+                return (
+                  <div key={index} className="relative">
+                    <button
+                      className={`relative w-12 h-12 flex items-center justify-center rounded-lg border transition-all overflow-hidden bg-surface-base focus:outline-none focus:ring-0
+                        ${isBinding ? 'border-accent bg-surface-raised animate-pulse' : 'border-border-subtle hover:border-border-strong hover:bg-surface-raised'}
+                      `}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (bindingSlotIndex !== null) {
+                           setBindingSlotIndex(index);
+                           return;
+                        }
+                        if (!skill) return;
+                        
+                        // Execute skill logic
+                        const appState = useAppStore.getState();
+                        const playerState = usePlayerStore.getState();
+                        const worldState = useWorldStore.getState();
+                        const combatState = useCombatStore.getState();
+                        let canAutoTarget = false;
+                        let targetEntity = null;
+
+                        if (playerState.activeTargetId) {
+                          targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId);
+                          if (targetEntity && !targetEntity.isDead) {
+                            const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
+                            const dist = getChebyshevDistance(playerState.position, targetEntity.position);
+                            const isSolid = (x: number, y: number) => {
+                              if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
+                              return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
+                            };
+                            if (dist <= effectiveRange && hasLineOfSight(playerState.position, targetEntity.position, isSolid)) {
+                              canAutoTarget = true;
+                            }
+                          }
+                        }
+                        
+                        if (!appState.isPaused && canAutoTarget && targetEntity) {
+                          InputHandler.requestAction({ type: 'skill', skillId: skill.id, targetPos: targetEntity.position, targetId: targetEntity.id });
+                        } else {
+                          combatState.setTargetingSkill(skill.id);
+                        }
+                      }}
+                      onContextMenu={(e) => {
+                        e.preventDefault();
+                        if (bindingSlotIndex === index) setBindingSlotIndex(null);
+                        else setBindingSlotIndex(index);
+                      }}
+                      onMouseEnter={() => {
+                        if (!isBinding && skill) {
+                          setContent(
+                            <div className="w-48 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 text-left pointer-events-none">
+                              <div className="font-bold text-sky-400 mb-1">{skill.name}</div>
+                              <div className="flex justify-between text-[10px] text-text-secondary mb-2 pb-1 border-b border-border-subtle uppercase tracking-widest">
+                                 <span>{skill.range > 0 ? `Range ${skill.range}` : 'Melee'}</span>
+                                 <span>{getEffectiveManaCost(skill)} Mana</span>
+                              </div>
+                              {skill.effects.some(e => e.type === 'damage') && (
+                                <div className="mb-2 pb-2 border-b border-border-subtle">
+                                  {skill.effects.filter(e => e.type === 'damage').map((effect, i) => (
+                                    <div key={i} className="text-xs font-bold text-text-secondary">
+                                      {effect.baseValue} {effect.element} Damage
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
+                              )}
+
+                              <div className="text-xs text-text-primary leading-snug mb-2">
+                                 {skill.description}
+                              </div>
                             </div>
-                          )}
-
-                          <div className="text-xs text-zinc-100 leading-snug mb-2">
-                             {skill.description}
-                          </div>
-                        </div>
-                      );
-                    }
-                  }}
-                  onMouseLeave={() => setContent(null)}
-                >
-                  {IconComponent && <IconComponent className={`w-6 h-6 relative z-10 ${(outOfRange || (skill && currentMana < getEffectiveManaCost(skill))) ? 'text-zinc-600' : 'text-sky-400 group-hover:scale-110'} transition-transform`} />}
-
-                  {/* Cooldown/GCD Sweep Overlay */}
-                  {skill && activePercent > 0 && (
-                    <div 
-                      className="absolute inset-0 z-20 flex items-center justify-center rounded"
-                      style={{ 
-                        background: `conic-gradient(transparent ${100 - activePercent}%, ${timeUntilSkillFree > timeUntilGcdFree ? 'rgba(0,0,0,0.8)' : 'rgba(0,0,0,0.6)'} 0)` 
+                          );
+                        }
+                      }}
+                      onMouseLeave={() => {
+                        setContent(null);
                       }}
                     >
-                      <span className="text-white font-bold text-xs drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
-                        {(Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000).toFixed(1)}
-                      </span>
-                    </div>
-                  )}
-                  <span className="text-[10px] font-bold text-zinc-100 absolute bottom-0 left-1 z-10">{index + 1}</span>
-                </button>
+                      {skill && IconComponent ? (
+                        <div className={`relative z-10 w-full h-full flex items-center justify-center ${outOfRange ? 'opacity-50' : ''}`}>
+                          <IconComponent className={`w-7 h-7 drop-shadow-md text-sky-400`} />
+                        </div>
+                      ) : null}
 
-                {/* Mana Cost indicator */}
-                {/* 
-                {skill && (
-                  <div className="absolute -top-1.5 -right-1.5 px-1 py-[1px] bg-blue-900 border border-blue-800 text-[8px] text-zinc-100 rounded font-bold z-10 shadow-md pointer-events-none">
-                    {getEffectiveManaCost(skill)}
-                  </div>
-                )}
-                */}
+                      {/* Cooldown Overlay */}
+                      {onCooldown && skill && (
+                        <div 
+                           className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
+                           style={{ background: `conic-gradient(transparent ${100 - activePercent}%, rgba(0,0,0,0.7) 0)` }}
+                        >
+                            <span className="text-white font-bold text-[10px] z-30 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+                               {(Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000).toFixed(1)}
+                            </span>
+                           {isOnGcd && (
+                              <div className="absolute inset-0 border-2 border-border-strong/50 rounded-lg animate-pulse pointer-events-none" />
+                           )}
+                        </div>
+                      )}
+                      
+                      {/* Casting Overlay */}
+                      {isCastingThis && skill && (
+                        <div className="absolute inset-0 bg-sky-900/40 z-20 overflow-hidden border border-sky-400/50">
+                           <div 
+                             className="absolute bottom-0 left-0 w-full bg-sky-400/30 transition-none" 
+                             style={{ height: `${castPercent}%` }} 
+                           />
+                        </div>
+                      )}
+                    </button>
 
-                {/* Popover Menu */}
-                {isBinding && (
-                  <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-2 z-50 animate-in slide-in-from-bottom-2">
-                    <div className="text-xs font-bold text-zinc-400 mb-2 px-1 text-center">Bind Skill</div>
-                    <div className="flex flex-col gap-1">
-                      {unlockedActives.map(actId => {
-                        const act = SKILLS[actId];
-                        if (!act) return null;
-                        const ActIcon = ICONS[act.icon] || Flame;
-                        return (
+                    {/* Skill Binding Menu */}
+                    {isBinding && (
+                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-surface-base border border-border-strong rounded-lg shadow-xl z-50">
+                        <div className="p-2 border-b border-border-subtle bg-surface-base rounded-t-lg">
+                          <h3 className="text-xs font-bold text-accent">Bind Skill to Slot {index + 1}</h3>
+                        </div>
+                        <div className="p-1 max-h-48 overflow-y-auto">
+                          {unlockedActives.map(actId => {
+                            const act = SKILLS[actId];
+                            if (!act) return null;
+                            const ActIcon = ICONS[act.icon] || Flame;
+                            const isBound = boundSkills.includes(act.id);
+                            return (
+                              <button
+                                key={act.id}
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors
+                                  ${isBound ? 'opacity-50 cursor-not-allowed text-text-muted' : 'hover:bg-surface-raised text-text-secondary hover:text-text-primary'}
+                                `}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (!isBound) {
+                                    bindSkill(index, act.id);
+                                    setBindingSlotIndex(null);
+                                  }
+                                }}
+                              >
+                                <ActIcon className="w-4 h-4 text-sky-400" />
+                                {act.name}
+                              </button>
+                            );
+                          })}
+                          <div className="h-px w-full bg-border-subtle my-1" />
                           <button
-                            key={actId}
-                            className="w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs hover:bg-zinc-800 hover:text-zinc-100 transition-colors"
-                            onClick={() => { bindSkill(index, actId); setBindingSlotIndex(null); }}
+                            className="w-full text-left px-2 py-1.5 rounded text-xs text-text-secondary hover:bg-surface-raised hover:text-text-secondary transition-colors"
+                            onClick={(e) => { e.stopPropagation(); bindSkill(index, null); setBindingSlotIndex(null); }}
                           >
-                            <ActIcon className="w-4 h-4 text-sky-400" />
-                            {act.name}
+                            (Clear Slot)
                           </button>
-                        );
-                      })}
-                      <div className="h-px w-full bg-zinc-800 my-1" />
-                      <button
-                        className="w-full text-left px-2 py-1.5 rounded text-xs text-zinc-400 hover:bg-zinc-800 hover:text-zinc-400 transition-colors"
-                        onClick={() => { bindSkill(index, null); setBindingSlotIndex(null); }}
-                      >
-                        (Clear Slot)
-                      </button>
-                    </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
+                 );
+               })}
+            </div>
+
+             {/* Keybind Boxes underneath (Floating on their own) */}
+            <div className="flex gap-1.5 justify-center -mt-[1px]">
+               {boundSkills.slice(0, 8).map((_, index) => (
+                  <div key={`keybind-${index}`} className="w-12 flex justify-center">
+                      <span className="bg-surface-deep border border-border-subtle text-[10px] font-bold text-text-secondary px-2 py-0.5 rounded">
+                       {index + 1}
+                     </span>
+                  </div>
+               ))}
+            </div>
+          </div>
+
+          {/* MP Globe */}
+          <div className="relative shrink-0 z-20 mb-2">
+            <div className="w-[140px] h-[140px] rounded-full border border-border-subtle bg-surface-base backdrop-blur-md relative overflow-hidden flex items-center justify-center shadow-lg">
+              <div 
+                className="absolute bottom-0 left-0 w-full bg-blue-700 transition-all duration-300"
+                style={{ height: `${Math.min(100, (currentMana / maxMana) * 100)}%` }}
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="text-sm font-black text-white drop-shadow-[0_2px_4px_rgba(0,0,0,1)] tracking-wider">
+                  {Math.floor(currentMana)}
+                </span>
               </div>
-             );
-           })}
-        </div>
+            </div>
+          </div>
+
         </div>
       </div>
       
       {/* Camera Toggle Button */}
-      <div className="absolute top-4 right-4 pointer-events-auto z-50">
+      <div className="absolute top-3 right-3 pointer-events-auto z-50">
          <button 
            onClick={() => usePlayerStore.getState().toggleCameraMode()}
-           className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 text-xs font-semibold text-zinc-400 hover:text-sky-400 hover:border-sky-400 rounded shadow-md transition-colors"
+           className="px-3 py-1.5 bg-surface-base border border-border-subtle text-xs font-semibold text-text-secondary hover:text-accent hover:border-accent rounded shadow-md transition-colors"
          >
            Camera: {usePlayerStore(state => state.cameraMode) === 'auto' ? 'Auto (Y)' : 'Free (Y)'}
          </button>
+      </div>
+      {/* UI Window Toggles (Bottom Right) */}
+      <div className="absolute bottom-3 right-3 pointer-events-auto z-50 flex gap-2">
+        <button 
+          onClick={() => {
+            const appState = useAppStore.getState();
+            if (appState.characterWindowOpen && appState.characterWindowTab === 'inventory') {
+              appState.setCharacterWindowOpen(false);
+            } else {
+              appState.setCharacterWindowTab('inventory');
+              appState.setCharacterWindowOpen(true);
+            }
+          }}
+          className="w-12 h-12 bg-surface-base border border-border-subtle text-text-secondary hover:text-accent hover:border-accent rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group"
+          title="Inventory (I)"
+        >
+          <Backpack size={20} className="group-hover:scale-110 transition-transform" />
+          <span className="text-[9px] font-bold">INV</span>
+        </button>
+
+        <button 
+          onClick={() => {
+            const appState = useAppStore.getState();
+            if (appState.characterWindowOpen && appState.characterWindowTab === 'stats') {
+              appState.setCharacterWindowOpen(false);
+            } else {
+              appState.setCharacterWindowTab('stats');
+              appState.setCharacterWindowOpen(true);
+            }
+          }}
+          className="w-12 h-12 bg-surface-base border border-border-subtle text-text-secondary hover:text-accent hover:border-accent rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative"
+          title="Character Stats (C)"
+        >
+          <User size={20} className="group-hover:scale-110 transition-transform" />
+          <span className="text-[9px] font-bold">CHAR</span>
+          {usePlayerStore(state => state.attributePoints) > 0 && (
+             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse">
+               {usePlayerStore.getState().attributePoints}
+             </span>
+          )}
+        </button>
+
+        <button 
+          onClick={() => {
+            const appState = useAppStore.getState();
+            if (appState.characterWindowOpen && appState.characterWindowTab === 'skills') {
+              appState.setCharacterWindowOpen(false);
+            } else {
+              appState.setCharacterWindowTab('skills');
+              appState.setCharacterWindowOpen(true);
+            }
+          }}
+          className="w-12 h-12 bg-surface-base border border-border-subtle text-text-secondary hover:text-accent hover:border-accent rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative"
+          title="Skills"
+        >
+          <BookOpen size={20} className="group-hover:scale-110 transition-transform" />
+          <span className="text-[9px] font-bold">SKILLS</span>
+          {usePlayerStore(state => state.skillPoints) > 0 && (
+             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse">
+               {usePlayerStore.getState().skillPoints}
+             </span>
+          )}
+        </button>
       </div>
 
     </div>

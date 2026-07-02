@@ -24,24 +24,32 @@ This document outlines the core principles and architectural rules for the WebAR
 ## 4. UI & Aesthetics (Tailwind)
 - **Premium Dark Aesthetic**: Maintain the clean, dark-themed, "Melvor Idle" inspired interface. 
 - **Universal Base Background**: Use `bg-zinc-950` for the absolute lowest layer (e.g., the body or global container).
-- **Strict UI Palette**:
-  - **Background Color**: `bg-zinc-900` (Use `bg-zinc-900/50` or `bg-zinc-900/90` with `backdrop-blur-md` for floating elements)
-  - **Border Color**: `border-zinc-800`
-  - **Major Text**: `text-zinc-100`
-  - **Minor Text**: `text-zinc-400`
-  - **Highlight Color**: Defaults to `sky-400` (e.g., `text-sky-400`, `border-sky-400` for active states, important callouts), but respect existing color variables if established.
-  - **Health Displays**: `red-600` for fills (`bg-red-600`), `red-500` for text/icons
-  - **Mana Displays**: `blue-600` for fills (`bg-blue-600`), `blue-500` for text/icons
-  - **Enemy Display Icons**: `text-red-500`
-  - **Enemy Display Backgrounds**: `bg-red-950`
-  - **Player Display Icon**: `text-emerald-500`
-  - **Player Display Background**: `bg-emerald-950`
-- **Grid Layouts**: Combat grid tiles use `border-zinc-800/40`.
-- **Combat Log Formatting**:
-  - *System*: `text-zinc-400 italic`
-  - *Player Attack*: `text-zinc-100`
-  - *Enemy Attack*: `text-red-500`
-  - *Abilities*: `text-sky-400 font-semibold bg-sky-400/10`
+
+### Design Token System
+All UI colors are defined as CSS custom properties in `src/index.css` via a Tailwind v4 `@theme` block. **Never use raw `zinc-xxx` classes for UI backgrounds, borders, or text in components.** Use tokens so the whole game can be recolored from one place.
+
+| Token Class | Role | Approx Value |
+|---|---|---|
+| `bg-surface-deep` | Main panel backgrounds, action bar tray | zinc-950/90 |
+| `bg-surface-base` | Slots, cards, inputs sitting on panels | zinc-900/90 |
+| `bg-surface-raised` | Hover / active lift state | zinc-800/85 |
+| `bg-surface-overlay` | Tooltips, floating popups | zinc-900/95 |
+| `border-border-subtle` | Default panel/slot edges | zinc-700 |
+| `border-border-strong` | Hover / focused / active borders | zinc-600 |
+| `text-text-primary` | Main readable values — names, numbers | zinc-100 |
+| `text-text-secondary` | Labels, descriptions, stat names | zinc-400 |
+| `text-text-muted` | Hints, hotkeys, empty states | zinc-600 |
+| `text-accent` / `border-accent` | Selection, highlight, active tabs | sky-400 |
+
+**Semantic colors — never replace with tokens:**
+- **Health**: `bg-red-700` fill, `text-red-500` text/icons
+- **Mana**: `bg-blue-700` fill, `text-blue-500` text/icons
+- **Enemy UI**: `text-red-500` icons, `bg-red-950` backgrounds
+- **Player UI**: `text-emerald-500` icons, `bg-emerald-950` backgrounds
+- **Item Rarity**: Normal=zinc-400, Magic=blue-500, Rare=yellow-500, Epic=purple-500, Legendary=sky-400, Unique=amber-500
+- **Grid tiles**: `border-zinc-800/40` (fine-grained, keep as-is)
+- **Combat Log**: System=`text-text-secondary italic`, Player=`text-text-primary`, Enemy=`text-red-500`, Abilities=`text-accent bg-accent/10`
+
 - **Micro-Animations**: Rely on subtle visual cues (`transition-colors`, `hover:scale-110`, `animate-pulse` on targeted units, Lucide icons) rather than massive blocks of text to convey information.
 - **Icons & Asset Management**: Always use `lucide-react` for icons. Do not import external SVG files or font-awesome unless absolutely necessary. Map game data strings (like `icon: 'flame'`) to Lucide components dynamically.
 - **Floating Text vs Combat Log**: Floating Combat Text should only be used for raw numbers (Damage, Healing) and critical status procs (e.g., 'Dodged'). The Combat Log is for detailed system breakdowns, loot acquisition, and narrative feedback.

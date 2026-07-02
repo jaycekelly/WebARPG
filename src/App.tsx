@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect } from 'react';
-import { Sidebar } from './components/Sidebar';
+import { CharacterWindow } from './components/CharacterWindow';
 import { useGameEngine } from './engine/useGameEngine';
 import { useAppStore } from './store/useAppStore';
 import { useCombatStore } from './store/useCombatStore';
@@ -7,7 +7,6 @@ import { usePlayerStore } from './store/usePlayerStore';
 import { TownView } from './components/TownView';
 import { DungeonView } from './components/DungeonView';
 import { DataEditorView } from './components/DataEditorView';
-import { SkillTreeModal } from './components/SkillTreeModal';
 import { GlobalTooltip } from './components/GlobalTooltip';
 
 const GameOverScreen = () => {
@@ -16,7 +15,7 @@ const GameOverScreen = () => {
   return (
     <div className="absolute inset-0 z-[100] bg-zinc-950 flex flex-col items-center justify-center animate-in fade-in duration-1000">
        <div className="text-red-600 text-6xl font-black uppercase tracking-widest mb-4 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]">You Died</div>
-       <div className="text-zinc-400 text-sm font-bold uppercase tracking-widest animate-pulse">Refresh the window to resurrect</div>
+       <div className="text-text-secondary text-sm font-bold uppercase tracking-widest animate-pulse">Refresh the window to resurrect</div>
     </div>
   );
 };
@@ -63,18 +62,49 @@ function App() {
         }
       }
 
+      // Hotkeys for UI Windows
+      if (e.key.toLowerCase() === 'i') {
+        const appState = useAppStore.getState();
+        if (appState.characterWindowOpen && appState.characterWindowTab === 'inventory') {
+          appState.setCharacterWindowOpen(false);
+        } else {
+          appState.setCharacterWindowTab('inventory');
+          appState.setCharacterWindowOpen(true);
+        }
+      }
+
+      if (e.key.toLowerCase() === 'p') {
+        const appState = useAppStore.getState();
+        if (appState.characterWindowOpen && appState.characterWindowTab === 'stats') {
+          appState.setCharacterWindowOpen(false);
+        } else {
+          appState.setCharacterWindowTab('stats');
+          appState.setCharacterWindowOpen(true);
+        }
+      }
+
+      if (e.key.toLowerCase() === 'k') {
+        const appState = useAppStore.getState();
+        if (appState.characterWindowOpen && appState.characterWindowTab === 'skills') {
+          appState.setCharacterWindowOpen(false);
+        } else {
+          appState.setCharacterWindowTab('skills');
+          appState.setCharacterWindowOpen(true);
+        }
+      }
+
       if (e.key === 'Escape') {
         const appState = useAppStore.getState();
         const combatState = useCombatStore.getState();
         const playerState = usePlayerStore.getState();
 
         // 1. Close Modal Windows
-        if (appState.skillTreeOpen) {
-          appState.setSkillTreeOpen(false);
-          return;
-        }
         if (appState.vendorOpen) {
           appState.setVendorOpen(false);
+          return;
+        }
+        if (appState.characterWindowOpen) {
+          appState.setCharacterWindowOpen(false);
           return;
         }
         
@@ -106,7 +136,7 @@ function App() {
   if (location === 'editor') {
     return (
       <div className="flex w-screen h-screen items-center justify-center bg-black overflow-hidden">
-        <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-zinc-100 font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
+        <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
           <DataEditorView />
           <GlobalTooltip />
         </div>
@@ -116,12 +146,11 @@ function App() {
 
   return (
     <div className="flex w-screen h-screen items-center justify-center bg-black overflow-hidden">
-      <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-zinc-100 font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
-        <Sidebar />
+      <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
         
         {location === 'town' ? <TownView /> : <DungeonView />}
 
-        <SkillTreeModal />
+        <CharacterWindow />
         <GlobalTooltip />
         <GameOverScreen />
       </div>

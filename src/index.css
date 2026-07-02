@@ -1,8 +1,53 @@
 @import "tailwindcss";
 
+/* ============================================================
+   DESIGN TOKEN SYSTEM
+   Single source of truth for all UI colors.
+   Change a token here → entire game updates.
+   ============================================================
+
+   Surface hierarchy (darkest → lightest):
+     surface-deep  → main panel backgrounds, action bar tray
+     surface-base  → elements sitting on panels (slots, cards)
+     surface-raised→ hover / active state lift
+     surface-overlay→ tooltips, floating popups (semitransparent)
+
+   Border hierarchy:
+     border-subtle → default, barely-there panel/slot edges
+     border-strong → hover / focused / active borders
+
+   Text hierarchy:
+     text-primary  → main readable values (names, numbers)
+     text-secondary→ labels, descriptions, stat names
+     text-muted    → hints, hotkeys, empty states
+
+   Accent:
+     accent        → sky-400 — selection, highlight, active tabs
+   ============================================================ */
+
+@theme {
+  /* Surfaces */
+  --color-surface-deep:    color-mix(in oklab, #09090b 90%, transparent);   /* zinc-950/90 */
+  --color-surface-base:    color-mix(in oklab, #18181b 90%, transparent);   /* zinc-900/90 */
+  --color-surface-raised:  color-mix(in oklab, #27272a 85%, transparent);   /* zinc-800/85 */
+  --color-surface-overlay: color-mix(in oklab, #18181b 95%, transparent);   /* zinc-900/95 – tooltips */
+
+  /* Borders */
+  --color-border-subtle:   #27272a;   /* zinc-800 */
+  --color-border-strong:   #3f3f46;   /* zinc-700 */
+
+  /* Text */
+  --color-text-primary:    #f4f4f5;   /* zinc-100 */
+  --color-text-secondary:  #a1a1aa;   /* zinc-400 */
+  --color-text-muted:      #52525b;   /* zinc-600 */
+
+  /* Accent */
+  --color-accent:          #38bdf8;   /* sky-400 */
+}
+
 @layer base {
   body {
-    @apply bg-zinc-950 text-zinc-100 antialiased;
+    @apply bg-zinc-950 text-text-primary antialiased;
   }
 }
 

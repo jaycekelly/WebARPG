@@ -12,7 +12,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const RARITY_COLORS = {
-  Normal: 'text-zinc-100',
+  Normal: 'text-text-primary',
   Magic: 'text-blue-400',
   Rare: 'text-yellow-400',
   Epic: 'text-purple-400',
@@ -72,12 +72,12 @@ export function LootPopup({ dropId, onClose }: Props) {
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-zinc-900 border border-zinc-800 rounded-xl shadow-2xl w-full max-w-sm flex flex-col max-h-[80vh] overflow-hidden">
+      <div className="bg-surface-base border border-border-subtle rounded-xl shadow-2xl w-full max-w-sm flex flex-col max-h-[80vh] overflow-hidden">
         
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-zinc-800 bg-zinc-900/50">
-          <h2 className="text-lg font-bold text-zinc-100 tracking-tight">Loot Nearby</h2>
-          <button onClick={onClose} className="p-1 hover:bg-zinc-800 rounded-lg text-zinc-400 hover:text-zinc-100 transition-colors">
+        <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-surface-base">
+          <h2 className="text-lg font-bold text-text-primary tracking-tight">Loot Nearby</h2>
+          <button onClick={onClose} className="p-1 hover:bg-surface-raised rounded-lg text-text-secondary hover:text-text-primary transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -95,14 +95,14 @@ export function LootPopup({ dropId, onClose }: Props) {
                 }}
                 onMouseEnter={() => setContent(<ItemTooltip item={item} />)}
                 onMouseLeave={() => setContent(null)}
-                className="flex items-center gap-4 p-3 bg-zinc-800/30 border border-zinc-700/50 rounded-lg cursor-pointer hover:bg-zinc-800/80 transition-colors relative group"
+                className="flex items-center gap-4 p-3 bg-surface-raised/30 border border-border-strong/50 rounded-lg cursor-pointer hover:bg-surface-raised transition-colors relative group"
               >
-                <div className="w-10 h-10 rounded-md bg-black/40 flex items-center justify-center border border-zinc-700">
+                <div className="w-10 h-10 rounded-md bg-black/40 flex items-center justify-center border border-border-strong">
                   <Icon className={cn("w-6 h-6", RARITY_COLORS[item.rarity])} />
                 </div>
                 <div className="flex-1">
                   <div className={cn("font-bold text-sm", RARITY_COLORS[item.rarity])}>{item.name}</div>
-                  <div className="text-xs text-zinc-400 uppercase tracking-widest mt-0.5">Level {item.iLvl} • {item.itemType}</div>
+                  <div className="text-xs text-text-secondary uppercase tracking-widest mt-0.5">Level {item.iLvl} • {item.itemType}</div>
                 </div>
               </div>
             );
@@ -110,10 +110,10 @@ export function LootPopup({ dropId, onClose }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-zinc-800 bg-zinc-900/50">
+        <div className="p-4 border-t border-border-subtle bg-surface-base">
           <button 
             onClick={handleLootAll}
-            className="w-full py-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-100 font-bold rounded-lg transition-colors border border-zinc-700 hover:border-zinc-600"
+            className="w-full py-3 bg-surface-base hover:bg-surface-raised text-text-primary font-bold rounded-lg transition-colors border border-border-subtle hover:border-border-strong"
           >
             Loot All
           </button>

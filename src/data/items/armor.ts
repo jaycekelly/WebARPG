@@ -23,7 +23,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   iron_legs: {
     id: 'iron_legs',
     name: 'Iron Legs',
-    icon: 'Hexagon',
+    icon: 'Layers',
     itemType: 'legs',
     armorCategory: 'Heavy',
     baseStats: [Stat('Armor', 10)],
@@ -85,7 +85,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   leather_leggings: {
     id: 'leather_leggings',
     name: 'Leather Leggings',
-    icon: 'Hexagon',
+    icon: 'Layers',
     itemType: 'legs',
     armorCategory: 'Light',
     baseStats: [Stat('Armor', 8), Stat('DeflectChance', 2)],
@@ -139,7 +139,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   silk_leggings: {
     id: 'silk_leggings',
     name: 'Silk Leggings',
-    icon: 'Hexagon',
+    icon: 'Layers',
     itemType: 'legs',
     armorCategory: 'Caster',
     baseStats: [Stat('Armor', 7), Stat('ManaRegenPercent', 8)],

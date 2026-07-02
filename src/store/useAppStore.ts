@@ -5,14 +5,16 @@ export type AppLocation = 'town' | 'dungeon' | 'editor';
 interface AppState {
   location: AppLocation;
   vendorOpen: boolean;
-  skillTreeOpen: boolean;
+  characterWindowOpen: boolean;
+  characterWindowTab: 'inventory' | 'stats' | 'skills';
   scaleFactor: number;
   isPaused: boolean;
   pauseTimeOffset: number;
   pauseStartTime: number | null;
   setLocation: (loc: AppLocation) => void;
   setVendorOpen: (isOpen: boolean) => void;
-  setSkillTreeOpen: (isOpen: boolean) => void;
+  setCharacterWindowOpen: (isOpen: boolean) => void;
+  setCharacterWindowTab: (tab: 'inventory' | 'stats' | 'skills') => void;
   setScaleFactor: (scale: number) => void;
   setPaused: (paused: boolean) => void;
   togglePause: () => void;
@@ -22,14 +24,16 @@ interface AppState {
 export const useAppStore = create<AppState>((set, get) => ({
   location: 'town', // Start in town!
   vendorOpen: false,
-  skillTreeOpen: false,
+  characterWindowOpen: false,
+  characterWindowTab: 'inventory',
   scaleFactor: 1.0,
   isPaused: false,
   pauseTimeOffset: 0,
   pauseStartTime: null,
-  setLocation: (location) => set({ location, vendorOpen: false, skillTreeOpen: false }), // Auto close on move
+  setLocation: (location) => set({ location, vendorOpen: false, characterWindowOpen: false }), // Auto close on move
   setVendorOpen: (vendorOpen) => set({ vendorOpen }),
-  setSkillTreeOpen: (skillTreeOpen) => set({ skillTreeOpen }),
+  setCharacterWindowOpen: (characterWindowOpen) => set({ characterWindowOpen }),
+  setCharacterWindowTab: (characterWindowTab) => set({ characterWindowTab }),
   setScaleFactor: (scaleFactor) => set({ scaleFactor }),
   setPaused: (isPaused) => set((state) => {
     if (isPaused === state.isPaused) return {};

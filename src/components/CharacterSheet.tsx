@@ -104,10 +104,9 @@ export function CharacterSheet() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between pb-4 border-b border-zinc-800">
+      <div className="flex items-center justify-between pb-4 border-b border-border-subtle">
         <div>
-          <h2 className="text-lg font-bold text-zinc-100">Character Stats</h2>
-          <div className="text-xs text-zinc-400">Level {level}</div>
+          <h2 className="text-2xl font-black text-text-primary">Level {level}</h2>
         </div>
         <div className="flex gap-2">
           {attributePoints > 0 && (
@@ -120,22 +119,22 @@ export function CharacterSheet() {
       </div>
 
       {/* Core Attributes */}
-      <div className="space-y-3 pb-4">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+      <div className="space-y-3">
+        <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2">
           <Activity className="w-4 h-4 opacity-70" />
           Attributes
         </h3>
         <div className="grid grid-cols-2 gap-2">
           {(['Strength', 'Dexterity', 'Intelligence', 'Vitality'] as const).map(attr => (
-            <div key={attr} className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden shadow-inner flex items-center justify-between p-2">
+            <div key={attr} className="bg-surface-base rounded-xl border border-border-subtle overflow-hidden shadow-inner flex items-center justify-between p-2">
                <div className="flex flex-col px-2">
-                 <span className="text-zinc-400 text-xs uppercase tracking-wide">{attr.substring(0, 3)}</span>
-                 <span className="font-mono text-zinc-200">{getStat(attr).toFixed(0)}</span>
+                 <span className="text-text-secondary text-xs uppercase tracking-wide">{attr.substring(0, 3)}</span>
+                 <span className="font-mono text-text-primary">{getStat(attr).toFixed(0)}</span>
                </div>
                {attributePoints > 0 && (
                  <button 
                    onClick={() => allocateAttribute(attr)}
-                   className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-zinc-100 flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 shadow-lg shadow-blue-500/20"
+                   className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-text-primary flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 shadow-lg shadow-blue-500/20"
                  >
                    <Plus className="w-4 h-4" />
                  </button>
@@ -145,14 +144,14 @@ export function CharacterSheet() {
         </div>
       </div>
 
-      <div className="space-y-6 pb-8">
+      <div className="space-y-6">
         {STAT_CATEGORIES.map((category) => (
           <div key={category.title} className="space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2">
               <category.icon className="w-4 h-4 opacity-70" />
               {category.title}
             </h3>
-            <div className="bg-zinc-900/50 rounded-xl border border-zinc-800/50 overflow-hidden shadow-inner">
+            <div className="bg-surface-base rounded-xl border border-border-subtle overflow-hidden shadow-inner">
               {category.stats.map((statDef, index) => {
                 const val = getStat(statDef.id);
                 // Highlight non-zero stats to make them pop
@@ -171,12 +170,12 @@ export function CharacterSheet() {
                   <div 
                     key={statDef.id} 
                     className={`flex justify-between items-center px-4 py-2 text-sm transition-colors
-                      ${index !== category.stats.length - 1 ? 'border-b border-zinc-900/50' : ''}
-                      ${isNonZero ? 'hover:bg-zinc-900/80' : 'opacity-50'}
+                      ${index !== category.stats.length - 1 ? 'border-b border-border-subtle' : ''}
+                      ${isNonZero ? 'hover:bg-surface-raised' : 'opacity-50'}
                     `}
                   >
-                    <span className="text-zinc-400">{statDef.label}</span>
-                    <span className={`font-mono font-medium ${isNonZero ? 'text-zinc-200' : 'text-zinc-600'}`}>
+                    <span className="text-text-secondary">{statDef.label}</span>
+                    <span className={`font-mono font-medium ${isNonZero ? 'text-text-primary' : 'text-text-muted'}`}>
                       {displayVal}
                     </span>
                   </div>

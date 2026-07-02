@@ -7,7 +7,7 @@ import { useAppStore } from './useAppStore';
 import { ItemGenerator } from '../engine/items/ItemGenerator';
 
 interface InventoryState {
-  inventory: Item[];
+  inventory: (Item | null)[];
   equipment: Partial<Record<EquipmentSlot, Item>>;
   
   lootItem: (item: Item, silent?: boolean) => void;
@@ -39,7 +39,17 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
   equipment: {},
 
   lootItem: (item, silent = false) => {
-    set((state) => ({ inventory: [...state.inventory, item] }));
+    set((state) => {
+      // Find first empty slot; if none, append
+      const inv = [...state.inventory];
+      const emptyIdx = inv.findIndex(s => s === null || s === undefined);
+      if (emptyIdx !== -1) {
+        inv[emptyIdx] = item;
+      } else {
+        inv.push(item);
+      }
+      return { inventory: inv };
+    });
     if (!silent) {
       useCombatStore.getState().addLog(`Looted ${item.name}.`, 'system');
     }
@@ -119,21 +129,27 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
        get().unequip('weapon1');
     }
 
-    // Remove item from inventory
+    // Remove item from inventory in-place (null the slot, don't shift)
     const newInventory = [...get().inventory];
-    newInventory.splice(inventoryIndex, 1);
+    newInventory[inventoryIndex] = null;
 
-    // If something was already in the slot, put it back in inventory (unequip removes stats too)
+    // If something was already in the slot, put it in the first empty inv slot
     const existingItem = get().equipment[slot];
     if (existingItem) {
        get().unequip(slot);
-       // Re-read inventory since unequip modifies it
-       newInventory.push(existingItem);
+       // After unequip, inventory may have changed — re-read and null the original slot
+       const inv2 = [...get().inventory];
+       inv2[inventoryIndex] = null; // keep slot clear (unequip pushes to end)
+       set({ inventory: inv2 });
+       // newInventory is stale now; the set inside unequip already put existingItem somewhere
+       // So we just need to equip with the updated inventory in store
     }
 
     // Actually Equip
+    const finalInventory = [...get().inventory];
+    finalInventory[inventoryIndex] = null;
     set((state) => ({
-      inventory: newInventory,
+      inventory: finalInventory,
       equipment: { ...state.equipment, [slot]: item }
     }));
 
@@ -181,11 +197,20 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     // Remove Stats
     useStatsStore.getState().removeModifiersBySource(`equip_${slot}`);
 
-    // Move to inventory and clear slot
-    set((state) => ({
-      inventory: [...state.inventory, item],
-      equipment: { ...state.equipment, [slot]: undefined }
-    }));
+    // Move to first empty inventory slot and clear equipment slot
+    set((state) => {
+      const inv = [...state.inventory];
+      const emptyIdx = inv.findIndex(s => s === null || s === undefined);
+      if (emptyIdx !== -1) {
+        inv[emptyIdx] = item;
+      } else {
+        inv.push(item);
+      }
+      return {
+        inventory: inv,
+        equipment: { ...state.equipment, [slot]: undefined }
+      };
+    });
     
     if (!bypassRevalidation) {
        get().revalidateEquipment();
@@ -206,7 +231,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     usePlayerStore.getState().addGold(goldValue);
 
     const newInventory = [...state.inventory];
-    newInventory.splice(inventoryIndex, 1);
+    newInventory[inventoryIndex] = null;  // null in-place, don't shift
     set({ inventory: newInventory });
   },
 
@@ -246,7 +271,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
 // Initialize starter gear if the player has nothing
 setTimeout(() => {
   const store = useInventoryStore.getState();
-  if (Object.keys(store.equipment).length === 0 && store.inventory.length === 0) {
+  if (Object.keys(store.equipment).length === 0 && store.inventory.filter(Boolean).length === 0) {
      const sword = ItemGenerator.generateUnique('bronze_sword', 1);
      const shield = ItemGenerator.generateUnique('iron_shield', 1);
      const chest = ItemGenerator.generateUnique('iron_chest', 1);
@@ -257,16 +282,17 @@ setTimeout(() => {
      if (chest) chest.rarity = 'Normal';
      if (legs) legs.rarity = 'Normal';
      
+     // Loot into inventory first so they get consecutive slots
      if (sword) store.lootItem(sword, true);
      if (shield) store.lootItem(shield, true);
      if (chest) store.lootItem(chest, true);
      if (legs) store.lootItem(legs, true);
      
-     // The items get pushed to index 0, 1, 2, 3. 
-     // When we equip(0), it removes it, shifting the rest down.
+     // With sparse array, items land at indices 0,1,2,3. Equip by explicit index.
+     // After each equip the slot becomes null but indices don't shift.
      if (sword) store.equip(0);
-     if (shield) store.equip(0);
-     if (chest) store.equip(0);
-     if (legs) store.equip(0);
+     if (shield) store.equip(1);
+     if (chest) store.equip(2);
+     if (legs) store.equip(3);
   }
 }, 100);

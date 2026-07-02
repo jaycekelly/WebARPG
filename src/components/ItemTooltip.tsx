@@ -10,7 +10,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 const RARITY_COLORS: Record<Rarity, string> = {
-  Normal: 'text-zinc-400',
+  Normal: 'text-text-secondary',
   Magic: 'text-blue-500',
   Rare: 'text-yellow-500',
   Epic: 'text-purple-500',
@@ -27,12 +27,12 @@ export function ItemTooltip({ item }: Props) {
   const { getStat } = useStatsStore();
   
   return (
-    <div className="bg-zinc-900/95 border border-zinc-700 shadow-2xl rounded-lg pt-2 pb-3 px-3 w-64 backdrop-blur-md text-sm flex flex-col gap-2">
+    <div className="bg-surface-overlay border border-border-strong shadow-2xl rounded-lg py-2 px-3 w-64 backdrop-blur-md text-sm">
       <div className={cn("font-bold text-base tracking-tight", RARITY_COLORS[item.rarity])}>
         {item.name}
       </div>
       
-      <div className="flex justify-between items-center text-xs text-zinc-400 border-b border-zinc-800 pb-2 uppercase tracking-widest">
+      <div className="flex justify-between items-center text-xs text-text-secondary border-b border-border-subtle pb-2 uppercase tracking-widest">
         <span>{item.itemType.replace('weapon-', 'Weapon (').replace('1h', '1H)').replace('2h', '2H)')}</span>
         <span>iLvl {item.iLvl}</span>
       </div>
@@ -48,11 +48,11 @@ export function ItemTooltip({ item }: Props) {
               const max = Math.ceil(stat.value * 1.25);
               return (
                 <div key={i}>
-                  <div className="text-zinc-400">
+                  <div className="text-text-secondary">
                     {min} - {max} Damage
                   </div>
                   {item.weaponAttackSpeed && (
-                    <div className="text-zinc-400">
+                    <div className="text-text-secondary">
                       {item.weaponAttackSpeed.toFixed(2)} APS
                     </div>
                   )}
@@ -67,7 +67,7 @@ export function ItemTooltip({ item }: Props) {
             }
 
             return (
-              <div key={i} className="text-zinc-400">
+              <div key={i} className="text-text-secondary">
                 {sign}{stat.value}{suffix} {displayName}
               </div>
             );
@@ -76,7 +76,7 @@ export function ItemTooltip({ item }: Props) {
       )}
 
       {item.affixes.length > 0 && (
-        <div className="space-y-1 pt-2 border-t border-zinc-800/50">
+        <div className="space-y-1 pt-2 border-t border-border-subtle">
           {item.affixes.map((affix) => (
             <div key={affix.id} className="text-blue-500">
               {affix.description}
@@ -86,30 +86,30 @@ export function ItemTooltip({ item }: Props) {
       )}
       
       {item.requirements && (
-        <div className="pt-2 border-t border-zinc-800/50 text-xs space-y-1">
-           <div className="text-zinc-400 font-bold">Requires:</div>
+        <div className="pt-2 border-t border-border-subtle text-xs space-y-1">
+           <div className="text-text-secondary font-bold">Requires:</div>
            {item.requirements.level && (
-              <div className={level >= item.requirements.level ? 'text-zinc-400' : 'text-red-500'}>
+              <div className={level >= item.requirements.level ? 'text-text-secondary' : 'text-red-500'}>
                  Level {item.requirements.level}
               </div>
            )}
            {item.requirements.strength && (
-              <div className={getStat('Strength') >= item.requirements.strength ? 'text-zinc-400' : 'text-red-500'}>
+              <div className={getStat('Strength') >= item.requirements.strength ? 'text-text-secondary' : 'text-red-500'}>
                  {item.requirements.strength} Strength
               </div>
            )}
            {item.requirements.dexterity && (
-              <div className={getStat('Dexterity') >= item.requirements.dexterity ? 'text-zinc-400' : 'text-red-500'}>
+              <div className={getStat('Dexterity') >= item.requirements.dexterity ? 'text-text-secondary' : 'text-red-500'}>
                  {item.requirements.dexterity} Dexterity
               </div>
            )}
            {item.requirements.intelligence && (
-              <div className={getStat('Intelligence') >= item.requirements.intelligence ? 'text-zinc-400' : 'text-red-500'}>
+              <div className={getStat('Intelligence') >= item.requirements.intelligence ? 'text-text-secondary' : 'text-red-500'}>
                  {item.requirements.intelligence} Intelligence
               </div>
            )}
            {item.requirements.vitality && (
-              <div className={getStat('Vitality') >= item.requirements.vitality ? 'text-zinc-400' : 'text-red-500'}>
+              <div className={getStat('Vitality') >= item.requirements.vitality ? 'text-text-secondary' : 'text-red-500'}>
                  {item.requirements.vitality} Vitality
               </div>
            )}

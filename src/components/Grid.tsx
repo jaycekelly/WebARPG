@@ -21,7 +21,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const BASE_TILE_SIZE = 64; // px
+const BASE_TILE_SIZE = 72; // px
 const BASE_GAP_SIZE = 1; // px
 
 const DEADZONE_RADIUS = 2.0;
@@ -138,9 +138,20 @@ const FloatingTextLayer = memo(() => {
 // --- Main Grid Component ---
 
 export function Grid() {
-  const scaleFactor = useAppStore(state => state.scaleFactor);
-  const TILE_SIZE = BASE_TILE_SIZE * scaleFactor;
-  const GAP_SIZE = BASE_GAP_SIZE * scaleFactor;
+  const appScale = useAppStore(state => state.scaleFactor);
+  
+  // Apply zoom-out thresholds for higher resolutions
+  let gameScale = appScale;
+  if (window.innerWidth >= 3840) {
+    gameScale = appScale * 0.75; // 4K+ (25% zoom out)
+  } else if (window.innerWidth >= 2560) {
+    gameScale = appScale * 0.9;  // 1440p+ (10% zoom out)
+  } else if (window.innerWidth >= 1920) {
+    gameScale = appScale;        // 1080p+ (0% zoom out)
+  }
+
+  const TILE_SIZE = BASE_TILE_SIZE * gameScale;
+  const GAP_SIZE = BASE_GAP_SIZE * gameScale;
   const TOTAL_TILE_SIZE = TILE_SIZE + GAP_SIZE;
   // Use Shallow to prevent re-renders unless these specific properties change
   const position = usePlayerStore(useShallow(state => state.position));
