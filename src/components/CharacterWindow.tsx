@@ -19,7 +19,7 @@ export function CharacterWindow() {
   const isSkills = characterWindowTab === 'skills';
 
   return (
-    <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${isSkills ? 'w-[800px]' : 'w-[400px]'} h-[55vh] min-h-[450px] bg-surface-deep backdrop-blur-md border border-border-subtle rounded-2xl flex flex-col z-40 shadow-[-20px_0_50px_rgba(0,0,0,0.8)] overflow-hidden transition-all duration-300`}>
+    <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${isSkills ? 'w-[50rem]' : 'w-[25rem]'} h-[55vh] min-h-[28.125rem] bg-surface-deep backdrop-blur-md border border-border-subtle rounded-2xl flex flex-col z-40 shadow-[-20px_0_50px_rgba(0,0,0,0.8)] overflow-hidden transition-all duration-300`}>
       
       {/* Header & Tabs */}
       <div className="flex justify-between items-end border-b border-border-subtle px-4 pt-2 bg-surface-base flex-shrink-0">
@@ -28,24 +28,24 @@ export function CharacterWindow() {
             onClick={() => setCharacterWindowTab('inventory')}
             className={`text-sm font-bold pb-2 border-b-2 transition-colors flex items-center gap-1.5 ${characterWindowTab === 'inventory' ? 'text-accent border-accent' : 'text-text-secondary border-transparent hover:text-text-primary'}`}
           >
-            <Backpack size={18} className="mt-0.5" />
+            <Backpack className="w-[1.125rem] h-[1.125rem] mt-0.5" />
             Inventory
           </button>
           <button 
             onClick={() => setCharacterWindowTab('stats')}
             className={`text-sm font-bold pb-2 border-b-2 transition-colors flex items-center gap-1.5 ${characterWindowTab === 'stats' ? 'text-accent border-accent' : 'text-text-secondary border-transparent hover:text-text-primary'}`}
           >
-            <User size={18} className="mt-0.5" />
+            <User className="w-[1.125rem] h-[1.125rem] mt-0.5" />
             Stats
-            {attributePoints > 0 && <span className="bg-red-600 text-text-primary w-4 h-4 rounded-full flex items-center justify-center text-[9px] animate-pulse">{attributePoints}</span>}
+            {attributePoints > 0 && <span className="bg-red-600 text-text-primary w-4 h-4 rounded-full flex items-center justify-center text-[0.5625rem] animate-pulse">{attributePoints}</span>}
           </button>
           <button 
             onClick={() => setCharacterWindowTab('skills')}
             className={`text-sm font-bold pb-2 border-b-2 transition-colors flex items-center gap-1.5 ${characterWindowTab === 'skills' ? 'text-accent border-accent' : 'text-text-secondary border-transparent hover:text-text-primary'}`}
           >
-            <BookOpen size={18} className="mt-0.5" />
+            <BookOpen className="w-[1.125rem] h-[1.125rem] mt-0.5" />
             Skills
-            {skillPoints > 0 && <span className="bg-red-600 text-text-primary w-4 h-4 rounded-full flex items-center justify-center text-[9px] animate-pulse">{skillPoints}</span>}
+            {skillPoints > 0 && <span className="bg-red-600 text-text-primary w-4 h-4 rounded-full flex items-center justify-center text-[0.5625rem] animate-pulse">{skillPoints}</span>}
           </button>
         </div>
         
@@ -54,7 +54,7 @@ export function CharacterWindow() {
           onClick={() => setCharacterWindowOpen(false)}
           className="mb-2 text-text-muted hover:text-text-primary transition-colors"
         >
-          <X size={20} />
+          <X className="w-5 h-5" />
         </button>
       </div>
 

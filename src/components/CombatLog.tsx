@@ -11,7 +11,7 @@ export function CombatLog() {
   }, [logs]);
 
   return (
-    <div className="absolute left-8 bottom-8 w-[500px] h-[300px] flex flex-col z-20 overflow-hidden pointer-events-none">
+    <div className="absolute left-8 bottom-8 w-[31.25rem] h-[18.75rem] flex flex-col z-20 overflow-hidden pointer-events-none">
       <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1.5 text-sm font-mono tracking-tight leading-relaxed pointer-events-auto custom-scrollbar [mask-image:linear-gradient(to_bottom,transparent_0%,black_40%,black_100%)]">
         {logs.length === 0 ? (
           <div className="p-2 text-text-muted/50 italic text-shadow-sm mt-auto">
@@ -34,7 +34,7 @@ export function CombatLog() {
                 log.type === 'system' && 'text-text-secondary italic',
               )}
             >
-              <span className="opacity-50 text-[10px] mr-2">[{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}]</span>
+              <span className="opacity-50 text-[0.625rem] mr-2">[{new Date(log.timestamp).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}]</span>
               {log.message}
             </div>
           );

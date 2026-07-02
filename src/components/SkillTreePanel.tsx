@@ -35,22 +35,22 @@ export function SkillTreePanel() {
     const renderTooltip = () => (
       <div className="w-64 bg-surface-base border border-border-strong rounded-lg p-3 shadow-2xl backdrop-blur-md">
          <h3 className={`font-bold text-sm ${node.type === 'active' ? 'text-sky-400' : 'text-blue-500'}`}>{node.name}</h3>
-         <p className="text-[11px] text-text-secondary mt-1 pb-2 border-b border-border-subtle leading-snug">{node.description}</p>
+         <p className="text-[0.6875rem] text-text-secondary mt-1 pb-2 border-b border-border-subtle leading-snug">{node.description}</p>
          {node.statModifiers && (
            <div className="mt-2 flex flex-col gap-0.5">
              {node.statModifiers.map((mod, i) => {
                 const sign = mod.value > 0 ? '+' : '';
                 const suffix = mod.type === 'increased' ? '%' : '';
-                return <div key={i} className="text-[10px] text-sky-400">{sign}{mod.value}{suffix} {mod.stat} per point</div>;
+                return <div key={i} className="text-[0.625rem] text-sky-400">{sign}{mod.value}{suffix} {mod.stat} per point</div>;
              })}
            </div>
          )}
          {node.type === 'active' && (
-           <div className="mt-2 text-[10px] text-sky-400 font-bold">Unlocks an active skill.</div>
+           <div className="mt-2 text-[0.625rem] text-sky-400 font-bold">Unlocks an active skill.</div>
          )}
          
          {!isUnlocked && (
-           <div className="mt-2 text-[10px] text-red-500 font-bold">Requires {(node.tier - 1) * 10} points spent in tree.</div>
+           <div className="mt-2 text-[0.625rem] text-red-500 font-bold">Requires {(node.tier - 1) * 10} points spent in tree.</div>
          )}
       </div>
     );
@@ -80,12 +80,12 @@ export function SkillTreePanel() {
            <Icon className={`w-6 h-6 ${isMaxed ? 'text-accent' : (node.type === 'active' ? 'text-sky-400' : 'text-blue-500')}`} />
            
            {!isUnlocked && (
-             <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10 backdrop-blur-[1px] rounded-[inherit]">
+             <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-10 backdrop-blur-[0.0625rem] rounded-[inherit]">
                 <Lock className="text-text-secondary w-6 h-6" />
              </div>
            )}
 
-           <div className={`absolute -bottom-2 -right-2 text-[10px] font-black tracking-widest bg-surface-base px-1.5 py-0.5 rounded border shadow-lg z-20 ${isMaxed ? 'border-accent text-cyan-400' : 'border-border-strong text-text-primary'}`}>
+           <div className={`absolute -bottom-2 -right-2 text-[0.625rem] font-black tracking-widest bg-surface-base px-1.5 py-0.5 rounded border shadow-lg z-20 ${isMaxed ? 'border-accent text-cyan-400' : 'border-border-strong text-text-primary'}`}>
               {pointsSpent}/{node.maxPoints}
            </div>
         </div>
@@ -122,12 +122,12 @@ export function SkillTreePanel() {
               <div key={`spine-tier-${tier}`} className="flex flex-col items-center justify-center w-full h-12">
                  {tier > 1 ? (
                    <div className="flex flex-col items-center bg-surface-deep px-2 py-1 rounded border border-border-subtle shadow-md">
-                     <span className="text-[10px] font-black text-text-secondary whitespace-nowrap">Tier {tier}</span>
-                     <span className={`text-[9px] font-bold whitespace-nowrap ${totalSpent >= (tier - 1) * 10 ? 'text-accent' : 'text-red-900'}`}>Req {(tier-1)*10} pts</span>
+                     <span className="text-[0.625rem] font-black text-text-secondary whitespace-nowrap">Tier {tier}</span>
+                     <span className={`text-[0.5625rem] font-bold whitespace-nowrap ${totalSpent >= (tier - 1) * 10 ? 'text-accent' : 'text-red-900'}`}>Req {(tier-1)*10} pts</span>
                    </div>
                  ) : (
                    <div className="flex flex-col items-center bg-surface-deep px-2 py-1 rounded border border-border-subtle shadow-md">
-                     <span className="text-[10px] font-black text-accent">Tier 1</span>
+                     <span className="text-[0.625rem] font-black text-accent">Tier 1</span>
                    </div>
                  )}
               </div>
@@ -152,11 +152,11 @@ export function SkillTreePanel() {
       {/* Footer — absolute corners */}
       <div className="relative h-7 border-t border-border-subtle shrink-0">
         <div className="absolute bottom-1 left-2 flex items-baseline gap-1">
-          <span className="text-[9px] font-bold text-text-secondary uppercase tracking-widest">Spent:</span>
+          <span className="text-[0.5625rem] font-bold text-text-secondary uppercase tracking-widest">Spent:</span>
           <span className="text-xs font-black text-text-secondary leading-none">{totalSpent}</span>
         </div>
         <div className="absolute bottom-1 right-2 flex items-baseline gap-1">
-          <span className="text-[9px] font-bold text-text-secondary uppercase tracking-widest">Available:</span>
+          <span className="text-[0.5625rem] font-bold text-text-secondary uppercase tracking-widest">Available:</span>
           <span className={`text-xs font-black leading-none ${skillPoints > 0 ? 'text-accent drop-shadow-[0_0_8px_rgba(56,189,248,0.5)]' : 'text-text-muted'}`}>{skillPoints}</span>
         </div>
       </div>

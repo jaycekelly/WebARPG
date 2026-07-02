@@ -197,13 +197,13 @@ export function CombatOverlay() {
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between px-8 py-4 z-10">
       {isPaused && (
-        <div className="absolute inset-0 pointer-events-none ring-[8px] ring-sky-500/30 bg-sky-900/10 z-0 animate-pulse transition-all"></div>
+        <div className="absolute inset-0 pointer-events-none ring-[0.5rem] ring-sky-500/30 bg-sky-900/10 z-0 animate-pulse transition-all"></div>
       )}
       
       {/* Target Frame (Top Center) */}
       <div className="flex justify-center pointer-events-none">
         {target && (
-          <div className="bg-surface-base border border-border-subtle shadow-2xl rounded-lg p-3 pr-8 flex items-center gap-4 min-w-[280px] relative pointer-events-auto">
+          <div className="bg-surface-base border border-border-subtle shadow-2xl rounded-lg p-3 pr-8 flex items-center gap-4 min-w-[17.5rem] relative pointer-events-auto">
             <button onClick={() => setTarget(null)} className="absolute top-3 right-3 text-text-secondary hover:text-text-primary transition-colors">
               <X className="w-4 h-4" />
             </button>
@@ -217,7 +217,7 @@ export function CombatOverlay() {
                   className="absolute top-0 left-0 h-full bg-red-600 transition-all duration-150 z-20"
                   style={{ width: `${healthPercent}%` }}
                 />
-                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-text-primary shadow-black drop-shadow-md pb-[1px] z-30">
+                <div className="absolute inset-0 flex items-center justify-center text-[0.625rem] font-bold text-text-primary shadow-black drop-shadow-md pb-[0.0625rem] z-30">
                   {Math.ceil(target.health)} / {target.stats.maxHealth}
                 </div>
               </div>
@@ -292,7 +292,7 @@ export function CombatOverlay() {
                   <div className={`w-8 h-8 rounded-sm border flex flex-col items-center justify-center bg-surface-base overflow-hidden shadow-lg ${buff.type === 'buff' ? 'border-sky-400/50 text-sky-400' : 'border-red-500/50 text-red-500'}`}>
                     <BuffIcon className="w-4 h-4 opacity-80" />
                     {buff.stacks > 1 && (
-                      <span className="absolute bottom-0 right-0 text-[8px] font-bold bg-surface-base/80 px-1 rounded-tl">{buff.stacks}</span>
+                      <span className="absolute bottom-0 right-0 text-[0.5rem] font-bold bg-surface-base/80 px-1 rounded-tl">{buff.stacks}</span>
                     )}
                     {/* Visual duration wipe */}
                     {buff.durationMs && buff.maxDurationMs && (
@@ -323,11 +323,12 @@ export function CombatOverlay() {
         )}
 
         {/* HUD Assembly (Flat Minimalist) */}
-        <div className="flex items-end justify-center pointer-events-auto z-40 translate-y-[11px]">
+        <div className="flex items-end justify-center pointer-events-auto z-40 translate-y-[0.6875rem]">
           
           {/* HP Globe + Flask */}
           <div className="relative shrink-0 z-20 mb-2">
-            <div className="w-[140px] h-[140px] rounded-full border border-border-subtle bg-surface-base backdrop-blur-md relative overflow-hidden flex items-center justify-center shadow-lg">
+            <div className="absolute -inset-1.5 rounded-full border-t border-border-subtle bg-surface-deep -z-10" />
+            <div className="w-32 h-32 rounded-full border border-border-subtle bg-surface-base backdrop-blur-md relative overflow-hidden flex items-center justify-center shadow-lg">
               
               {/* Expected Healing Overlay */}
               <div 
@@ -349,7 +350,7 @@ export function CombatOverlay() {
             <div className="absolute -bottom-0 -left-4 z-30">
                <button 
                  className={`relative w-10 h-10 rounded-full border flex items-center justify-center transition-all focus:outline-none focus:ring-0
-                   ${flaskCharges >= 1 ? 'bg-surface-deep border-border-subtle hover:border-border-strong hover:bg-surface-raised' : 'bg-surface-deep border-border-subtle cursor-not-allowed'}
+                   ${flaskCharges >= 1 ? 'bg-zinc-900 border-border-subtle hover:border-border-strong hover:bg-zinc-800' : 'bg-zinc-900 border-border-subtle cursor-not-allowed'}
                  `}
                  onClick={() => {
                    if (currentHealth < maxHealth && flaskCharges >= 1) {
@@ -378,13 +379,13 @@ export function CombatOverlay() {
                     <div className="font-bold text-red-400 mb-1">
                       Healing Flask
                     </div>
-                    <div className="text-[10px] text-text-secondary pb-1 mb-1 border-b border-border-subtle uppercase tracking-widest">
+                    <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-border-subtle uppercase tracking-widest">
                       {Math.floor(flaskCharges)} / {maxFlaskCharges} charges
                     </div>
                     <div className="text-xs text-text-primary leading-snug mb-1">
                       Restores <span className="text-red-400 font-bold">50%</span> of your maximum health over <span className="text-text-primary font-bold">4 seconds</span>.
                     </div>
-                    <div className="text-[10px] text-text-secondary leading-snug mt-1 pt-1 border-t border-border-subtle">
+                    <div className="text-[0.625rem] text-text-secondary leading-snug mt-1 pt-1 border-t border-border-subtle">
                       Recharges by killing monsters.
                     </div>
                   </div>
@@ -392,24 +393,24 @@ export function CombatOverlay() {
                 onMouseLeave={() => setContent(null)}
                >
                   <FlaskConical className="w-5 h-5 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] z-10" />
-                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[12px] font-black text-text-primary z-10 px-1">{Math.floor(flaskCharges)}</span>
-                   <span className="absolute top-1/2 -left-4 -translate-y-1/2 text-[10px] font-bold text-text-secondary z-10 px-1.5 bg-surface-deep rounded border border-border-subtle">{`R`}</span>
+                  <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[0.75rem] font-black text-text-primary z-10 px-1">{Math.floor(flaskCharges)}</span>
+                   <span className="absolute top-1/2 -left-4 -translate-y-1/2 text-[0.625rem] font-bold text-text-secondary z-10 px-1.5 bg-surface-deep rounded border border-border-subtle">{`R`}</span>
                </button>
             </div>
           </div>
 
           {/* Center Console (XP + Action Bar + Hotkeys) */}
-          <div className="flex flex-col mx-8 z-10 w-fit gap-1 relative">
+          <div className="flex flex-col mx-4 z-10 w-fit gap-1 relative">
             
 
             {/* XP Bar */}
-            <div className="flex items-center w-full relative">
-               <div className="absolute -left-6 flex items-center z-10">
-                  <span className="text-[10px] text-text-secondary font-bold bg-surface-deep border border-border-subtle rounded w-5 h-5 flex items-center justify-center">
+            <div className="flex items-center w-full px-1.5 relative mb-[-0.125rem]">
+               <div className="absolute left-2 -top-5 z-20">
+                  <span className="text-[0.75rem] text-white font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
                      {level}
                   </span>
                </div>
-               <div className="relative flex-1 h-[7px] bg-surface-deep overflow-hidden border border-border-subtle rounded-sm w-full">
+               <div className="relative flex-1 h-[0.5rem] bg-surface-deep overflow-hidden border border-border-subtle rounded-sm w-full">
                   <div 
                     className="absolute top-0 left-0 h-full bg-amber-500 transition-all duration-300"
                     style={{ width: `${Math.min(100, (currentXp / xpRequired) * 100)}%` }}
@@ -419,7 +420,8 @@ export function CombatOverlay() {
 
 
             {/* Action Bar Container (Only wraps skills) */}
-            <div className="bg-surface-deep border border-border-subtle px-1.5 py-1.5 rounded-sm flex gap-1.5 relative">
+            <div className="px-1.5 py-1.5 flex gap-1.5 relative">
+              <div className="absolute -top-[1.0625rem] bottom-0 -left-[0.0625rem] -right-[0.0625rem] -z-10 bg-surface-deep border-t border-border-subtle rounded-md" />
               {boundSkills.slice(0, 8).map((skillId, index) => {
                 const skill = skillId ? SKILLS[skillId] : null;
                 const IconComponent = skill ? (ICONS[skill.icon] || Flame) : null;
@@ -511,7 +513,7 @@ export function CombatOverlay() {
                           setContent(
                             <div className="w-48 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 text-left pointer-events-none">
                               <div className="font-bold text-sky-400 mb-1">{skill.name}</div>
-                              <div className="flex justify-between text-[10px] text-text-secondary mb-2 pb-1 border-b border-border-subtle uppercase tracking-widest">
+                              <div className="flex justify-between text-[0.625rem] text-text-secondary mb-2 pb-1 border-b border-border-subtle uppercase tracking-widest">
                                  <span>{skill.range > 0 ? `Range ${skill.range}` : 'Melee'}</span>
                                  <span>{getEffectiveManaCost(skill)} Mana</span>
                               </div>
@@ -548,7 +550,7 @@ export function CombatOverlay() {
                            className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
                            style={{ background: `conic-gradient(transparent ${100 - activePercent}%, rgba(0,0,0,0.7) 0)` }}
                         >
-                            <span className="text-white font-bold text-[10px] z-30 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+                            <span className="text-white font-bold text-[0.625rem] z-30 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
                                {(Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000).toFixed(1)}
                             </span>
                            {isOnGcd && (
@@ -615,10 +617,10 @@ export function CombatOverlay() {
             </div>
 
              {/* Keybind Boxes underneath (Floating on their own) */}
-            <div className="flex gap-1.5 justify-center -mt-[1px]">
+            <div className="flex gap-1.5 justify-center -mt-[0.0625rem]">
                {boundSkills.slice(0, 8).map((_, index) => (
                   <div key={`keybind-${index}`} className="w-12 flex justify-center">
-                      <span className="bg-surface-deep border border-border-subtle text-[10px] font-bold text-text-secondary px-2 py-0.5 rounded">
+                      <span className="bg-surface-deep border border-border-subtle text-[0.625rem] font-bold text-text-secondary px-2 py-0.5 rounded">
                        {index + 1}
                      </span>
                   </div>
@@ -628,7 +630,8 @@ export function CombatOverlay() {
 
           {/* MP Globe */}
           <div className="relative shrink-0 z-20 mb-2">
-            <div className="w-[140px] h-[140px] rounded-full border border-border-subtle bg-surface-base backdrop-blur-md relative overflow-hidden flex items-center justify-center shadow-lg">
+            <div className="absolute -inset-1.5 rounded-full border-t border-border-subtle bg-surface-deep -z-10" />
+            <div className="w-32 h-32 rounded-full border border-border-subtle bg-surface-base backdrop-blur-md relative overflow-hidden flex items-center justify-center shadow-lg">
               <div 
                 className="absolute bottom-0 left-0 w-full bg-blue-700 transition-all duration-300"
                 style={{ height: `${Math.min(100, (currentMana / maxMana) * 100)}%` }}
@@ -668,8 +671,8 @@ export function CombatOverlay() {
           className="w-12 h-12 bg-surface-base border border-border-subtle text-text-secondary hover:text-accent hover:border-accent rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group"
           title="Inventory (I)"
         >
-          <Backpack size={20} className="group-hover:scale-110 transition-transform" />
-          <span className="text-[9px] font-bold">INV</span>
+          <Backpack className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <span className="text-[0.5625rem] font-bold">INV</span>
         </button>
 
         <button 
@@ -685,10 +688,10 @@ export function CombatOverlay() {
           className="w-12 h-12 bg-surface-base border border-border-subtle text-text-secondary hover:text-accent hover:border-accent rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative"
           title="Character Stats (C)"
         >
-          <User size={20} className="group-hover:scale-110 transition-transform" />
-          <span className="text-[9px] font-bold">CHAR</span>
+          <User className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <span className="text-[0.5625rem] font-bold">CHAR</span>
           {usePlayerStore(state => state.attributePoints) > 0 && (
-             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse">
+             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse">
                {usePlayerStore.getState().attributePoints}
              </span>
           )}
@@ -707,10 +710,10 @@ export function CombatOverlay() {
           className="w-12 h-12 bg-surface-base border border-border-subtle text-text-secondary hover:text-accent hover:border-accent rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative"
           title="Skills"
         >
-          <BookOpen size={20} className="group-hover:scale-110 transition-transform" />
-          <span className="text-[9px] font-bold">SKILLS</span>
+          <BookOpen className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <span className="text-[0.5625rem] font-bold">SKILLS</span>
           {usePlayerStore(state => state.skillPoints) > 0 && (
-             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse">
+             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse">
                {usePlayerStore.getState().skillPoints}
              </span>
           )}

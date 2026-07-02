@@ -29,12 +29,17 @@ function App() {
       // Base aspect ratio is 1920x1080 (16:9)
       const scaleX = window.innerWidth / 1920;
       const scaleY = window.innerHeight / 1080;
-      
-      // Calculate scale to fit. Limit min scale to 0.66 (720p equivalent)
+
+      // Calculate scale to fit. Min 0.66 (720p equivalent); no upper cap so large monitors upscale.
       const scale = Math.max(0.66, Math.min(scaleX, scaleY));
-      
+
+      // UI offset: grow small screens toward 1440p size, flatten out above it.
+      // 1080p (1.0) → +33% to match 1440p (1.333); 1440p and above → unchanged.
+      const UI_BASE = 1.333;
+      const uiScale = scale >= UI_BASE ? scale : scale + (UI_BASE - scale) * 0.4;
+
       // Update Tailwind's base 1rem (16px default)
-      document.documentElement.style.fontSize = `${16 * scale}px`;
+      document.documentElement.style.fontSize = `${16 * uiScale}px`;
       setScaleFactor(scale);
     };
 

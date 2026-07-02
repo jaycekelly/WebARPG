@@ -38,7 +38,7 @@ export function ItemTooltip({ item }: Props) {
       </div>
 
       {item.baseStats.length > 0 && (
-        <div className="space-y-1">
+        <div className="space-y-1 pt-2">
           {item.baseStats.map((stat, i) => {
             const sign = stat.value > 0 ? '+' : '';
             let suffix = stat.type === 'increased' ? '%' : '';
