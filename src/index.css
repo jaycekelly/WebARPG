@@ -85,25 +85,4 @@
   }
 }
 
-/* ============================================================
-   FAKE-3D PERSPECTIVE — Floor & Standing Sprites
-   Applied via class names in Grid.tsx.
-   FLOOR_TILT_DEG and FLOOR_PERSPECTIVE_PX are set inline
-   (JS constants) so tuning happens in one place.
-   ============================================================ */
 
-/* Outer viewport: establishes the CSS 3D perspective frustum */
-.game-viewport {
-  perspective-origin: 50% 20%;
-}
-
-/* The CSS grid of tiles: tilted toward the horizon */
-.floor-plane {
-  transform-style: preserve-3d;
-}
-
-/* Any object "standing" on a tile: counter-rotates to face camera */
-.standing-sprite {
-  transform-style: preserve-3d;
-  transform-origin: bottom center;
-}
