@@ -32,6 +32,9 @@ const BASE_GAP_SIZE = 1;  // px
 const FLOOR_PERSPECTIVE_PX = 1400;
 const FLOOR_TILT_DEG = 50;
 const FLOOR_COUNTER_TILT = `rotateX(-${FLOOR_TILT_DEG}deg)`;
+// All billboard icons: center at tile origin, counter-rotate to face camera, then pull up
+// so the icon BOTTOM sits exactly at the tile center point in screen space.
+const ICON_BILLBOARD = `translate(-50%, -50%) ${FLOOR_COUNTER_TILT} translateY(-50%)`;
 
 // --- Decorative tile scatter ---
 // Cheap deterministic hash: same (x, y) always produces the same value,
@@ -46,7 +49,7 @@ const TILE_DECOR = [
   { icon: Flower2, color: 'text-pink-400/50' },
   { icon: Sprout,  color: 'text-emerald-500/50' },
 ] as const;
-const TILE_DECOR_CHANCE = 10; // out of 100 (≈1-in-10 empty tiles)
+const TILE_DECOR_CHANCE = 0; // disabled until billboard effect is fully tuned
 
 const DEADZONE_RADIUS    = 2.0;
 const DEADZONE_MANHATTAN = 3.0; // Crops corners of the square deadzone
@@ -62,29 +65,24 @@ const PlayerSprite = memo(() => {
 
   return (
     <div
-      style={{ gridColumn: position.x + 1, gridRow: position.y + 1 }}
+      style={{ gridColumn: position.x + 1, gridRow: position.y + 1, transformStyle: 'preserve-3d', transform: 'translateZ(5px)' }}
       className={cn(
         'relative z-20 pointer-events-auto cursor-pointer bg-emerald-500/10',
         hitEffect && 'animate-shake'
       )}
       onClick={() => setTarget(null)}
     >
-      {/* Anchored at the tile's bottom-centre; counter-rotates so sprite stands upright */}
+      <div className="absolute top-1/2 left-1/2 w-10 h-2.5 rounded-full bg-black/40 pointer-events-none"
+           style={{ transform: 'translate(-50%, -50%)' }} />
       <div
-        className="standing-sprite absolute bottom-0 left-1/2 flex flex-col items-center"
-        style={{ transform: `translateX(-50%) ${FLOOR_COUNTER_TILT}` }}
+        className="absolute top-1/2 left-1/2 flex items-center justify-center pointer-events-none"
+        style={{ transform: ICON_BILLBOARD, willChange: 'transform', backfaceVisibility: 'hidden' }}
       >
         <User
-          key={hitEffect?.id || 'idle'}
-          size={38}
-          className={cn(
-            'text-emerald-500 drop-shadow-[0_0_10px_rgba(52,211,153,0.6)]',
-            hitEffect && 'text-white drop-shadow-none brightness-200'
-          )}
-          style={{ transform: 'translateY(-30%)' }}
+          size={52}
+          style={{ filter: 'blur(0)' }}
+          className={cn('text-emerald-500', hitEffect && 'text-white brightness-200')}
         />
-        {/* Elliptical shadow on the floor — the key to the standee illusion */}
-        <div className="w-8 h-2 bg-black/55 rounded-full blur-[3px] -mt-1" />
       </div>
     </div>
   );
@@ -103,7 +101,7 @@ const EnemySprite = memo(({ id }: { id: string }) => {
 
   return (
     <div
-      style={{ gridColumn: enemy.position.x + 1, gridRow: enemy.position.y + 1 }}
+      style={{ gridColumn: enemy.position.x + 1, gridRow: enemy.position.y + 1, transformStyle: 'preserve-3d', transform: 'translateZ(5px)' }}
       className={cn(
         'relative z-20 pointer-events-auto',
         cursorClass,
@@ -112,24 +110,18 @@ const EnemySprite = memo(({ id }: { id: string }) => {
       )}
       onClick={() => { if (!targetingSkillId) setTarget(id); }}
     >
+      <div className="absolute top-1/2 left-1/2 w-5 h-5 rounded-full bg-black/40 pointer-events-none"
+           style={{ transform: 'translate(-50%, -50%)' }} />
       <div
-        className="standing-sprite absolute bottom-0 left-1/2 flex flex-col items-center"
-        style={{ transform: `translateX(-50%) ${FLOOR_COUNTER_TILT}` }}
+        className="absolute top-1/2 left-1/2 flex flex-col items-center pointer-events-none"
+        style={{ transform: ICON_BILLBOARD, willChange: 'transform', backfaceVisibility: 'hidden' }}
       >
-        {/* Health bar floats above the sprite */}
         <GridHealthBar currentHealth={enemy.health} maxHealth={enemy.stats.maxHealth} />
         <Ghost
-          key={hitEffect?.id || 'idle'}
-          size={38}
-          className={cn(
-            'text-red-500 drop-shadow-[0_0_10px_rgba(239,68,68,0.6)]',
-            isTargeted && 'animate-pulse',
-            hitEffect  && 'text-white drop-shadow-none brightness-200'
-          )}
-          style={{ transform: 'translateY(-20%)' }}
+          size={52}
+          style={{ filter: 'blur(0)' }}
+          className={cn('text-red-500', isTargeted && 'animate-pulse', hitEffect && 'text-white brightness-200')}
         />
-        {/* Elliptical shadow on the floor */}
-        <div className="w-8 h-2 bg-black/55 rounded-full blur-[3px] -mt-1" />
       </div>
     </div>
   );
@@ -147,19 +139,17 @@ const LootSprite = memo(({ dropId, onClick }: { dropId: string; onClick: () => v
 
   return (
     <div
-      style={{ gridColumn: drop.position.x + 1, gridRow: drop.position.y + 1 }}
+      style={{ gridColumn: drop.position.x + 1, gridRow: drop.position.y + 1, transformStyle: 'preserve-3d', transform: 'translateZ(5px)' }}
       className="relative z-10 pointer-events-auto cursor-pointer"
       onClick={onClick}
     >
+      <div className="absolute top-1/2 left-1/2 w-5 h-5 rounded-full bg-black/40 pointer-events-none"
+           style={{ transform: 'translate(-50%, -50%)' }} />
       <div
-        className="standing-sprite absolute bottom-0 left-1/2 flex flex-col items-center"
-        style={{ transform: `translateX(-50%) ${FLOOR_COUNTER_TILT}` }}
+        className="absolute top-1/2 left-1/2 flex items-center justify-center pointer-events-none"
+        style={{ transform: ICON_BILLBOARD, willChange: 'transform', backfaceVisibility: 'hidden' }}
       >
-        <div style={{ transform: 'translateY(-25%)' }}>
-          <LootPile items={drop.items} />
-        </div>
-        {/* Elliptical shadow on the floor */}
-        <div className="w-7 h-1.5 bg-black/50 rounded-full blur-[2px] -mt-1" />
+        <LootPile items={drop.items} />
       </div>
     </div>
   );
@@ -467,7 +457,7 @@ export function Grid() {
       cells.push(
         <div
           key={`${x}-${y}`}
-          style={{ gridColumn: x + 1, gridRow: y + 1 }}
+          style={{ gridColumn: x + 1, gridRow: y + 1, transformStyle: 'preserve-3d' }}
           onMouseEnter={() => setHoveredCell({ x, y })}
           onClick={() => {
             if (targetingSkillId) {
@@ -491,8 +481,8 @@ export function Grid() {
             setTarget(null);
           }}
           className={cn(
-            'relative flex items-center justify-center transition-colors',
-            'bg-zinc-900/20',
+            'relative flex items-center justify-center transition-colors border border-zinc-800/30',
+            'bg-zinc-900',
             obstacle && 'bg-zinc-950',
             isPreview && !isOutOfRange && 'bg-cyan-500/30 ring-1 ring-cyan-500/50 ring-inset z-30',
             isPreview && isOutOfRange  && 'bg-cyan-700/40 ring-1 ring-cyan-600/40 ring-inset opacity-80 z-30',
@@ -502,42 +492,31 @@ export function Grid() {
         >
           {/* Obstacle icons — anchored at bottom, standing upright with shadow */}
           {obstacle && (
-            <div
-              className="standing-sprite absolute bottom-0 left-1/2 flex flex-col items-center z-10 pointer-events-none"
-              style={{ transform: `translateX(-50%) ${FLOOR_COUNTER_TILT}` }}
-            >
-              {obstacle.type === 'tree' && (
-                <Trees
-                  size={42}
-                  className="text-zinc-600 drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]"
-                  style={{ transform: 'translateY(-18%)' }}
-                />
-              )}
-              {obstacle.type === 'rock' && (
-                <Mountain
-                  size={42}
-                  className="text-zinc-600 drop-shadow-[0_4px_6px_rgba(0,0,0,0.6)]"
-                  style={{ transform: 'translateY(-18%)' }}
-                />
-              )}
-              <div className="w-9 h-2 bg-black/45 rounded-full blur-[3px] -mt-1" />
-            </div>
+            <>
+              <div className="absolute top-1/2 left-1/2 w-10 h-2.5 rounded-full bg-black/35 pointer-events-none"
+                   style={{ transform: 'translate(-50%, -50%)' }} />
+              <div
+                className="absolute top-1/2 left-1/2 flex items-center justify-center z-10 pointer-events-none"
+                style={{ transform: ICON_BILLBOARD, backfaceVisibility: 'hidden' }}
+              >
+                {obstacle.type === 'tree' && <Trees   size={52} style={{ filter: 'blur(0)' }} className="text-zinc-600" />}
+                {obstacle.type === 'rock' && <Mountain size={52} style={{ filter: 'blur(0)' }} className="text-zinc-600" />}
+              </div>
+            </>
           )}
 
           {/* Decorative scatter — standing with a small shadow */}
           {TileDecor && (
-            <div
-              className="standing-sprite absolute bottom-0 left-1/2 flex flex-col items-center z-[5] pointer-events-none"
-              style={{ transform: `translateX(-50%) ${FLOOR_COUNTER_TILT}` }}
-            >
-              <TileDecor.icon
-                size={18}
-                className={cn('relative', TileDecor.color)}
-                strokeWidth={1.5}
-                style={{ transform: 'translateY(-40%)' }}
-              />
-              <div className="w-4 h-1 bg-black/30 rounded-full blur-[1.5px] -mt-0.5" />
-            </div>
+            <>
+              <div className="absolute top-1/2 left-1/2 w-4 h-1 bg-black/30 rounded-full pointer-events-none"
+                   style={{ transform: 'translate(-50%, -50%)' }} />
+              <div
+                className="absolute top-1/2 left-1/2 z-[5] pointer-events-none"
+                style={{ transform: ICON_BILLBOARD }}
+              >
+                <TileDecor.icon size={18} className={cn(TileDecor.color)} strokeWidth={1.5} />
+              </div>
+            </>
           )}
         </div>
       );
@@ -555,7 +534,7 @@ export function Grid() {
         cameraMode === 'free' ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''
       )}
       // perspective is set inline so FLOOR_PERSPECTIVE_PX stays the single source of truth
-      style={{ perspective: `${FLOOR_PERSPECTIVE_PX}px` }}
+      style={{ perspective: `${FLOOR_PERSPECTIVE_PX}px`, perspectiveOrigin: '50% 10%' }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -576,11 +555,12 @@ export function Grid() {
       >
         {/* Floor plane — tilts toward the horizon */}
         <div
-          className="floor-plane relative grid gap-px bg-zinc-800 border border-zinc-700/50 rounded-xl shadow-2xl"
+          className="floor-plane relative grid bg-zinc-950 border border-zinc-700/20 rounded-xl shadow-2xl"
           style={{
             gridTemplateColumns: `repeat(${grid.width}, ${TILE_SIZE}px)`,
             gridAutoRows: `${TILE_SIZE}px`,
             transform: `rotateX(${FLOOR_TILT_DEG}deg)`,
+            transformStyle: 'preserve-3d',
           }}
         >
           {/* Base tile cells */}
