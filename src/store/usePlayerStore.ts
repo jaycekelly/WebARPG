@@ -20,8 +20,8 @@ interface PlayerState {
   boundSkills: (string | null)[];
   flaskCharges: number;
   maxFlaskCharges: number;
-  cameraMode: 'auto' | 'free';
-  
+
+
   
   move: (dx: number, dy: number) => void;
   setPosition: (x: number, y: number) => void;
@@ -39,7 +39,7 @@ interface PlayerState {
   bindSkill: (slotIndex: number, skillId: string | null) => void;
   addFlaskCharges: (amount: number) => void;
   useFlask: () => boolean;
-  toggleCameraMode: () => void;
+
 }
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
@@ -58,7 +58,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   boundSkills: ['heavy_strike', 'charge_attack', 'fireball', null, null, null, null, null],
   flaskCharges: 4,
   maxFlaskCharges: 4,
-  cameraMode: 'auto',
+
 
   move: (dx, dy) => set((state) => {
     const now = useAppStore.getState().getGameTime();
@@ -206,5 +206,5 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
     return false;
   },
-  toggleCameraMode: () => set((state) => ({ cameraMode: state.cameraMode === 'auto' ? 'free' : 'auto' })),
+
 }));

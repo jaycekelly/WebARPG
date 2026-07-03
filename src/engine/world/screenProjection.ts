@@ -6,6 +6,8 @@ export interface ProjectionParams {
   viewportHeight: number;
   panX: number;
   panY: number;
+  /** World Y (pixels) of the camera focus — perspective center follows the camera */
+  focusWorldY: number;
   perspectivePx: number;
   floorTiltDeg: number;
 }
@@ -24,12 +26,13 @@ export function projectTileToScreen(
 ): ProjectedPoint {
   const {
     gridWidth: _gridWidth,
-    gridHeight,
+    gridHeight: _gridH,
     tileSize,
     viewportWidth,
     viewportHeight,
     panX,
     panY,
+    focusWorldY,
     perspectivePx,
     floorTiltDeg,
   } = params;
@@ -38,15 +41,15 @@ export function projectTileToScreen(
   const cosTilt = Math.cos(tiltRad);
   const sinTilt = Math.sin(tiltRad);
 
-  const floorH = gridHeight * tileSize;
-
   const fx = (gx + 0.5) * tileSize;
   const fy = (gy + 0.5) * tileSize;
 
-  const ry = fy - floorH / 2;
+  // Perspective centered on camera focus, not floor center — keeps visible
+  // area consistent regardless of where the player is on the map.
+  const ry = fy - focusWorldY;
 
   const x3d = fx + panX;
-  const y3d = floorH / 2 + ry * cosTilt + panY;
+  const y3d = focusWorldY + ry * cosTilt + panY;
   const z3d = ry * sinTilt;
 
   const originX = viewportWidth * 0.5;

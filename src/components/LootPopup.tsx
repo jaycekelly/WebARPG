@@ -72,7 +72,7 @@ export function LootPopup({ dropId, onClose }: Props) {
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-surface-base border border-border-subtle rounded-xl shadow-2xl w-full max-w-sm flex flex-col max-h-[80vh] overflow-hidden">
+      <div className="bg-surface-base border border-border-subtle rounded-xl shadow-2xl w-full max-w-sm flex flex-col max-h-[28.125rem] overflow-hidden">
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-surface-base">

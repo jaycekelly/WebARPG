@@ -50,60 +50,10 @@
 }
 
 @layer base {
+  html {
+    font-size: 22px; /* Base UI scale — increase to make all UI bigger */
+  }
   body {
     @apply bg-zinc-950 text-text-primary font-sans antialiased;
   }
-}
-
-@layer utilities {
-  @keyframes floatUpFade {
-    0% { transform: translateY(0); opacity: 1; }
-    100% { transform: translateY(-20px); opacity: 0; }
-  }
-  .animate-float-up {
-    animation: floatUpFade 0.8s ease-out forwards;
-  }
-  @keyframes dropBounce {
-    0% { transform: translateY(-30%); opacity: 0; }
-    20% { opacity: 1; animation-timing-function: ease-in; }
-    50% { transform: translateY(0); animation-timing-function: ease-out; }
-    75% { transform: translateY(-15%); animation-timing-function: ease-in; }
-    100% { transform: translateY(0); opacity: 1; }
-  }
-  .animate-drop-bounce {
-    animation: dropBounce 0.5s forwards;
-  }
-  @keyframes shake {
-    0%, 100% { transform: translate(0, 0); }
-    20% { transform: translate(-2px, -1px) rotate(-1deg); }
-    40% { transform: translate(2px, 1px) rotate(1deg); }
-    60% { transform: translate(-1px, 2px) rotate(0deg); }
-    80% { transform: translate(1px, -2px) rotate(-1deg); }
-  }
-  .animate-shake {
-    animation: shake 150ms ease-in-out;
-  }
-}
-
-/* ============================================================
-   FAKE-3D PERSPECTIVE — Floor & Standing Sprites
-   Applied via class names in Grid.tsx.
-   FLOOR_TILT_DEG and FLOOR_PERSPECTIVE_PX are set inline
-   (JS constants) so tuning happens in one place.
-   ============================================================ */
-
-/* Outer viewport: establishes the CSS 3D perspective frustum */
-.game-viewport {
-  perspective-origin: 50% 20%;
-}
-
-/* The CSS grid of tiles: tilted toward the horizon */
-.floor-plane {
-  transform-style: preserve-3d;
-}
-
-/* Any object "standing" on a tile: counter-rotates to face camera */
-.standing-sprite {
-  transform-style: preserve-3d;
-  transform-origin: bottom center;
 }

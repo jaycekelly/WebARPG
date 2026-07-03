@@ -7,17 +7,19 @@ interface AppState {
   vendorOpen: boolean;
   characterWindowOpen: boolean;
   characterWindowTab: 'inventory' | 'stats' | 'skills';
-  scaleFactor: number;
   isPaused: boolean;
   pauseTimeOffset: number;
   pauseStartTime: number | null;
+  pixiFloorVisible: boolean;
+  selectedLootDropId: string | null;
   setLocation: (loc: AppLocation) => void;
   setVendorOpen: (isOpen: boolean) => void;
   setCharacterWindowOpen: (isOpen: boolean) => void;
   setCharacterWindowTab: (tab: 'inventory' | 'stats' | 'skills') => void;
-  setScaleFactor: (scale: number) => void;
   setPaused: (paused: boolean) => void;
   togglePause: () => void;
+  togglePixiFloor: () => void;
+  setSelectedLootDropId: (id: string | null) => void;
   getGameTime: () => number;
 }
 
@@ -26,15 +28,15 @@ export const useAppStore = create<AppState>((set, get) => ({
   vendorOpen: false,
   characterWindowOpen: false,
   characterWindowTab: 'inventory',
-  scaleFactor: 1.0,
   isPaused: false,
   pauseTimeOffset: 0,
   pauseStartTime: null,
+  pixiFloorVisible: false,
+  selectedLootDropId: null,
   setLocation: (location) => set({ location, vendorOpen: false, characterWindowOpen: false }), // Auto close on move
   setVendorOpen: (vendorOpen) => set({ vendorOpen }),
   setCharacterWindowOpen: (characterWindowOpen) => set({ characterWindowOpen }),
   setCharacterWindowTab: (characterWindowTab) => set({ characterWindowTab }),
-  setScaleFactor: (scaleFactor) => set({ scaleFactor }),
   setPaused: (isPaused) => set((state) => {
     if (isPaused === state.isPaused) return {};
     if (isPaused) {
@@ -55,6 +57,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       return { isPaused: nextPaused, pauseStartTime: null, pauseTimeOffset: state.pauseTimeOffset + elapsed };
     }
   }),
+  togglePixiFloor: () => set((state) => ({ pixiFloorVisible: !state.pixiFloorVisible })),
+  setSelectedLootDropId: (id) => set({ selectedLootDropId: id }),
   getGameTime: () => {
     const state = get();
     const now = Date.now();

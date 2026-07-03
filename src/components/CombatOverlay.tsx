@@ -155,12 +155,6 @@ export function CombatOverlay() {
 
 
 
-      // Handle Camera Toggle
-      if (e.key.toLowerCase() === 'y') {
-        e.preventDefault();
-        usePlayerStore.getState().toggleCameraMode();
-      }
-
       // Handle Flask
       if (e.key.toLowerCase() === 'r') {
         const playerState = usePlayerStore.getState();
@@ -327,9 +321,9 @@ export function CombatOverlay() {
           
           {/* HP Globe + Flask */}
           <div className="relative shrink-0 z-20 mb-2">
-            <div className="absolute -inset-1.5 rounded-full border-t border-border-subtle bg-surface-deep -z-10" />
-            <div className="w-32 h-32 rounded-full border border-border-subtle bg-surface-base backdrop-blur-md relative overflow-hidden flex items-center justify-center shadow-lg">
-              
+            <div className="absolute -inset-1.5 rounded-full bg-surface-deep -z-10" />
+            <div className="w-32 h-32 rounded-full border border-border-subtle bg-surface-base relative overflow-hidden flex items-center justify-center shadow-lg">
+
               {/* Expected Healing Overlay */}
               <div 
                 className="absolute bottom-0 left-0 w-full bg-red-400/30 transition-all duration-75"
@@ -421,7 +415,7 @@ export function CombatOverlay() {
 
             {/* Action Bar Container (Only wraps skills) */}
             <div className="px-1.5 py-1.5 flex gap-1.5 relative">
-              <div className="absolute -top-[1.0625rem] bottom-0 -left-[0.0625rem] -right-[0.0625rem] -z-10 bg-surface-deep border-t border-border-subtle rounded-md" />
+              <div className="absolute -top-[1.0625rem] bottom-0 -left-[0.0625rem] -right-[0.0625rem] -z-10 bg-surface-deep rounded-md" />
               {boundSkills.slice(0, 8).map((skillId, index) => {
                 const skill = skillId ? SKILLS[skillId] : null;
                 const IconComponent = skill ? (ICONS[skill.icon] || Flame) : null;
@@ -630,9 +624,9 @@ export function CombatOverlay() {
 
           {/* MP Globe */}
           <div className="relative shrink-0 z-20 mb-2">
-            <div className="absolute -inset-1.5 rounded-full border-t border-border-subtle bg-surface-deep -z-10" />
-            <div className="w-32 h-32 rounded-full border border-border-subtle bg-surface-base backdrop-blur-md relative overflow-hidden flex items-center justify-center shadow-lg">
-              <div 
+            <div className="absolute -inset-1.5 rounded-full bg-surface-deep -z-10" />
+            <div className="w-32 h-32 rounded-full border border-border-subtle bg-surface-base relative overflow-hidden flex items-center justify-center shadow-lg">
+              <div
                 className="absolute bottom-0 left-0 w-full bg-blue-700 transition-all duration-300"
                 style={{ height: `${Math.min(100, (currentMana / maxMana) * 100)}%` }}
               />
@@ -647,16 +641,7 @@ export function CombatOverlay() {
         </div>
       </div>
       
-      {/* Camera Toggle Button */}
-      <div className="absolute top-3 right-3 pointer-events-auto z-50">
-         <button 
-           onClick={() => usePlayerStore.getState().toggleCameraMode()}
-           className="px-3 py-1.5 bg-surface-base border border-border-subtle text-xs font-semibold text-text-secondary hover:text-accent hover:border-accent rounded shadow-md transition-colors"
-         >
-           Camera: {usePlayerStore(state => state.cameraMode) === 'auto' ? 'Auto (Y)' : 'Free (Y)'}
-         </button>
-      </div>
-      {/* UI Window Toggles (Bottom Right) */}
+{/* UI Window Toggles (Bottom Right) */}
       <div className="absolute bottom-3 right-3 pointer-events-auto z-50 flex gap-2">
         <button 
           onClick={() => {

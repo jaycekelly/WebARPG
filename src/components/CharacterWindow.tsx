@@ -19,7 +19,7 @@ export function CharacterWindow() {
   const isSkills = characterWindowTab === 'skills';
 
   return (
-    <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${isSkills ? 'w-[50rem]' : 'w-[25rem]'} h-[55vh] min-h-[28.125rem] bg-surface-deep backdrop-blur-md border border-border-subtle rounded-2xl flex flex-col z-40 shadow-[-20px_0_50px_rgba(0,0,0,0.8)] overflow-hidden transition-all duration-300`}>
+    <div className={`absolute right-3 top-1/2 -translate-y-1/2 ${isSkills ? 'w-[50rem]' : 'w-[25rem]'} h-[28.125rem] bg-surface-deep backdrop-blur-md border border-border-subtle rounded-2xl flex flex-col z-40 shadow-[-20px_0_50px_rgba(0,0,0,0.8)] overflow-hidden transition-all duration-300`}>
       
       {/* Header & Tabs */}
       <div className="flex justify-between items-end border-b border-border-subtle px-4 pt-2 bg-surface-base flex-shrink-0">
