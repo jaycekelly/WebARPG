@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, memo, useCallback } from 'react';
+import { useEffect, useState, useRef, memo, useCallback, useLayoutEffect, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { InputHandler } from '../engine/input/InputHandler';
@@ -13,7 +13,7 @@ import { SKILLS } from '../data/skills';
 import { LootPile } from './LootPile';
 import { LootPopup } from './LootPopup';
 import { GridHealthBar } from './GridHealthBar';
-import { Ghost, User, Trees, Mountain, Flower2, Sprout } from 'lucide-react';
+import { Rabbit, Bird, Trees, Mountain, Flower2, Sprout } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -21,24 +21,14 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const BASE_TILE_SIZE = 72; // px
-const BASE_GAP_SIZE = 1;  // px
+const BASE_TILE_SIZE = 72;
+const BASE_GAP_SIZE = 1;
 
-// --- Fake-3D floor perspective ---
-// Applied to the `.floor-plane` element only — existing camera math
-// (pan, clamp, auto-follow) keeps working in flat screen pixels.
-// FLOOR_PERSPECTIVE_PX : lower = more dramatic distortion
-// FLOOR_TILT_DEG       : higher = steeper / more top-down floor
 const FLOOR_PERSPECTIVE_PX = 1400;
 const FLOOR_TILT_DEG = 50;
 const FLOOR_COUNTER_TILT = `rotateX(-${FLOOR_TILT_DEG}deg)`;
-// All billboard icons: center at tile origin, counter-rotate to face camera, then pull up
-// so the icon BOTTOM sits exactly at the tile center point in screen space.
 const ICON_BILLBOARD = `translate(-50%, -50%) ${FLOOR_COUNTER_TILT} translateY(-50%)`;
 
-// --- Decorative tile scatter ---
-// Cheap deterministic hash: same (x, y) always produces the same value,
-// no state needed.
 function hashTile(x: number, y: number): number {
   let h = x * 374761393 + y * 668265263;
   h = (h ^ (h >>> 13)) * 1274126177;
@@ -49,144 +39,115 @@ const TILE_DECOR = [
   { icon: Flower2, color: 'text-pink-400/50' },
   { icon: Sprout,  color: 'text-emerald-500/50' },
 ] as const;
-const TILE_DECOR_CHANCE = 0; // disabled until billboard effect is fully tuned
+const TILE_DECOR_CHANCE = 0;
 
 const DEADZONE_RADIUS    = 2.0;
-const DEADZONE_MANHATTAN = 3.0; // Crops corners of the square deadzone
+const DEADZONE_MANHATTAN = 3.0;
+
+const BASE_ICON_SIZE = 32;
+const REF_TILE_SIZE = BASE_TILE_SIZE * 0.55;
+
+function shadowStyle(iconSize: number): React.CSSProperties {
+  const w = iconSize * 1.0;
+  const h = w * 0.65;
+  return {
+    position: 'absolute',
+    bottom: -h * 0.35,
+    left: '50%',
+    width: w,
+    height: h,
+    borderRadius: '50%',
+    background: 'rgba(0,0,0,0.3)',
+    transform: 'translate(-50%, 0)',
+    pointerEvents: 'none' as const,
+  };
+}
 
 // ---------------------------------------------------------------------------
-// Sub-components — each memo'd to isolate re-renders
+// Flat overlay sub-components (crisp 2D rendering)
 // ---------------------------------------------------------------------------
 
-const PlayerSprite = memo(() => {
-  const position  = usePlayerStore(state => state.position);
-  const setTarget = usePlayerStore(state => state.setTarget);
-  const hitEffect = useCombatStore(state => state.hitEffects.find(h => h.targetId === 'player'));
+const FlatEntity = memo(({ x, y, is, zi, pi, cl, onClick, children }:
+  { x: number; y: number; is: number; zi: number; pi: 'auto' | 'none'; cl?: string; onClick?: () => void; children: React.ReactNode }) => (
+  <div
+    style={{
+      position: 'absolute', left: x, top: y,
+      transform: 'translate(-50%, -100%)', width: is, height: is,
+      zIndex: zi, pointerEvents: pi,
+    }}
+    className={cl}
+    onClick={onClick}
+  >
+    <div style={shadowStyle(is)} />
+    {children}
+  </div>
+));
 
+const FlatPlayer = memo(({ pos, is, setTarget }: { pos: { x: number; y: number }; is: number; setTarget: (id: null) => void }) => {
+  const hitEffect = useCombatStore(useCallback(state => state.hitEffects.some(h => h.targetId === 'player'), []));
   return (
-    <div
-      style={{ gridColumn: position.x + 1, gridRow: position.y + 1, transformStyle: 'preserve-3d', transform: 'translateZ(5px)' }}
-      className={cn(
-        'relative z-20 pointer-events-auto cursor-pointer bg-emerald-500/10',
-        hitEffect && 'animate-shake'
-      )}
-      onClick={() => setTarget(null)}
-    >
-      <div className="absolute top-1/2 left-1/2 w-10 h-2.5 rounded-full bg-black/40 pointer-events-none"
-           style={{ transform: 'translate(-50%, -50%)' }} />
-      <div
-        className="absolute top-1/2 left-1/2 flex items-center justify-center pointer-events-none"
-        style={{ transform: ICON_BILLBOARD, willChange: 'transform', backfaceVisibility: 'hidden' }}
-      >
-        <User
-          size={52}
-          style={{ filter: 'blur(0)' }}
-          className={cn('text-emerald-500', hitEffect && 'text-white brightness-200')}
-        />
-      </div>
-    </div>
+    <FlatEntity x={pos.x} y={pos.y} is={is} zi={2000} pi="auto" cl={hitEffect ? 'animate-shake' : ''} onClick={() => setTarget(null)}>
+      <Rabbit size={is} className={cn('text-emerald-500', hitEffect && 'text-white brightness-200')}
+              style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)' }} />
+    </FlatEntity>
   );
 });
 
-const EnemySprite = memo(({ id }: { id: string }) => {
-  const enemy          = useWorldStore(useCallback(state => state.enemies.find(e => e.id === id), [id]));
-  const isTargeted     = usePlayerStore(state => state.activeTargetId === id);
-  const setTarget      = usePlayerStore(state => state.setTarget);
-  const targetingSkillId = useCombatStore(state => state.targetingSkillId);
-  const hitEffect      = useCombatStore(state => state.hitEffects.find(h => h.targetId === id));
-
+const FlatEnemy = memo(({ eid, pos, is, setTarget }: { eid: string; pos: { x: number; y: number }; is: number; setTarget: (id: string) => void }) => {
+  const isTargeted = usePlayerStore(useCallback(state => state.activeTargetId === eid, [eid]));
+  const ts = useCombatStore(state => state.targetingSkillId);
+  const enemy = useWorldStore(useCallback(state => state.enemies.find(e => e.id === eid), [eid]));
+  const hitEffect = useCombatStore(useCallback(state => state.hitEffects.some(h => h.targetId === eid), [eid]));
   if (!enemy || enemy.isDead) return null;
-
-  const cursorClass = targetingSkillId ? 'cursor-crosshair' : 'cursor-pointer';
-
   return (
-    <div
-      style={{ gridColumn: enemy.position.x + 1, gridRow: enemy.position.y + 1, transformStyle: 'preserve-3d', transform: 'translateZ(5px)' }}
-      className={cn(
-        'relative z-20 pointer-events-auto',
-        cursorClass,
-        isTargeted && 'ring-2 ring-red-500 ring-inset bg-red-500/20',
-        hitEffect  && 'animate-shake'
-      )}
-      onClick={() => { if (!targetingSkillId) setTarget(id); }}
-    >
-      <div className="absolute top-1/2 left-1/2 w-5 h-5 rounded-full bg-black/40 pointer-events-none"
-           style={{ transform: 'translate(-50%, -50%)' }} />
-      <div
-        className="absolute top-1/2 left-1/2 flex flex-col items-center pointer-events-none"
-        style={{ transform: ICON_BILLBOARD, willChange: 'transform', backfaceVisibility: 'hidden' }}
-      >
-        <GridHealthBar currentHealth={enemy.health} maxHealth={enemy.stats.maxHealth} />
-        <Ghost
-          size={52}
-          style={{ filter: 'blur(0)' }}
-          className={cn('text-red-500', isTargeted && 'animate-pulse', hitEffect && 'text-white brightness-200')}
-        />
-      </div>
-    </div>
+    <FlatEntity x={pos.x} y={pos.y} is={is} zi={2000} pi="auto"
+                cl={cn(ts ? 'cursor-crosshair' : 'cursor-pointer', isTargeted && 'ring-2 ring-red-500 bg-red-500/20', hitEffect && 'animate-shake')}
+                onClick={() => { if (!ts) setTarget(eid); }}>
+      <GridHealthBar currentHealth={enemy.health} maxHealth={enemy.stats.maxHealth} />
+      <Bird size={is} className={cn('text-red-500', isTargeted && 'animate-pulse', hitEffect && 'text-white brightness-200')}
+            style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)' }} />
+    </FlatEntity>
   );
 });
 
-const EnemyLayer = memo(() => {
-  // Only re-renders when the enemy list changes (spawn/death), NOT on stat changes
-  const enemies = useWorldStore(useShallow(state => state.enemies.map(e => e.id)));
-  return <>{enemies.map(id => <EnemySprite key={id} id={id} />)}</>;
+const FlatEnemyLayer = memo(({ positions, iconSize, setTarget }: { positions: Record<string, { x: number; y: number; s: number }>; iconSize: number; setTarget: (id: string) => void }) => {
+  const eids = useWorldStore(useShallow(state => state.enemies.map(e => e.id)));
+  return <>{eids.map(eid => { const pos = positions[`enemy:${eid}`]; if (!pos) return null; return <FlatEnemy key={`fe-${eid}`} eid={eid} pos={pos} is={iconSize * pos.s} setTarget={setTarget} />; })}</>;
 });
 
-const LootSprite = memo(({ dropId, onClick }: { dropId: string; onClick: () => void }) => {
-  const drop = useWorldStore(useCallback(state => state.lootDrops.find(l => l.id === dropId), [dropId]));
-  if (!drop) return null;
+const FlatObstacleLayer = memo(({ positions, iconSize }: { positions: Record<string, { x: number; y: number; s: number }>; iconSize: number }) => {
+  const obs = useWorldStore(useShallow(state => state.grid.obstacles));
+  return <>{obs.map(o => { const pos = positions[`obstacle:${o.x},${o.y}`]; if (!pos) return null; const is = iconSize * pos.s; return (
+    <FlatEntity key={`fo-${o.x}-${o.y}`} x={pos.x} y={pos.y} is={is} zi={1000} pi="none">
+      {o.type === 'tree' && <Trees size={is} className="text-zinc-600" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)' }} />}
+      {o.type === 'rock' && <Mountain size={is} className="text-zinc-600" style={{ position: 'absolute', bottom: 0, left: '50%', transform: 'translateX(-50%)' }} />}
+    </FlatEntity>
+  ); })}</>;
+});
 
-  return (
-    <div
-      style={{ gridColumn: drop.position.x + 1, gridRow: drop.position.y + 1, transformStyle: 'preserve-3d', transform: 'translateZ(5px)' }}
-      className="relative z-10 pointer-events-auto cursor-pointer"
-      onClick={onClick}
-    >
-      <div className="absolute top-1/2 left-1/2 w-5 h-5 rounded-full bg-black/40 pointer-events-none"
-           style={{ transform: 'translate(-50%, -50%)' }} />
-      <div
-        className="absolute top-1/2 left-1/2 flex items-center justify-center pointer-events-none"
-        style={{ transform: ICON_BILLBOARD, willChange: 'transform', backfaceVisibility: 'hidden' }}
-      >
-        <LootPile items={drop.items} />
-      </div>
+const FlatLootLayer = memo(({ positions, iconSize, onLootClick }: { positions: Record<string, { x: number; y: number; s: number }>; iconSize: number; onLootClick: (id: string) => void }) => {
+  const drops = useWorldStore(useShallow(state => state.lootDrops));
+  return <>{drops.map(d => { const pos = positions[`loot:${d.id}`]; if (!pos) return null; const is = iconSize * pos.s; return (
+    <FlatEntity key={`fl-${d.id}`} x={pos.x} y={pos.y} is={is} zi={1000} pi="auto" cl="cursor-pointer" onClick={() => onLootClick(d.id)}>
+      <LootPile items={d.items} />
+    </FlatEntity>
+  ); })}</>;
+});
+
+const FlatFloatingTextLayer = memo(({ positions, iconSize }: { positions: Record<string, { x: number; y: number }>; iconSize: number }) => {
+  const texts = useCombatStore(useShallow(state => state.floatingTexts.map(t => t.id)));
+  const getTexts = useCombatStore.getState;
+  return <>{texts.map(id => { const pos = positions[`ft:${id}`]; if (!pos) return null; const t = getTexts().floatingTexts.find(x => x.id === id); if (!t) return null; return (
+    <div key={`fft-${id}`} className="pointer-events-none"
+         style={{
+           position: 'absolute', left: pos.x, top: pos.y,
+           transform: `translate(-50%, -100%) translateY(-${iconSize * 1.1}px)`,
+           zIndex: 3000,
+         }}>
+      <div className={cn('text-[10px] font-black animate-float-up', t.color)}
+           style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}>{t.text}</div>
     </div>
-  );
-});
-
-const LootLayer = memo(({ onLootClick }: { onLootClick: (dropId: string) => void }) => {
-  const drops = useWorldStore(useShallow(state => state.lootDrops.map(l => l.id)));
-  return <>{drops.map(id => <LootSprite key={id} dropId={id} onClick={() => onLootClick(id)} />)}</>;
-});
-
-const FloatingTextSprite = memo(({ id }: { id: string }) => {
-  const ft = useCombatStore(useCallback(state => state.floatingTexts.find(f => f.id === id), [id]));
-  if (!ft) return null;
-
-  return (
-    <div
-      style={{ gridColumn: ft.x + 1, gridRow: ft.y + 1 }}
-      className="relative flex items-center justify-center z-40 pointer-events-none"
-    >
-      <div
-        className="standing-sprite absolute inset-0"
-        style={{ transform: FLOOR_COUNTER_TILT }}
-      >
-        <div
-          className={cn('absolute top-0 left-1/2 -translate-x-1/2 text-[10px] font-black animate-float-up', ft.color)}
-          style={{ textShadow: '1px 1px 2px rgba(0,0,0,0.8)' }}
-        >
-          {ft.text}
-        </div>
-      </div>
-    </div>
-  );
-});
-
-const FloatingTextLayer = memo(() => {
-  const textIds = useCombatStore(useShallow(state => state.floatingTexts.map(f => f.id)));
-  return <>{textIds.map(id => <FloatingTextSprite key={id} id={id} />)}</>;
+  ); })}</>;
 });
 
 // ---------------------------------------------------------------------------
@@ -196,13 +157,10 @@ const FloatingTextLayer = memo(() => {
 export function Grid() {
   const appScale = useAppStore(state => state.scaleFactor);
 
-  // Apply zoom-out thresholds for higher resolutions
   let gameScale = appScale;
-  if      (window.innerWidth >= 3840) gameScale = appScale * 0.75; // 4K+
-  else if (window.innerWidth >= 2560) gameScale = appScale * 0.90; // 1440p+
-  // 1080p: no adjustment
+  if      (window.innerWidth >= 3840) gameScale = appScale * 0.75;
+  else if (window.innerWidth >= 2560) gameScale = appScale * 0.90;
 
-  // Scroll-wheel zoom — independent of the UI/resolution scaleFactor
   const [zoom, setZoom] = useState(0.55);
 
   const TILE_SIZE       = BASE_TILE_SIZE * gameScale * zoom;
@@ -212,7 +170,7 @@ export function Grid() {
   const position    = usePlayerStore(useShallow(state => state.position));
   const cameraMode  = usePlayerStore(state => state.cameraMode);
 
-  const grid          = useWorldStore(useShallow(state => state.grid)); // changes only on new level
+  const grid          = useWorldStore(useShallow(state => state.grid));
   const setTarget     = usePlayerStore(state => state.setTarget);
   const targetingSkillId = useCombatStore(state => state.targetingSkillId);
   const hoveredSkillId   = useCombatStore(state => state.hoveredSkillId);
@@ -232,7 +190,50 @@ export function Grid() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const pressedKeys = useRef<Set<string>>(new Set());
 
-  // 1. Manage Camera Focus (Deadzone & Target Tracking)
+  const [flatPositions, setFlatPositions] = useState<Record<string, { x: number; y: number; s: number }>>({});
+
+  const enemies = useWorldStore(useShallow(state => state.enemies));
+  const lootDrops = useWorldStore(useShallow(state => state.lootDrops));
+  const obstacles = useWorldStore(useShallow(state => state.grid.obstacles));
+  const floatingTexts = useCombatStore(useShallow(state => state.floatingTexts));
+
+  const posFingerprint = useMemo(() =>
+    enemies.map(e => `${e.id}:${e.position.x},${e.position.y}`).join('|') +
+    obstacles.map(o => `${o.x},${o.y}`).join('|') +
+    lootDrops.map(d => `${d.id}:${d.position.x},${d.position.y}`).join('|') +
+    floatingTexts.map(ft => `${ft.id}:${ft.x},${ft.y}`).join('|'),
+  [enemies, obstacles, lootDrops, floatingTexts]);
+
+  useLayoutEffect(() => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const anchors = viewport.querySelectorAll('[data-entity-anchor]');
+    const vRect = viewport.getBoundingClientRect();
+    const next: Record<string, { x: number; y: number; s: number }> = {};
+    const floorH = grid.height * TILE_SIZE;
+    const sin50 = Math.sin((FLOOR_TILT_DEG * Math.PI) / 180);
+    anchors.forEach(el => {
+      const key = el.getAttribute('data-entity-anchor')!;
+      const aRect = el.getBoundingClientRect();
+      const gy = parseFloat(el.getAttribute('data-anchor-y') ?? '0');
+      const fy = (gy + 0.5) * TILE_SIZE;
+      const z = (fy - floorH / 2) * sin50;
+      next[key] = {
+        x: Math.round((aRect.left + aRect.width / 2 - vRect.left) * 10) / 10,
+        y: Math.round((aRect.top + aRect.height / 2 - vRect.top) * 10) / 10,
+        s: FLOOR_PERSPECTIVE_PX / (FLOOR_PERSPECTIVE_PX - z),
+      };
+    });
+    setFlatPositions(prev => {
+      if (Object.keys(next).length !== Object.keys(prev).length) return next;
+      for (const k of Object.keys(next)) {
+        if (!prev[k] || prev[k].x !== next[k].x || prev[k].y !== next[k].y) return next;
+      }
+      return prev;
+    });
+  }, [position.x, position.y, cameraOffset.x, cameraOffset.y, TILE_SIZE, grid.width, grid.height, posFingerprint]);
+
+  // 1. Camera Focus
   useEffect(() => {
     if (cameraMode === 'auto') {
       let newFocusX = cameraFocus.x;
@@ -244,7 +245,6 @@ export function Grid() {
       if (Math.abs(dx) > DEADZONE_RADIUS) newFocusX += Math.sign(dx) * (Math.abs(dx) - DEADZONE_RADIUS);
       if (Math.abs(dy) > DEADZONE_RADIUS) newFocusY += Math.sign(dy) * (Math.abs(dy) - DEADZONE_RADIUS);
 
-      // Chop the corners of the square deadzone
       const newDx = position.x - newFocusX;
       const newDy = position.y - newFocusY;
       if (Math.abs(newDx) + Math.abs(newDy) > DEADZONE_MANHATTAN) {
@@ -259,7 +259,7 @@ export function Grid() {
     }
   }, [position.x, position.y, cameraMode, targetingSkillId, hoveredCell?.x, hoveredCell?.y, cameraFocus.x, cameraFocus.y]);
 
-  // 2. Manage Camera Offset (Map Clamping)
+  // 2. Camera Offset
   useEffect(() => {
     if (cameraMode === 'auto' && viewportRef.current) {
       const viewport    = viewportRef.current;
@@ -281,9 +281,7 @@ export function Grid() {
     }
   }, [cameraFocus.x, cameraFocus.y, cameraMode, grid.width, grid.height]);
 
-  // 3. Scroll-wheel zoom
-  // React's synthetic onWheel is passive, so we attach a real listener to
-  // call preventDefault() and stop the page from scrolling.
+  // 3. Scroll zoom
   useEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -308,7 +306,7 @@ export function Grid() {
   };
   const handleMouseUp = () => { if (cameraMode === 'free') setIsDragging(false); };
 
-  // 4. Keyboard Movement
+  // 4. Keyboard
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -361,7 +359,7 @@ export function Grid() {
     };
   }, [position, grid, setTarget]);
 
-  // 5. Calculate AoE / range previews
+  // 5. AoE previews
   let previewTiles: Point[] = [];
   const activePreviewId = targetingSkillId || hoveredSkillId;
 
@@ -388,10 +386,8 @@ export function Grid() {
     }
   }
 
-  // 6. View frustum culling
   const viewportWidth  = viewportRef.current?.clientWidth  || window.innerWidth;
   const viewportHeight = viewportRef.current?.clientHeight || window.innerHeight;
-
   const actualCenterX = ((viewportWidth  / 2) - cameraOffset.x) / TOTAL_TILE_SIZE;
   const actualCenterY = ((viewportHeight / 2) - cameraOffset.y) / TOTAL_TILE_SIZE;
   const VIEW_RADIUS_X = Math.ceil((viewportWidth  / TOTAL_TILE_SIZE) / 2) + 2;
@@ -426,7 +422,7 @@ export function Grid() {
     }
   }, [position.x, position.y, lootItem, removeLootDrop, addLog]);
 
-  // 7. Build tile cells
+  // Build tile cells
   const cells = [];
   for (let y = minY; y <= maxY; y++) {
     for (let x = minX; x <= maxX; x++) {
@@ -445,7 +441,6 @@ export function Grid() {
 
       const cursorClass = targetingSkillId ? (isOutOfRange ? 'cursor-not-allowed' : 'cursor-crosshair') : '';
 
-      // Decorative scatter on empty tiles only (Flower2 / Sprout)
       let TileDecor: typeof TILE_DECOR[number] | null = null;
       if (!obstacle) {
         const h = hashTile(x, y);
@@ -490,22 +485,6 @@ export function Grid() {
             cursorClass
           )}
         >
-          {/* Obstacle icons — anchored at bottom, standing upright with shadow */}
-          {obstacle && (
-            <>
-              <div className="absolute top-1/2 left-1/2 w-10 h-2.5 rounded-full bg-black/35 pointer-events-none"
-                   style={{ transform: 'translate(-50%, -50%)' }} />
-              <div
-                className="absolute top-1/2 left-1/2 flex items-center justify-center z-10 pointer-events-none"
-                style={{ transform: ICON_BILLBOARD, backfaceVisibility: 'hidden' }}
-              >
-                {obstacle.type === 'tree' && <Trees   size={52} style={{ filter: 'blur(0)' }} className="text-zinc-600" />}
-                {obstacle.type === 'rock' && <Mountain size={52} style={{ filter: 'blur(0)' }} className="text-zinc-600" />}
-              </div>
-            </>
-          )}
-
-          {/* Decorative scatter — standing with a small shadow */}
           {TileDecor && (
             <>
               <div className="absolute top-1/2 left-1/2 w-4 h-1 bg-black/30 rounded-full pointer-events-none"
@@ -523,9 +502,8 @@ export function Grid() {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Render
-  // ---------------------------------------------------------------------------
+  const iconSize = BASE_ICON_SIZE * (TILE_SIZE / REF_TILE_SIZE);
+
   return (
     <div
       ref={viewportRef}
@@ -533,27 +511,21 @@ export function Grid() {
         'game-viewport flex-1 overflow-hidden bg-zinc-950 relative select-none',
         cameraMode === 'free' ? (isDragging ? 'cursor-grabbing' : 'cursor-grab') : ''
       )}
-      // perspective is set inline so FLOOR_PERSPECTIVE_PX stays the single source of truth
       style={{ perspective: `${FLOOR_PERSPECTIVE_PX}px`, perspectiveOrigin: '50% 10%' }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
     >
-      {/* Subtle grid-line background on the viewport itself */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
-      {/* Pan/translate wrapper — preserve-3d so the perspective chain reaches the floor */}
       <div
-        className="absolute top-0 left-0 ease-out z-0"
+        className="absolute top-0 left-0 z-0"
         style={{
           transform: `translate(${cameraOffset.x}px, ${cameraOffset.y}px)`,
           transformStyle: 'preserve-3d',
-          transitionProperty: 'transform',
-          transitionDuration: isDragging ? '0ms' : '150ms',
         }}
       >
-        {/* Floor plane — tilts toward the horizon */}
         <div
           className="floor-plane relative grid bg-zinc-950 border border-zinc-700/20 rounded-xl shadow-2xl"
           style={{
@@ -563,15 +535,37 @@ export function Grid() {
             transformStyle: 'preserve-3d',
           }}
         >
-          {/* Base tile cells */}
-          {cells}
-
-          {/* Entity layers — CSS grid placement, counter-rotated internally */}
-          <PlayerSprite />
-          <EnemyLayer />
-          <LootLayer onLootClick={handleLootClick} />
-          <FloatingTextLayer />
+          <div data-entity-anchor="player"
+               data-anchor-y={position.y}
+               style={{ gridColumn: position.x + 1, gridRow: position.y + 1, pointerEvents: 'none' }} />
+           {cells}
+          {useWorldStore.getState().enemies.map((e: any) => (
+            <div key={`ea-${e.id}`} data-entity-anchor={`enemy:${e.id}`} data-anchor-y={e.position.y}
+                 style={{ gridColumn: e.position.x + 1, gridRow: e.position.y + 1, pointerEvents: 'none' }} />
+          ))}
+          {useWorldStore.getState().grid.obstacles.map((o: any) => (
+            <div key={`oa-${o.x}-${o.y}`} data-entity-anchor={`obstacle:${o.x},${o.y}`} data-anchor-y={o.y}
+                 style={{ gridColumn: o.x + 1, gridRow: o.y + 1, pointerEvents: 'none' }} />
+          ))}
+          {useWorldStore.getState().lootDrops.map((d: any) => (
+            <div key={`la-${d.id}`} data-entity-anchor={`loot:${d.id}`} data-anchor-y={d.position.y}
+                 style={{ gridColumn: d.position.x + 1, gridRow: d.position.y + 1, pointerEvents: 'none' }} />
+          ))}
+          {useCombatStore.getState().floatingTexts.map((ft: any) => (
+            <div key={`fta-${ft.id}`} data-entity-anchor={`ft:${ft.id}`} data-anchor-y={ft.y}
+                 style={{ gridColumn: ft.x + 1, gridRow: ft.y + 1, pointerEvents: 'none' }} />
+          ))}
         </div>
+      </div>
+
+      <div className="absolute inset-0 pointer-events-none" style={{ zIndex: 10 }}>
+        {flatPositions['player'] && (
+          <FlatPlayer pos={flatPositions['player']} is={iconSize * flatPositions['player'].s} setTarget={setTarget as any} />
+        )}
+        <FlatEnemyLayer positions={flatPositions} iconSize={iconSize} setTarget={setTarget} />
+        <FlatObstacleLayer positions={flatPositions} iconSize={iconSize} />
+        <FlatLootLayer positions={flatPositions} iconSize={iconSize} onLootClick={handleLootClick} />
+        <FlatFloatingTextLayer positions={flatPositions} iconSize={iconSize} />
       </div>
 
       {selectedLootDropId && (
