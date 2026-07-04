@@ -51,7 +51,7 @@
 
 @layer base {
   html {
-    font-size: 22px; /* Base UI scale — increase to make all UI bigger */
+    font-size: 24px; /* Base UI scale — increase to make all UI bigger */
   }
   body {
     @apply bg-zinc-950 text-text-primary font-sans antialiased;

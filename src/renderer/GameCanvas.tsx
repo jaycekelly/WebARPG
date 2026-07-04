@@ -7,11 +7,13 @@ import { createFloorRenderer } from './systems/renderFloor';
 import { createEntityRenderer } from './systems/renderEntities';
 import { createFloatingTextRenderer } from './systems/renderFloatingTexts';
 import { createTargetingOverlayRenderer } from './systems/renderTargetingOverlay';
+import { createFogRenderer } from './systems/renderFog';
 import { setupCanvasInput, getClickTarget } from './input/canvasInput';
 import { useWorldStore } from '../store/useWorldStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useCombatStore } from '../store/useCombatStore';
 import { useAppStore } from '../store/useAppStore';
+import { useVisionStore } from '../store/useVisionStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import { ItemTooltip } from '../components/ItemTooltip';
 import { InputHandler } from '../engine/input/InputHandler';
@@ -19,7 +21,7 @@ import type { ProjectionParams } from '../engine/world/screenProjection';
 import type { WorldPoint } from './input/canvasInput';
 
 const BASE_TILE_SIZE = 72;
-const BASE_GAP_SIZE = 1;
+const BASE_GAP_SIZE = 0;
 const DEFAULT_ZOOM = 1.2;
 const BASE_ICON_SIZE = 32;
 const REF_TILE_SIZE = BASE_TILE_SIZE * 0.55;
@@ -55,9 +57,6 @@ export function GameCanvas() {
         if (movementKeys.includes(key)) return;
       }
 
-      let hasMovementKeys = false;
-      const movementKeys = ['w','a','s','d','q','e','z','c','arrowup','arrowdown','arrowleft','arrowright'];
-      if (movementKeys.includes(key)) hasMovementKeys = true;
       // We no longer trigger movement here to allow continuous sliding when skills are pressed.
       // Movement is now requested every frame in the ticker.
     };
@@ -121,12 +120,18 @@ export function GameCanvas() {
         const floor = createFloorRenderer();
         gameLayer.addChild(floor.container);
 
+        const fog = createFogRenderer();
+        gameLayer.addChild(fog.container);
+
         const entities = createEntityRenderer();
         gameLayer.addChild(entities.container);
 
         // Targeting range overlay (dims tiles outside effective range)
         const targetingOverlay = createTargetingOverlayRenderer();
         gameLayer.addChild(targetingOverlay.container);
+
+        // Entity UI layer (health bars, target rings) on top of lighting/overlays
+        gameLayer.addChild(entities.uiContainer);
 
         // Floating text in screen space (not affected by world/camera transforms)
         const floatingTexts = createFloatingTextRenderer();
@@ -191,6 +196,7 @@ export function GameCanvas() {
             entities.container.visible = false;
             floor.container.visible = false;
             targetingOverlay.container.visible = false;
+            fog.container.visible = false;
             floatingTexts.container.visible = false;
             pauseOverlay.visible = false;
             return;
@@ -241,6 +247,7 @@ export function GameCanvas() {
           entities.container.visible = true;
           floor.container.visible = true;
           targetingOverlay.container.visible = true;
+          fog.container.visible = true;
           floatingTexts.container.visible = true;
 
           // Grid rebuild (skip during pause — grid doesn't change while frozen)
@@ -294,6 +301,21 @@ export function GameCanvas() {
           };
           projParamsRef.current = projParams;
 
+          const vs = useVisionStore.getState();
+          fog.update(
+            projParams.panX,
+            projParams.panY,
+            canvas.width,
+            canvas.height,
+            w.grid,
+            tileSize,
+            focusWorldY,
+            vs.exploredTiles,
+            vs.visibleTiles,
+            p.position,
+            w.lootDrops
+          );
+
           const iconSize = BASE_ICON_SIZE * (tileSize / REF_TILE_SIZE);
           const baseScale = iconSize / TEXTURE_SIZE;
 
@@ -301,18 +323,14 @@ export function GameCanvas() {
           const showHoverRing = !!c.targetingSkillId || a.isPaused;
 
           if (a.isPaused) {
-            // Blue tint over frozen game world — very subtle
+            // Cinematic "Time Freeze" overlay
             const { width, height } = app.renderer;
-            const ringAlpha = 0.15 + 0.15 * (Math.sin(Date.now() / 1200) + 1) / 2;
             pauseOverlay.visible = true;
             pauseOverlay.clear();
+            
+            // Very subtle dark blue tint to freeze the world (clearer visibility)
             pauseOverlay.rect(0, 0, width, height);
-            pauseOverlay.fill({ color: 0x0e3a5c, alpha: 0.06 });
-            const rw = 8;
-            pauseOverlay.rect(rw / 2, rw / 2, width - rw, height - rw);
-            pauseOverlay.fill({ color: 0x0ea5e9, alpha: ringAlpha * 0.15 });
-            pauseOverlay.rect(rw / 2, rw / 2, width - rw, height - rw);
-            pauseOverlay.stroke({ color: 0x0ea5e9, alpha: ringAlpha, width: rw });
+            pauseOverlay.fill({ color: 0x05131e, alpha: 0.25 });
 
             // Render entities (frozen) with hover target ring support
             entities.update(
@@ -327,6 +345,7 @@ export function GameCanvas() {
               new Set(), // no hit effects during pause
               hoveredEnemyId,
               true, // showHoverRing during pause
+              vs.visibleTiles,
             );
 
             // Targeting overlay: still works during pause for skill aiming
@@ -353,6 +372,7 @@ export function GameCanvas() {
             hitEffectIds,
             hoveredEnemyId,
             showHoverRing,
+            vs.visibleTiles,
           );
 
           // Targeting overlay: dim tiles outside effective range
@@ -397,7 +417,7 @@ export function GameCanvas() {
         position: 'absolute',
         inset: 0,
         overflow: 'hidden',
-        background: '#09090b',
+        background: '#000000',
       }}
     >
       <canvas

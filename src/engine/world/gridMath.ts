@@ -65,12 +65,20 @@ export const checkCornerBlock = (p1: Point, p2: Point, isSolid: (x: number, y: n
 export const hasLineOfSight = (p0: Point, p1: Point, isSolid: (x: number, y: number) => boolean): boolean => {
   const line = getBresenhamLine(p0, p1);
   
-  // We exclude the start (p0) and end (p1) from being solids that block LOS.
-  // E.g., if you are targeting a wall, you can still have LOS to the wall.
-  for (let i = 1; i < line.length - 1; i++) {
-    const pt = line[i];
-    if (isSolid(pt.x, pt.y)) {
-      return false; // Path blocked
+  for (let i = 1; i < line.length; i++) {
+    const prev = line[i - 1];
+    const curr = line[i];
+
+    // Check if the ray is trying to squeeze through a diagonal gap between two solids
+    if (checkCornerBlock(prev, curr, isSolid)) {
+      return false;
+    }
+    
+    // Exclude the end target (p1) from blocking itself.
+    if (i < line.length - 1) {
+      if (isSolid(curr.x, curr.y)) {
+        return false; // Path blocked
+      }
     }
   }
   

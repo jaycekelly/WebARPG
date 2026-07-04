@@ -46,7 +46,14 @@ export function projectTileToScreen(
 
   // Perspective centered on camera focus, not floor center — keeps visible
   // area consistent regardless of where the player is on the map.
-  const ry = fy - focusWorldY;
+  let ry = fy - focusWorldY;
+
+  // Near-plane clipping: prevent objects from projecting behind the camera lens
+  // which causes negative scales and inverted rendering coordinates.
+  const maxRy = (perspectivePx * 0.999) / sinTilt;
+  if (ry > maxRy) {
+    ry = maxRy;
+  }
 
   const x3d = fx + panX;
   const y3d = focusWorldY + ry * cosTilt + panY;

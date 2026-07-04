@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { useStatsStore } from './useStatsStore';
 import { useCombatStore } from './useCombatStore';
 import { useAppStore } from './useAppStore';
+import { useVisionStore } from './useVisionStore';
 import type { ClassType } from '../engine/player/types';
 
 interface PlayerState {
@@ -60,29 +61,43 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   maxFlaskCharges: 4,
 
 
-  move: (dx, dy) => set((state) => {
-    const now = useAppStore.getState().getGameTime();
-    const combatState = useCombatStore.getState();
-    const moveSpeed = useStatsStore.getState().getStat('MoveSpeed');
-    const moveCooldown = 1000 / Math.max(0.1, moveSpeed);
+  move: (dx, dy) => {
+    let moved = false;
+    let nextPos: { x: number, y: number } | undefined;
     
-    if (now - combatState.lastMoveTime < moveCooldown) return state;
-    
-    // Attack Animation Root
-    if (now - combatState.lastAttackAnimationTime < 500) return state;
-    
-    // Cancel any active cast
-    if (combatState.castingSkillId) {
-      combatState.setCasting(null);
-      combatState.triggerGcd(0);
-      combatState.addLog(`Cast cancelled (interrupted by movement).`, 'system');
-    }
-    
-    combatState.setLastMoveTime(now);
-    return { position: { x: state.position.x + dx, y: state.position.y + dy } };
-  }),
+    set((state) => {
+      const now = useAppStore.getState().getGameTime();
+      const combatState = useCombatStore.getState();
+      const moveSpeed = useStatsStore.getState().getStat('MoveSpeed');
+      const moveCooldown = 1000 / Math.max(0.1, moveSpeed);
+      
+      if (now - combatState.lastMoveTime < moveCooldown) return state;
+      
+      // Attack Animation Root
+      if (now - combatState.lastAttackAnimationTime < 500) return state;
+      
+      // Cancel any active cast
+      if (combatState.castingSkillId) {
+        combatState.setCasting(null);
+        combatState.triggerGcd(0);
+        combatState.addLog(`Cast cancelled (interrupted by movement).`, 'system');
+      }
+      
+      combatState.setLastMoveTime(now);
+      nextPos = { x: state.position.x + dx, y: state.position.y + dy };
+      moved = true;
+      return { position: nextPos };
+    });
 
-  setPosition: (x, y) => set({ position: { x, y } }),
+    if (moved && nextPos) {
+      useVisionStore.getState().updateVision(nextPos);
+    }
+  },
+
+  setPosition: (x, y) => {
+    set({ position: { x, y } });
+    useVisionStore.getState().updateVision({ x, y });
+  },
   
   setTarget: (id) => set({ activeTargetId: id }),
 

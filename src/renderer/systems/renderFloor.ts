@@ -8,7 +8,6 @@ const FLOOR_TILT_DEG = 52;
 const BASE_TILE_SIZE = 72;
 
 const COLOR_FLOOR_BG = 0x18181b;
-const COLOR_GRID_LINE = 0x27272a;
 
 // Zone element → hex color
 const ZONE_ELEMENT_COLORS: Record<string, number> = {
@@ -50,19 +49,6 @@ export function createFloorRenderer(): FloorRenderer {
   container.addChild(gridLinesContainer);
 
   let lastPanKey = '';
-
-  // ---- Depth tint helpers ----------------------------------------------------
-  function depthFactor(row: number, totalRows: number): number {
-    const ratio = 1 - (row / totalRows);
-    return 0.05 + Math.max(0, Math.min(1, ratio)) * 0.5;
-  }
-
-  function dimColor(hex: number, factor: number): number {
-    const r = Math.round(((hex >> 16) & 0xff) * (1 - factor));
-    const g = Math.round(((hex >> 8) & 0xff) * (1 - factor));
-    const b = Math.round((hex & 0xff) * (1 - factor));
-    return (r << 16) | (g << 8) | b;
-  }
 
   // ---- Rebuild: nothing to do, floor is drawn fresh each frame ---------------
   function rebuild(_g: GridMap) {

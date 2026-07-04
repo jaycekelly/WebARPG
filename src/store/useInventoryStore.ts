@@ -115,42 +115,33 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       }
     }
 
+    // Clear the source inventory slot FIRST so that unequips can use the empty space
+    const initialInv = [...get().inventory];
+    initialInv[inventoryIndex] = null;
+    set({ inventory: initialInv });
+
     // Handle 2H Weapon equipping logic
     if (item.itemType === 'weapon-2h') {
       slot = 'weapon1';
       // If we are equipping a 2H weapon, we must unequip whatever is in weapon2
-      if (state.equipment['weapon2']) {
+      if (get().equipment['weapon2']) {
         get().unequip('weapon2');
       }
     }
 
     // Handle equipping a 1H weapon into weapon2 while wearing a 2H weapon
-    if (slot === 'weapon2' && state.equipment['weapon1']?.itemType === 'weapon-2h') {
+    if (slot === 'weapon2' && get().equipment['weapon1']?.itemType === 'weapon-2h') {
        get().unequip('weapon1');
     }
 
-    // Remove item from inventory in-place (null the slot, don't shift)
-    const newInventory = [...get().inventory];
-    newInventory[inventoryIndex] = null;
-
-    // If something was already in the slot, put it in the first empty inv slot
-    const existingItem = get().equipment[slot];
-    if (existingItem) {
+    // If something was already in the target slot, unequip it
+    if (get().equipment[slot]) {
        get().unequip(slot);
-       // After unequip, inventory may have changed — re-read and null the original slot
-       const inv2 = [...get().inventory];
-       inv2[inventoryIndex] = null; // keep slot clear (unequip pushes to end)
-       set({ inventory: inv2 });
-       // newInventory is stale now; the set inside unequip already put existingItem somewhere
-       // So we just need to equip with the updated inventory in store
     }
 
     // Actually Equip
-    const finalInventory = [...get().inventory];
-    finalInventory[inventoryIndex] = null;
-    set((state) => ({
-      inventory: finalInventory,
-      equipment: { ...state.equipment, [slot]: item }
+    set((s) => ({
+      equipment: { ...s.equipment, [slot]: item }
     }));
 
     // Apply Base Stats

@@ -3,6 +3,7 @@ import { getEntityTexture } from '../assets';
 import { projectTileToScreen } from '../../engine/world/screenProjection';
 import type { ProjectionParams, ProjectedPoint } from '../../engine/world/screenProjection';
 import type { Enemy, LootDrop, Obstacle } from '../../store/useWorldStore';
+import { getTileLightIntensity, getEntityTint } from '../utils/lighting';
 
 // ---- Constants ---------------------------------------------------------------
 const HEALTH_BAR_WIDTH = 90;
@@ -46,6 +47,7 @@ interface TrackedSprite {
 
 export interface EntityRenderer {
   container: Container;
+  uiContainer: Container;
   update: (
     params: ProjectionParams,
     baseScale: number,
@@ -58,12 +60,14 @@ export interface EntityRenderer {
     hitEffectIds: Set<string>,
     hoveredEnemyId?: string | null,
     showHoverRing?: boolean,
+    visibleTiles?: Set<string>,
   ) => void;
 }
 
 // ---- Factory ----------------------------------------------------------------
 export function createEntityRenderer(): EntityRenderer {
   const container = new Container();
+  const uiContainer = new Container();
   const tracked = new Map<string, TrackedSprite>();
 
   // ---- Sub-graphics factories -----------------------------------------------
@@ -119,7 +123,7 @@ export function createEntityRenderer(): EntityRenderer {
       shadow.scale.set(0.85, 0.85); // Shrink others to match icon
     }
     c.addChild(shadow);
-
+    
     // Icon above shadow
     const texture = getEntityTexture(kind, color);
     const icon = new Sprite(texture);
@@ -134,12 +138,12 @@ export function createEntityRenderer(): EntityRenderer {
     if (healthBar) {
       healthBar.y = HEALTH_BAR_OFFSET_Y;
       healthBar.visible = false;
-      c.addChild(healthBar);
+      uiContainer.addChild(healthBar);
     }
 
     // Select ring (topmost)
     const selectRing = makeSelectRing();
-    c.addChild(selectRing);
+    uiContainer.addChild(selectRing);
 
     // Flash sprite (same texture, white color)
     const flashTexture = getEntityTexture(kind, '#ffffff');
@@ -205,12 +209,22 @@ export function createEntityRenderer(): EntityRenderer {
     projected: ProjectedPoint,
     shake = false,
     hopOffset = 0,
-    viewportWidth = 800,
+    wx: number,
+    wy: number,
+    playerPos: { x: number; y: number },
+    lootDrops: LootDrop[],
+    visibleTiles: Set<string>
   ) {
     const sx = projected.screenX + (shake ? hitJitter() : 0);
     const sy = projected.screenY + (shake ? hitJitter() : 0);
     entry.container.position.set(sx, sy);
     entry.container.scale.set(projected.scale * activeBaseScale);
+    entry.container.zIndex = projected.zDepth;
+    
+    // Lighting tint
+    const intensity = getTileLightIntensity(wx, wy, playerPos, lootDrops, visibleTiles);
+    entry.icon.tint = getEntityTint(intensity);
+    entry.flashSprite.tint = getEntityTint(intensity);
     
     entry.icon.skew.x = 0;
     entry.flashSprite.skew.x = 0;
@@ -219,8 +233,11 @@ export function createEntityRenderer(): EntityRenderer {
     entry.icon.y = -hopOffset;
     entry.flashSprite.y = -hopOffset;
     if (entry.healthBar) {
-      entry.healthBar.y = HEALTH_BAR_OFFSET_Y - hopOffset;
+      entry.healthBar.position.set(sx, sy + HEALTH_BAR_OFFSET_Y - hopOffset);
+      entry.healthBar.scale.set(projected.scale * activeBaseScale);
     }
+    entry.selectRing.position.set(sx, sy);
+    entry.selectRing.scale.set(projected.scale * activeBaseScale);
   }
 
   function showEntry(entry: TrackedSprite) {
@@ -229,6 +246,8 @@ export function createEntityRenderer(): EntityRenderer {
 
   function hideEntry(entry: TrackedSprite) {
     entry.container.visible = false;
+    if (entry.healthBar) entry.healthBar.visible = false;
+    entry.selectRing.visible = false;
   }
 
   function sortByDepth() {
@@ -249,9 +268,11 @@ export function createEntityRenderer(): EntityRenderer {
     hitEffectIds: Set<string>,
     hoveredEnemyId?: string | null,
     showHoverRing?: boolean,
+    visibleTiles?: Set<string>,
   ) {
     activeBaseScale = baseScale;
     const activeKeys = new Set<string>();
+    const visibleTilesSet = visibleTiles ?? new Set<string>();
 
     // --- Player ---
     const playerKey = 'player';
@@ -288,16 +309,18 @@ export function createEntityRenderer(): EntityRenderer {
     const progress = Math.max(fracX, fracY) * 2;
     
     const isVerticalOnly = fracX < 0.01 && fracY > 0.01;
-    const hopMax = isVerticalOnly ? 80 : 35;
+    const hopMax = isVerticalOnly ? 50 : 25;
 
-    const hopPlayer = playerEntry.isDashing ? 0 : hopMax * Math.sin((progress * Math.PI) / 2);
+    const hopPlayer = playerEntry.isDashing ? 0 : hopMax * Math.pow(progress, 0.8); // Less smooth easing
 
     const projPlayer = projectTileToScreen(playerEntry.currentX, playerEntry.currentY, params);
     projPlayer.zDepth += 100; // slightly above enemies
     playerEntry.container.zIndex = projPlayer.zDepth;
 
-    setPosition(playerEntry, projPlayer, playerHit, hopPlayer, params.viewportWidth);
-    playerEntry.icon.tint = playerHit ? 0xffaaaa : 0xffffff;
+    setPosition(playerEntry, projPlayer, playerHit, hopPlayer, playerEntry.currentX, playerEntry.currentY, playerPos, lootDrops, visibleTilesSet);
+    if (playerHit) {
+      playerEntry.icon.tint = 0xffaaaa;
+    }
     updateFlash(playerEntry, playerKey, playerHit);
     }
 
@@ -309,6 +332,10 @@ export function createEntityRenderer(): EntityRenderer {
       let entry = tracked.get(key);
       if (!entry) {
         entry = makeEntitySprite('rabbit', '#ef4444', key, ENTITY_Z.enemy, true);
+      }
+      if (visibleTiles && !visibleTiles.has(`${enemy.position.x},${enemy.position.y}`)) {
+        hideEntry(entry);
+        continue;
       }
       showEntry(entry);
       {
@@ -338,37 +365,78 @@ export function createEntityRenderer(): EntityRenderer {
       const progress = Math.max(fracX, fracY) * 2;
       
       const isVerticalOnly = fracX < 0.01 && fracY > 0.01;
-      const hopMax = isVerticalOnly ? 80 : 35;
+      const hopMax = isVerticalOnly ? 50 : 25;
 
-      const hopEnemy = entry.isDashing ? 0 : hopMax * Math.sin((progress * Math.PI) / 2);
+      const hopEnemy = entry.isDashing ? 0 : hopMax * Math.pow(progress, 0.8); // Less smooth easing
 
       const projEnemy = projectTileToScreen(entry.currentX, entry.currentY, params);
-      entry.container.zIndex = projEnemy.zDepth;
       const isHit = hitEffectIds.has(enemy.id);
-      setPosition(entry, projEnemy, isHit, hopEnemy, params.viewportWidth);
-      entry.icon.tint = isHit ? 0xffaaaa : 0xffffff;
+      setPosition(entry, projEnemy, isHit, hopEnemy, entry.currentX, entry.currentY, playerPos, lootDrops, visibleTilesSet);
+      
+      const intensity = getTileLightIntensity(entry.currentX, entry.currentY, playerPos, lootDrops, visibleTilesSet);
+      entry.icon.tint = getEntityTint(intensity); // RESTORE BASE TINT
+      if (isHit) {
+        entry.icon.tint = 0xffaaaa;
+      }
+      entry.flashSprite.tint = 0xffffff; // ensure flash/hover overlay is always pure white
       updateFlash(entry, key, isHit);
 
-        // Targeting ring (pulsing alpha fade)
+        // Hover and Targeting
         const isTargeted = enemy.id === activeTargetId;
-        const isHovered = showHoverRing && enemy.id === hoveredEnemyId;
-        if (isTargeted || isHovered) {
+        const isHovered = enemy.id === hoveredEnemyId; // highlight at any time
+        
+        // Handle Hover Tint
+        if (isHovered) {
+          entry.flashSprite.visible = true;
+          entry.flashSprite.alpha = 1.0; // Solid pure white overlay
+        }
+
+        // Handle Targeting Brackets
+        if (isTargeted) {
           entry.selectRing.visible = true;
-          const pulseAlpha = isTargeted
-            ? 0.4 + 0.5 * (Math.sin(Date.now() / 350) + 1) / 2
-            : 0.3 + 0.4 * (Math.sin(Date.now() / 450) + 1) / 2; // slightly different pulse for hover
-          const color = isTargeted ? 0xef4444 : 0xf87171; // red-500 vs red-400
-          const width = isTargeted ? 4 : 2;
           
           const iconW = entry.icon.width;
           const iconH = entry.icon.height;
-          // Sprite anchor is 0.5, 0.85. Center of sprite is -iconH * 0.35
-          const centerY = -iconH * 0.35;
-          const maxExtent = Math.max(iconW / 2, iconH / 2) + 2; // 2px padding
           
           entry.selectRing.clear();
-          entry.selectRing.rect(-maxExtent, centerY - maxExtent, maxExtent * 2, maxExtent * 2);
-          entry.selectRing.stroke({ color, alpha: pulseAlpha, width });
+          
+          // Animated Corner Brackets
+          const time = Date.now();
+          const bounce = (Math.sin(time / 250) + 1) / 2; // 0 to 1, slower pulse
+          
+          // Base extent relative to sprite size
+          const baseExtent = Math.max(iconW, iconH) * 0.45; // tighter to body
+          // Pulse outwards slightly
+          const extent = baseExtent + bounce * 6;
+          const len = 16; // Longer arms
+          
+          // Bracket center (with hop applied so they follow the jumping sprite)
+          const cy = -iconH * 0.4 - hopEnemy;
+          
+          // Pronounced alpha fading
+          const bracketAlpha = 0.3 + 0.7 * bounce; 
+          
+          // Top-Left
+          entry.selectRing.moveTo(-extent, cy - extent + len);
+          entry.selectRing.lineTo(-extent, cy - extent);
+          entry.selectRing.lineTo(-extent + len, cy - extent);
+          
+          // Top-Right
+          entry.selectRing.moveTo(extent - len, cy - extent);
+          entry.selectRing.lineTo(extent, cy - extent);
+          entry.selectRing.lineTo(extent, cy - extent + len);
+          
+          // Bottom-Right
+          entry.selectRing.moveTo(extent, cy + extent - len);
+          entry.selectRing.lineTo(extent, cy + extent);
+          entry.selectRing.lineTo(extent - len, cy + extent);
+          
+          // Bottom-Left
+          entry.selectRing.moveTo(-extent + len, cy + extent);
+          entry.selectRing.lineTo(-extent, cy + extent);
+          entry.selectRing.lineTo(-extent, cy + extent - len);
+          
+          entry.selectRing.stroke({ color: 0xef4444, width: 5, alpha: bracketAlpha });
         } else {
           entry.selectRing.visible = false;
         }
@@ -403,24 +471,28 @@ export function createEntityRenderer(): EntityRenderer {
     for (const drop of lootDrops) {
       const key = `loot:${drop.id}`;
       activeKeys.add(key);
+      let bestIcon = drop.items[0]?.icon ?? 'Sword';
+      let bestRarity = 'Normal';
+      const rv = { Normal: 0, Magic: 1, Rare: 2, Epic: 3, Legendary: 4, Unique: 5 } as Record<string, number>;
+      for (const item of drop.items) {
+        if ((rv[item.rarity] ?? 0) > (rv[bestRarity] ?? 0)) {
+          bestRarity = item.rarity;
+          bestIcon = item.icon ?? 'Sword';
+        }
+      }
       let entry = tracked.get(key);
       if (!entry) {
-        let bestIcon = drop.items[0]?.icon ?? 'Sword';
-        let bestRarity = 'Normal';
-        const rv = { Normal: 0, Magic: 1, Rare: 2, Epic: 3, Legendary: 4, Unique: 5 } as Record<string, number>;
-        for (const item of drop.items) {
-          if ((rv[item.rarity] ?? 0) > (rv[bestRarity] ?? 0)) {
-            bestRarity = item.rarity;
-            bestIcon = item.icon ?? 'Sword';
-          }
-        }
         const color = RARITY_COLORS[bestRarity] ?? '#a1a1aa';
         entry = makeEntitySprite(bestIcon, color, key, ENTITY_Z.loot, false);
       }
+      if (visibleTiles && !visibleTiles.has(`${drop.position.x},${drop.position.y}`)) {
+        hideEntry(entry);
+        continue;
+      }
       showEntry(entry);
       {
-        const proj = projectTileToScreen(drop.position.x, drop.position.y, params);
-        setPosition(entry, proj, false, 0, params.viewportWidth);
+        const projLoot = projectTileToScreen(drop.position.x, drop.position.y, params);
+        setPosition(entry, projLoot, false, 0, drop.position.x, drop.position.y, playerPos, lootDrops, visibleTilesSet);
 
         // Pulsing glow ring for loot
         if (entry.lootGlow) {
@@ -439,12 +511,17 @@ export function createEntityRenderer(): EntityRenderer {
       let entry = tracked.get(key);
       if (!entry) {
         const kind = obs.type === 'tree' ? 'trees' : obs.type === 'rock' ? 'mountain' : 'mountain';
-        entry = makeEntitySprite(kind, '#71717a', key, ENTITY_Z.obstacle, false);
+        const color = '#71717a';
+        entry = makeEntitySprite(kind, color, key, ENTITY_Z.obstacle, false);
+      }
+      if (visibleTiles && !visibleTiles.has(`${obs.x},${obs.y}`)) {
+        hideEntry(entry);
+        continue;
       }
       showEntry(entry);
       {
-        const proj = projectTileToScreen(obs.x, obs.y, params);
-        setPosition(entry, proj, false, 0, params.viewportWidth);
+        const projObs = projectTileToScreen(obs.x, obs.y, params);
+        setPosition(entry, projObs, false, 0, obs.x, obs.y, playerPos, lootDrops, visibleTilesSet);
       }
     }
 
@@ -459,5 +536,5 @@ export function createEntityRenderer(): EntityRenderer {
     sortByDepth();
   }
 
-  return { container, update: tick };
+  return { container, uiContainer, update: tick };
 }
