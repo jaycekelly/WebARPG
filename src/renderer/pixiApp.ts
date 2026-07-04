@@ -27,7 +27,7 @@ export async function getPixiApp(canvas: HTMLCanvasElement): Promise<Application
     const instance = new Application();
     await instance.init({
       canvas,
-      background: 0x111111,
+      background: 0x18181b,
       width: 800,
       height: 600,
       antialias: true,

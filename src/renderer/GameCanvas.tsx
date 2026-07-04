@@ -1,12 +1,13 @@
 import { useRef, useEffect } from 'react';
 import { createElement } from 'react';
-import { Container } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 import { getPixiApp, destroyPixiApp } from './pixiApp';
 import { createCamera } from './camera';
 import { createFloorRenderer } from './systems/renderFloor';
 import { createEntityRenderer } from './systems/renderEntities';
 import { createFloatingTextRenderer } from './systems/renderFloatingTexts';
-import { setupCanvasInput } from './input/canvasInput';
+import { createTargetingOverlayRenderer } from './systems/renderTargetingOverlay';
+import { setupCanvasInput, getClickTarget } from './input/canvasInput';
 import { useWorldStore } from '../store/useWorldStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useCombatStore } from '../store/useCombatStore';
@@ -19,13 +20,13 @@ import type { WorldPoint } from './input/canvasInput';
 
 const BASE_TILE_SIZE = 72;
 const BASE_GAP_SIZE = 1;
-const DEFAULT_ZOOM = 0.65;
+const DEFAULT_ZOOM = 1.2;
 const BASE_ICON_SIZE = 32;
 const REF_TILE_SIZE = BASE_TILE_SIZE * 0.55;
 const TEXTURE_SIZE = 128;
 
-const FLOOR_PERSPECTIVE_PX = 1400;
-const FLOOR_TILT_DEG = 50;
+const FLOOR_PERSPECTIVE_PX = 2500;
+const FLOOR_TILT_DEG = 52;
 
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -54,35 +55,11 @@ export function GameCanvas() {
         if (movementKeys.includes(key)) return;
       }
 
-      let dx = 0, dy = 0;
-      if (pressedKeys.current.has('w') || pressedKeys.current.has('arrowup'))    dy -= 1;
-      if (pressedKeys.current.has('s') || pressedKeys.current.has('arrowdown'))  dy += 1;
-      if (pressedKeys.current.has('a') || pressedKeys.current.has('arrowleft'))  dx -= 1;
-      if (pressedKeys.current.has('d') || pressedKeys.current.has('arrowright')) dx += 1;
-      if (pressedKeys.current.has('q')) { dx -= 1; dy -= 1; }
-      if (pressedKeys.current.has('e')) { dx += 1; dy -= 1; }
-      if (pressedKeys.current.has('z')) { dx -= 1; dy += 1; }
-      if (pressedKeys.current.has('c')) { dx += 1; dy += 1; }
-
-      dx = Math.sign(dx);
-      dy = Math.sign(dy);
-
-      if (dx !== 0 || dy !== 0) {
-        const player = usePlayerStore.getState();
-        const world = useWorldStore.getState();
-        const newX = player.position.x + dx;
-        const newY = player.position.y + dy;
-        if (newX >= 0 && newX < world.grid.width && newY >= 0 && newY < world.grid.height) {
-          const obstacle = world.grid.obstacles.find(o => o.x === newX && o.y === newY);
-          if (obstacle) return;
-          const enemy = world.getEnemyAt(newX, newY);
-          if (enemy && !enemy.isDead) {
-            if (player.activeTargetId !== enemy.id) player.setTarget(enemy.id);
-          } else {
-            InputHandler.requestAction({ type: 'move', dx, dy });
-          }
-        }
-      }
+      let hasMovementKeys = false;
+      const movementKeys = ['w','a','s','d','q','e','z','c','arrowup','arrowdown','arrowleft','arrowright'];
+      if (movementKeys.includes(key)) hasMovementKeys = true;
+      // We no longer trigger movement here to allow continuous sliding when skills are pressed.
+      // Movement is now requested every frame in the ticker.
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
@@ -147,19 +124,46 @@ export function GameCanvas() {
         const entities = createEntityRenderer();
         gameLayer.addChild(entities.container);
 
+        // Targeting range overlay (dims tiles outside effective range)
+        const targetingOverlay = createTargetingOverlayRenderer();
+        gameLayer.addChild(targetingOverlay.container);
+
         // Floating text in screen space (not affected by world/camera transforms)
         const floatingTexts = createFloatingTextRenderer();
         app.stage.addChild(floatingTexts.container);
+
+        // Pause overlay — blue tint with pulsing ring, shown during tactical pause
+        const pauseOverlay = new Graphics();
+        pauseOverlay.visible = false;
+        pauseOverlay.zIndex = 9000; // above game, below floating text (9999)
+        app.stage.addChild(pauseOverlay);
 
         // Canvas pointer input — click/hover on entities and tiles
         const world = useWorldStore.getState();
         const cam = createCamera();
 
+        // Per-frame state: which enemy is the mouse currently over
+        let hoveredEnemyId: string | null = null;
+        let hoveredTile: { x: number, y: number } | null = null;
+        let hoveredLootId: string | null = null;
+
         canvasInputCleanupRef.current = setupCanvasInput(
           canvas,
           () => projParamsRef.current!,
           {
+            onHover: (tile: WorldPoint | null) => {
+              // Track hovered enemy for target ring display
+              if (tile) {
+                const target = getClickTarget(tile.gx, tile.gy);
+                hoveredEnemyId = target.enemyId;
+                hoveredTile = { x: tile.gx, y: tile.gy };
+              } else {
+                hoveredEnemyId = null;
+                hoveredTile = null;
+              }
+            },
             onHoverLoot: (_tile: WorldPoint, lootId: string) => {
+              hoveredLootId = lootId;
               const drop = useWorldStore.getState().lootDrops.find(d => d.id === lootId);
               if (drop && drop.items.length > 0) {
                 useTooltipStore.getState().setContent(
@@ -168,6 +172,7 @@ export function GameCanvas() {
               }
             },
             onHoverLootEnd: () => {
+              hoveredLootId = null;
               useTooltipStore.getState().setContent(null);
             },
           },
@@ -182,30 +187,75 @@ export function GameCanvas() {
           const c = useCombatStore.getState();
           const a = useAppStore.getState();
 
-          if (a.location !== 'dungeon' || a.isPaused) {
+          if (a.location !== 'dungeon') {
             entities.container.visible = false;
             floor.container.visible = false;
+            targetingOverlay.container.visible = false;
             floatingTexts.container.visible = false;
+            pauseOverlay.visible = false;
             return;
           }
 
-          entities.container.visible = true;
-          floor.container.visible = true;
-          floatingTexts.container.visible = true;
-
-          const gridKey2 = `${w.grid.width}x${w.grid.height}:${w.grid.obstacles.length}`;
-          if (gridKey2 !== lastGridKey) {
-            floor.rebuild(w.grid);
-            lastGridKey = gridKey2;
+          // If we were hovering loot, check if it still exists
+          if (hoveredLootId) {
+            const stillExists = w.lootDrops.some(d => d.id === hoveredLootId);
+            if (!stillExists) {
+              hoveredLootId = null;
+              useTooltipStore.getState().setContent(null);
+            }
           }
 
-          // Reference-resolution scaling: 720p is the baseline.
-          // At 1440p you get 2× the pixels for the same world view.
-          // TODO: future options menu will let the player pick from preset zoom levels.
+          // Process held movement keys
+          if (!a.isPaused) {
+            let dx = 0, dy = 0;
+            if (pressedKeys.current.has('w') || pressedKeys.current.has('arrowup'))    dy -= 1;
+            if (pressedKeys.current.has('s') || pressedKeys.current.has('arrowdown'))  dy += 1;
+            if (pressedKeys.current.has('a') || pressedKeys.current.has('arrowleft'))  dx -= 1;
+            if (pressedKeys.current.has('d') || pressedKeys.current.has('arrowright')) dx += 1;
+            if (pressedKeys.current.has('q')) { dx -= 1; dy -= 1; }
+            if (pressedKeys.current.has('e')) { dx += 1; dy -= 1; }
+            if (pressedKeys.current.has('z')) { dx -= 1; dy += 1; }
+            if (pressedKeys.current.has('c')) { dx += 1; dy += 1; }
+
+            dx = Math.sign(dx);
+            dy = Math.sign(dy);
+
+            if (dx !== 0 || dy !== 0) {
+              const newX = p.position.x + dx;
+              const newY = p.position.y + dy;
+              if (newX >= 0 && newX < w.grid.width && newY >= 0 && newY < w.grid.height) {
+                const obstacle = w.grid.obstacles.find(o => o.x === newX && o.y === newY);
+                if (!obstacle) {
+                  const enemy = w.getEnemyAt(newX, newY);
+                  if (enemy && !enemy.isDead) {
+                    if (p.activeTargetId !== enemy.id) p.setTarget(enemy.id);
+                  } else {
+                    InputHandler.requestAction({ type: 'move', dx, dy });
+                  }
+                }
+              }
+            }
+          }
+
+          // All game layers visible in dungeon (even during pause — frozen world)
+          entities.container.visible = true;
+          floor.container.visible = true;
+          targetingOverlay.container.visible = true;
+          floatingTexts.container.visible = true;
+
+          // Grid rebuild (skip during pause — grid doesn't change while frozen)
+          if (!a.isPaused) {
+            const gridKey2 = `${w.grid.width}x${w.grid.height}:${w.grid.obstacles.length}`;
+            if (gridKey2 !== lastGridKey) {
+              floor.rebuild(w.grid);
+              lastGridKey = gridKey2;
+            }
+          }
+
+          // Camera + projection (safe during pause — purely reactive to player pos)
           const cssHeight = app.renderer.height / (window.devicePixelRatio || 1);
           const resScale = cssHeight / 720;
-          const gameScale = 1.0 * resScale; // locked to default zoom for now
-
+          const gameScale = 1.0 * resScale;
           const tileSize = BASE_TILE_SIZE * gameScale * DEFAULT_ZOOM;
           const totalTileSize = tileSize + BASE_GAP_SIZE;
 
@@ -244,13 +294,52 @@ export function GameCanvas() {
           };
           projParamsRef.current = projParams;
 
-          const hitEffectIds = new Set<string>(c.hitEffects.map(h => h.targetId));
-          const playerHit = c.hitEffects.some(h => h.targetId === 'player');
-
-          // No global screen shake — entities shake individually on hit
-
           const iconSize = BASE_ICON_SIZE * (tileSize / REF_TILE_SIZE);
           const baseScale = iconSize / TEXTURE_SIZE;
+
+          // Show hover target ring during targeting mode or tactical pause
+          const showHoverRing = !!c.targetingSkillId || a.isPaused;
+
+          if (a.isPaused) {
+            // Blue tint over frozen game world — very subtle
+            const { width, height } = app.renderer;
+            const ringAlpha = 0.15 + 0.15 * (Math.sin(Date.now() / 1200) + 1) / 2;
+            pauseOverlay.visible = true;
+            pauseOverlay.clear();
+            pauseOverlay.rect(0, 0, width, height);
+            pauseOverlay.fill({ color: 0x0e3a5c, alpha: 0.06 });
+            const rw = 8;
+            pauseOverlay.rect(rw / 2, rw / 2, width - rw, height - rw);
+            pauseOverlay.fill({ color: 0x0ea5e9, alpha: ringAlpha * 0.15 });
+            pauseOverlay.rect(rw / 2, rw / 2, width - rw, height - rw);
+            pauseOverlay.stroke({ color: 0x0ea5e9, alpha: ringAlpha, width: rw });
+
+            // Render entities (frozen) with hover target ring support
+            entities.update(
+              projParams,
+              baseScale,
+              p.position,
+              false, // no player hit effect during pause
+              w.enemies,
+              p.activeTargetId,
+              w.lootDrops,
+              w.grid.obstacles,
+              new Set(), // no hit effects during pause
+              hoveredEnemyId,
+              true, // showHoverRing during pause
+            );
+
+            // Targeting overlay: still works during pause for skill aiming
+            targetingOverlay.update(projParams, p.position, c.targetingSkillId, hoveredTile, w.grid.obstacles);
+
+            // No floating text update during pause
+            return;
+          }
+
+          pauseOverlay.visible = false;
+
+          const hitEffectIds = new Set<string>(c.hitEffects.map(h => h.targetId));
+          const playerHit = c.hitEffects.some(h => h.targetId === 'player');
 
           entities.update(
             projParams,
@@ -262,7 +351,12 @@ export function GameCanvas() {
             w.lootDrops,
             w.grid.obstacles,
             hitEffectIds,
+            hoveredEnemyId,
+            showHoverRing,
           );
+
+          // Targeting overlay: dim tiles outside effective range
+          targetingOverlay.update(projParams, p.position, c.targetingSkillId, hoveredTile, w.grid.obstacles);
 
           floatingTexts.update(projParams);
         });
@@ -276,6 +370,9 @@ export function GameCanvas() {
     return () => {
       cancelled = true;
       mountCountRef.current--;
+
+      // Clear any lingering tooltips from canvas hover
+      useTooltipStore.getState().setContent(null);
 
       // Clean up canvas input listeners
       if (canvasInputCleanupRef.current) {

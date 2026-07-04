@@ -9,7 +9,7 @@ import { useAppStore } from '../../store/useAppStore';
 const FLOAT_DURATION_MS = 800;
 const FADE_START_MS = 500; // Start fading after 500ms
 const FLOAT_DISTANCE = 40; // Total upward pixels over lifetime
-const FLOAT_OFFSET_Y = -30; // Vertical offset from entity at spawn
+const FLOAT_OFFSET_Y = -128; // Vertical offset from entity at spawn
 
 // Tailwind → hex color mapping
 const COLOR_MAP: Record<string, string> = {
@@ -82,7 +82,6 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
 
       let entry = tracked.get(ft.id);
       if (!entry) {
-        const projected = projectTileToScreen(ft.x, ft.y, params);
         const text = createText(ft.text, ft.color);
         text.anchor.set(0.5, 0.5);
         container.addChild(text);
@@ -91,11 +90,16 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
           text,
           id: ft.id,
           spawnTime: now,
-          screenX: Math.round(projected.screenX),
-          screenY: Math.round(projected.screenY + FLOAT_OFFSET_Y),
+          screenX: 0,
+          screenY: 0,
         };
         tracked.set(ft.id, entry);
       }
+
+      // Re-project screen position every frame so text follows entity as camera moves
+      const projected = projectTileToScreen(ft.x, ft.y, params);
+      const baseX = Math.round(projected.screenX);
+      const baseY = Math.round(projected.screenY + FLOAT_OFFSET_Y);
 
       // Compute lifetime progress
       const age = now - entry.spawnTime;
@@ -103,7 +107,8 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
 
       // Float upward — round Y to pixel boundary to prevent blur
       const floatY = -FLOAT_DISTANCE * progress;
-      const currentY = Math.round(entry.screenY + floatY);
+      const currentX = Math.round(baseX);
+      const currentY = Math.round(baseY + floatY);
 
       // Fade out in last portion of lifetime
       let alpha = 1;
@@ -112,7 +117,7 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
         alpha = Math.max(0, 1 - fadeProgress);
       }
 
-      entry.text.position.set(entry.screenX, currentY);
+      entry.text.position.set(currentX, currentY);
       entry.text.alpha = alpha;
     }
 

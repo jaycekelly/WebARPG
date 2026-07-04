@@ -143,6 +143,8 @@ export class ItemGenerator {
       // Ensure it's at least 1 for flat/increased stats
       if (finalValue < 1) finalValue = 1;
       
+      // Templates in data/affixes already define their own '+' signs where appropriate.
+      // E.g. '+{value} Strength', so injecting a '+' here causes '++2 Strength'.
       const description = affixTemplate.descriptionTpl.replace('{value}', finalValue.toString());
       
       selectedAffixes.push({

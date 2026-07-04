@@ -190,6 +190,14 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
   bindSkill: (slotIndex, skillId) => set((state) => {
     const newBound = [...state.boundSkills];
+    // Auto-clear the same skill from any other slot (prevent duplicates)
+    if (skillId !== null) {
+      for (let i = 0; i < newBound.length; i++) {
+        if (i !== slotIndex && newBound[i] === skillId) {
+          newBound[i] = null;
+        }
+      }
+    }
     newBound[slotIndex] = skillId;
     return { boundSkills: newBound };
   }),

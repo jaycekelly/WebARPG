@@ -7,14 +7,14 @@ export const ACCESSORIES: Record<string, ItemTemplate> = {
   bronze_ring: {
     id: 'bronze_ring',
     name: 'Bronze Ring',
-    icon: 'ArrowUpCircle', // Fallback icon
+    icon: 'Circle',
     itemType: 'ring',
     baseStats: [Stat('PhysicalResist', 15)],
   },
   silver_ring: {
     id: 'silver_ring',
     name: 'Silver Ring',
-    icon: 'ArrowUpCircle',
+    icon: 'Circle',
     itemType: 'ring',
     baseStats: [Stat('AllElementalResist', 10)],
   },
@@ -26,14 +26,14 @@ export const ACCESSORIES: Record<string, ItemTemplate> = {
   ruby_amulet: {
     id: 'ruby_amulet',
     name: 'Ruby Amulet',
-    icon: 'ArrowUpCircle',
+    icon: 'Circle',
     itemType: 'amulet',
     baseStats: [Stat('Health', 20)],
   },
   sapphire_amulet: {
     id: 'sapphire_amulet',
     name: 'Sapphire Amulet',
-    icon: 'ArrowUpCircle',
+    icon: 'Circle',
     itemType: 'amulet',
     baseStats: [Stat('Mana', 20)],
   },

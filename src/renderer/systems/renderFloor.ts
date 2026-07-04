@@ -3,8 +3,8 @@ import type { GridMap, GroundZone } from '../../store/useWorldStore';
 import { projectTileToScreen } from '../../engine/world/screenProjection';
 import type { ProjectionParams } from '../../engine/world/screenProjection';
 
-const FLOOR_PERSPECTIVE_PX = 1400;
-const FLOOR_TILT_DEG = 50;
+const FLOOR_PERSPECTIVE_PX = 2500;
+const FLOOR_TILT_DEG = 52;
 const BASE_TILE_SIZE = 72;
 
 const COLOR_FLOOR_BG = 0x18181b;
@@ -38,22 +38,23 @@ export function createFloorRenderer(): FloorRenderer {
   const container = new Container();
 
   // Layer 0: floor background fill
-  const bgLayer = new Container();
+  const bgLayer = new Graphics();
   // Layer 1: zone effects
   const zoneLayer = new Container();
   // Layer 2: grid lines
-  const gridLines = new Graphics();
+  const gridLinesContainer = new Container();
+  const rowGridLines: Graphics[] = [];
 
   container.addChild(bgLayer);
   container.addChild(zoneLayer);
-  container.addChild(gridLines);
+  container.addChild(gridLinesContainer);
 
   let lastPanKey = '';
 
   // ---- Depth tint helpers ----------------------------------------------------
-  function depthFactor(zDepth: number): number {
-    const raw = Math.max(-800, Math.min(0, zDepth)) / -800;
-    return 0.05 + raw * 0.35;
+  function depthFactor(row: number, totalRows: number): number {
+    const ratio = 1 - (row / totalRows);
+    return 0.05 + Math.max(0, Math.min(1, ratio)) * 0.5;
   }
 
   function dimColor(hex: number, factor: number): number {
@@ -73,7 +74,6 @@ export function createFloorRenderer(): FloorRenderer {
     params: ProjectionParams,
     g: GridMap,
   ) {
-    gridLines.clear();
     const gridAlpha = 0.3;
 
     // Helper: project a tile corner to screen
@@ -81,67 +81,62 @@ export function createFloorRenderer(): FloorRenderer {
       return projectTileToScreen(col - 0.5, row - 0.5, params);
     }
 
-    // Draw horizontal grid lines (one per row boundary)
+    // Ensure we have a Graphics object for each row + 1 for the bottom edge
+    while (rowGridLines.length <= g.height) {
+      const gl = new Graphics();
+      gridLinesContainer.addChild(gl);
+      rowGridLines.push(gl);
+    }
+
+    // Draw horizontal grid lines and vertical segments per row boundary
     for (let row = 0; row <= g.height; row++) {
-      gridLines.moveTo(
+      const gl = rowGridLines[row];
+      gl.clear();
+
+      // Horizontal line
+      gl.moveTo(
         projCorner(0, row).screenX,
         projCorner(0, row).screenY,
       );
       for (let col = 1; col <= g.width; col++) {
         const p = projCorner(col, row);
-        gridLines.lineTo(p.screenX, p.screenY);
+        gl.lineTo(p.screenX, p.screenY);
       }
-      // Average zDepth for this row to compute tint
-      const midP = projectTileToScreen(g.width / 2, row - 0.5, params);
-      const dim = depthFactor(midP.zDepth);
-      const color = dimColor(COLOR_GRID_LINE, dim);
-      gridLines.stroke({ color, alpha: gridAlpha, width: 1 });
-    }
 
-    // Draw vertical grid lines (one per column boundary)
-    for (let col = 0; col <= g.width; col++) {
-      gridLines.moveTo(
-        projCorner(col, 0).screenX,
-        projCorner(col, 0).screenY,
-      );
-      for (let row = 1; row <= g.height; row++) {
-        const p = projCorner(col, row);
-        gridLines.lineTo(p.screenX, p.screenY);
+      // Vertical line segments going downwards (only if not the last row)
+      if (row < g.height) {
+        for (let col = 0; col <= g.width; col++) {
+          const p1 = projCorner(col, row);
+          const p2 = projCorner(col, row + 1);
+          gl.moveTo(p1.screenX, p1.screenY);
+          gl.lineTo(p2.screenX, p2.screenY);
+        }
       }
-      const midP = projectTileToScreen(col - 0.5, g.height / 2, params);
-      const dim = depthFactor(midP.zDepth);
-      const color = dimColor(COLOR_GRID_LINE, dim);
-      gridLines.stroke({ color, alpha: gridAlpha, width: 1 });
+
+      const color = 0x3f3f46; // Static dark gray
+      gl.stroke({ color, alpha: gridAlpha, width: 1 });
     }
   }
 
-  // ---- Draw floor background fills (one per row for depth tint) --------------
+  // ---- Draw floor background fills -------------------------------------------
   function drawFloorBg(
     params: ProjectionParams,
     g: GridMap,
   ) {
-    bgLayer.removeChildren();
+    bgLayer.clear();
 
-    // Draw one filled quad per row of tiles for depth-based coloring
-    for (let row = 0; row < g.height; row++) {
-      const tl = projectTileToScreen(-0.5, row - 0.5, params);
-      const tr = projectTileToScreen(g.width - 0.5, row - 0.5, params);
-      const br = projectTileToScreen(g.width - 0.5, row + 0.5, params);
-      const bl = projectTileToScreen(-0.5, row + 0.5, params);
+    const tl = projectTileToScreen(-0.5, -0.5, params);
+    const tr = projectTileToScreen(g.width - 0.5, -0.5, params);
+    const br = projectTileToScreen(g.width - 0.5, g.height - 0.5, params);
+    const bl = projectTileToScreen(-0.5, g.height - 0.5, params);
 
-      const gr = new Graphics();
-      gr.moveTo(tl.screenX, tl.screenY);
-      gr.lineTo(tr.screenX, tr.screenY);
-      gr.lineTo(br.screenX, br.screenY);
-      gr.lineTo(bl.screenX, bl.screenY);
-      gr.closePath();
-
-      const mid = projectTileToScreen(g.width / 2, row, params);
-      const dim = depthFactor(mid.zDepth);
-      gr.fill({ color: dimColor(COLOR_FLOOR_BG, dim) });
-
-      bgLayer.addChild(gr);
-    }
+    bgLayer.poly([
+      tl.screenX, tl.screenY,
+      tr.screenX, tr.screenY,
+      br.screenX, br.screenY,
+      bl.screenX, bl.screenY
+    ]);
+    bgLayer.fill({ color: COLOR_FLOOR_BG });
   }
 
   // ---- Per-frame update -----------------------------------------------------

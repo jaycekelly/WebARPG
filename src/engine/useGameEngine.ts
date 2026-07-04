@@ -160,7 +160,15 @@ export function useGameEngine() {
         const skill = SKILLS[castingSkillId];
         if (skill) {
           combatState.setLastAttackAnimationTime(now);
-          SkillExecutor.execute(skill, combatState.castTargetId, combatState.castTargetPos);
+          // Resolve target position at cast-finish time so targeted spells home
+          let execTargetPos = combatState.castTargetPos;
+          if (combatState.castTargetId) {
+            const currentTarget = worldState.enemies.find(e => e.id === combatState.castTargetId);
+            if (currentTarget && !currentTarget.isDead) {
+              execTargetPos = currentTarget.position;
+            }
+          }
+          SkillExecutor.execute(skill, combatState.castTargetId, execTargetPos);
           combatState.triggerGcd(getEffectiveGcd(skill));
         }
         setCasting(null);
@@ -361,15 +369,13 @@ export function useGameEngine() {
             if (enemy.groupId) groupsToAggro.add(enemy.groupId);
           }
         } else {
-          // Hysteresis: Enemies cannot gain aggro if they are outside their home territory.
+          // Enemies gain aggro based purely on proximity (no line-of-sight gate)
           const distFromSpawn = getChebyshevDistance(enemy.position, enemy.spawnOrigin);
           if (distFromSpawn <= 2) {
              const distToPlayer = getChebyshevDistance(enemy.position, position);
              if (distToPlayer <= enemy.stats.aggroRange) {
-               if (hasLineOfSight(enemy.position, position, isSolid)) {
-                 if (enemy.groupId) groupsToAggro.add(enemy.groupId);
-                 else enemiesToAggro.add(enemy.id);
-               }
+               if (enemy.groupId) groupsToAggro.add(enemy.groupId);
+               else enemiesToAggro.add(enemy.id);
              }
           }
         }

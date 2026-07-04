@@ -27,7 +27,7 @@ export function ItemTooltip({ item }: Props) {
   const { getStat } = useStatsStore();
   
   return (
-    <div className="bg-surface-overlay border border-border-strong shadow-2xl rounded-lg py-2 px-3 w-64 backdrop-blur-md text-sm">
+    <div className="bg-surface-overlay border border-border-strong shadow-2xl rounded-lg pt-1 pb-2 px-3 w-64 backdrop-blur-md text-sm">
       <div className={cn("font-bold text-base tracking-tight", RARITY_COLORS[item.rarity])}>
         {item.name}
       </div>
@@ -76,7 +76,7 @@ export function ItemTooltip({ item }: Props) {
       )}
 
       {item.affixes.length > 0 && (
-        <div className="space-y-1 pt-2 border-t border-border-subtle">
+        <div className="space-y-1 pt-1.5 mt-2.5 border-t border-border-subtle">
           {item.affixes.map((affix) => (
             <div key={affix.id} className="text-blue-500">
               {affix.description}

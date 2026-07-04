@@ -11,7 +11,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 6,
     levelMultiplier: 0.05,
-    descriptionTpl: '+{value} Maximum Health',
+    descriptionTpl: '+{value} Max Health',
     exclusivityGroup: 'MaxHealth'
   },
   {
@@ -23,7 +23,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 4,
     levelMultiplier: 0.04,
-    descriptionTpl: '{value}% Increased Maximum Health',
+    descriptionTpl: '+{value}% Maximum Health',
     exclusivityGroup: 'MaxHealth'
   },
   
@@ -35,7 +35,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 10,
     levelMultiplier: 0.05,
-    descriptionTpl: '{value}% Health Regen',
+    descriptionTpl: '+{value}% Health Regen',
     exclusivityGroup: 'HealthRegen'
   },
   
@@ -49,7 +49,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 4,
     levelMultiplier: 0.05,
-    descriptionTpl: '+{value} Maximum Mana',
+    descriptionTpl: '+{value} Max Mana',
     exclusivityGroup: 'MaxMana'
   },
   {
@@ -61,7 +61,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 3,
     levelMultiplier: 0.04,
-    descriptionTpl: '{value}% Increased Maximum Mana',
+    descriptionTpl: '+{value}% Max Mana',
     exclusivityGroup: 'MaxMana'
   },
   {
@@ -74,7 +74,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 10,
     levelMultiplier: 0.05,
-    descriptionTpl: '{value}% Mana Regen',
+    descriptionTpl: '+{value}% Mana Regen',
     exclusivityGroup: 'ManaRegen'
   },
   
@@ -98,7 +98,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.03,
-    descriptionTpl: '{value}% Increased Armor',
+    descriptionTpl: '+{value}% Armor',
     exclusivityGroup: 'Armor'
   },
 
@@ -113,7 +113,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 5,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Fire Resistance'
+    descriptionTpl: '+{value}% Fire Resistance'
   },
   {
     id: 'flat_cold_resist',
@@ -123,7 +123,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 5,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Cold Resistance'
+    descriptionTpl: '+{value}% Cold Resistance'
   },
   {
     id: 'flat_lightning_resist',
@@ -133,7 +133,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 5,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Lightning Resistance'
+    descriptionTpl: '+{value}% Lightning Resistance'
   },
   {
     id: 'flat_strike_resist',
@@ -143,7 +143,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 5,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Strike Resistance'
+    descriptionTpl: '+{value}% Strike Resistance'
   },
   {
     id: 'flat_pierce_resist',
@@ -153,7 +153,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 5,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Pierce Resistance'
+    descriptionTpl: '+{value}% Pierce Resistance'
   },
   {
     id: 'flat_phys_resist',
@@ -163,7 +163,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 5,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Physical Resistance'
+    descriptionTpl: '+{value}% Physical Resistance'
   },
 
   // ----------------------------------------------------

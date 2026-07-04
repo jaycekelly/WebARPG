@@ -10,6 +10,7 @@ export const ATTRIBUTE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 2,
     levelMultiplier: 0.5,
+	weight: 200,
     descriptionTpl: '+{value} Strength',
     exclusivityGroup: 'Attribute'
   },
@@ -22,6 +23,7 @@ export const ATTRIBUTE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 2,
     levelMultiplier: 0.5,
+	weight: 200,
     descriptionTpl: '+{value} Dexterity',
     exclusivityGroup: 'Attribute'
   },
@@ -34,6 +36,7 @@ export const ATTRIBUTE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 2,
     levelMultiplier: 0.5,
+	weight: 200,
     descriptionTpl: '+{value} Intelligence',
     exclusivityGroup: 'Attribute'
   }

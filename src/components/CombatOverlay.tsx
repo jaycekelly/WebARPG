@@ -79,8 +79,31 @@ export function CombatOverlay() {
   // const isOffTimerActive = hasOffHandWeapon && timeSinceOffAttack < offHandCooldown;
 
   // Global Keyboard Shortcuts
+  // Click outside bind slot — close it
+  useEffect(() => {
+    if (bindingSlotIndex === null) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Don't close if clicking inside the bind menu
+      if (target.closest('.skill-bind-menu')) return;
+      setBindingSlotIndex(null);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [bindingSlotIndex]);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Esc in CombatOverlay: close bind slot first, then let App handle the rest
+      if (e.key === 'Escape') {
+        if (bindingSlotIndex !== null) {
+          setBindingSlotIndex(null);
+          return;
+        }
+        // If no bind slot open, let App.tsx handle Esc (cast cancel, targeting, windows, etc.)
+        return;
+      }
+
       // Handle Tab targeting
       if (e.key === 'Tab') {
         e.preventDefault(); // Prevent browser UI focus shift
@@ -190,19 +213,15 @@ export function CombatOverlay() {
 
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between px-8 py-4 z-10">
-      {isPaused && (
-        <div className="absolute inset-0 pointer-events-none ring-[0.5rem] ring-sky-500/30 bg-sky-900/10 z-0 animate-pulse transition-all"></div>
-      )}
-      
       {/* Target Frame (Top Center) */}
       <div className="flex justify-center pointer-events-none">
         {target && (
-          <div className="bg-surface-base border border-border-subtle shadow-2xl rounded-lg p-3 pr-8 flex items-center gap-4 min-w-[17.5rem] relative pointer-events-auto">
+          <div className="bg-surface-deep border-2 border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.15)] rounded-lg p-3 pr-8 flex items-center gap-4 min-w-[17.5rem] relative pointer-events-auto animate-[fadeIn_0.3s_ease-out]">
             <button onClick={() => setTarget(null)} className="absolute top-3 right-3 text-text-secondary hover:text-text-primary transition-colors">
               <X className="w-4 h-4" />
             </button>
-            <div className="w-11 h-11 bg-red-950 rounded border border-red-800 flex items-center justify-center shadow-inner flex-shrink-0">
-              <Crosshair className="text-red-500 w-6 h-6 animate-[spin_4s_linear_infinite]" />
+            <div className="w-11 h-11 bg-red-950 rounded border-2 border-red-800 flex items-center justify-center shadow-inner flex-shrink-0">
+              <Crosshair className="text-red-500 w-6 h-6" />
             </div>
             <div className="flex-1 flex flex-col justify-center pb-0.5">
               <div className="font-bold text-text-primary text-sm mb-1.5 leading-none">{target.name}</div>
@@ -241,7 +260,7 @@ export function CombatOverlay() {
         {/* Timers Container */}
         <div className="flex flex-col items-center gap-1 w-64 pointer-events-auto">
           {isPaused && (
-            <div className="text-sky-400 font-bold text-xs uppercase tracking-widest animate-pulse drop-shadow-md mb-1">
+            <div className="absolute -top-24 left-1/2 -translate-x-1/2 text-sky-400 font-black text-lg uppercase tracking-widest animate-pulse drop-shadow-lg pointer-events-none w-max">
               Tactical Pause
             </div>
           )}
@@ -297,7 +316,7 @@ export function CombatOverlay() {
                     )}
                   </div>
                   {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-surface-overlay border border-border-strong rounded p-2 text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-2xl">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-surface-overlay border border-border-strong rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-2xl">
                     <div className={`font-bold mb-1 ${buff.type === 'buff' ? 'text-sky-400' : 'text-red-500'}`}>{buff.name}</div>
                     {buff.durationMs ? (
                        <div className="text-text-secondary mb-1 font-mono">{(buff.durationMs / 1000).toFixed(1)}s remaining</div>
@@ -341,7 +360,7 @@ export function CombatOverlay() {
             </div>
 
             {/* Flask Button */}
-            <div className="absolute -bottom-0 -left-4 z-30">
+            <div className="absolute bottom-[3px] -left-5 z-30">
                <button 
                  className={`relative w-10 h-10 rounded-full border flex items-center justify-center transition-all focus:outline-none focus:ring-0
                    ${flaskCharges >= 1 ? 'bg-zinc-900 border-border-subtle hover:border-border-strong hover:bg-zinc-800' : 'bg-zinc-900 border-border-subtle cursor-not-allowed'}
@@ -369,7 +388,7 @@ export function CombatOverlay() {
                    }
                  }}
                  onMouseEnter={() => setContent(
-                  <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 text-left pointer-events-none">
+                  <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none">
                     <div className="font-bold text-red-400 mb-1">
                       Healing Flask
                     </div>
@@ -388,21 +407,24 @@ export function CombatOverlay() {
                >
                   <FlaskConical className="w-5 h-5 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] z-10" />
                   <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 text-[0.75rem] font-black text-text-primary z-10 px-1">{Math.floor(flaskCharges)}</span>
-                   <span className="absolute top-1/2 -left-4 -translate-y-1/2 text-[0.625rem] font-bold text-text-secondary z-10 px-1.5 bg-surface-deep rounded border border-border-subtle">{`R`}</span>
+                   <span className="absolute top-1/2 -left-4 -translate-y-1/2 text-xs font-bold text-text-secondary z-10 px-1.5 py-0.5 bg-surface-deep rounded border border-border-subtle">{`R`}</span>
                </button>
             </div>
           </div>
 
           {/* Center Console (XP + Action Bar + Hotkeys) */}
-          <div className="flex flex-col mx-4 z-10 w-fit gap-1 relative">
+          <div className="flex flex-col mx-4 z-30 w-fit gap-1 relative">
             
 
             {/* XP Bar */}
             <div className="flex items-center w-full px-1.5 relative mb-[-0.125rem]">
-               <div className="absolute left-2 -top-5 z-20">
-                  <span className="text-[0.75rem] text-white font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
-                     {level}
-                  </span>
+               <div className="absolute -left-1 -top-3.5 z-20">
+                  <div className="relative flex items-center justify-center w-5 h-5">
+                    <div className="absolute inset-0 bg-surface-deep border border-border-subtle rotate-45 rounded-sm" />
+                    <span className="relative text-[0.6875rem] text-white font-bold drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+                       {level}
+                    </span>
+                  </div>
                </div>
                <div className="relative flex-1 h-[0.5rem] bg-surface-deep overflow-hidden border border-border-subtle rounded-sm w-full">
                   <div 
@@ -505,7 +527,7 @@ export function CombatOverlay() {
                       onMouseEnter={() => {
                         if (!isBinding && skill) {
                           setContent(
-                            <div className="w-48 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 text-left pointer-events-none">
+                            <div className="w-48 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none">
                               <div className="font-bold text-sky-400 mb-1">{skill.name}</div>
                               <div className="flex justify-between text-[0.625rem] text-text-secondary mb-2 pb-1 border-b border-border-subtle uppercase tracking-widest">
                                  <span>{skill.range > 0 ? `Range ${skill.range}` : 'Melee'}</span>
@@ -566,8 +588,8 @@ export function CombatOverlay() {
 
                     {/* Skill Binding Menu */}
                     {isBinding && (
-                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-surface-base border border-border-strong rounded-lg shadow-xl z-50">
-                        <div className="p-2 border-b border-border-subtle bg-surface-base rounded-t-lg">
+                      <div className="skill-bind-menu absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-surface-deep border border-border-strong rounded-lg shadow-2xl z-[100]">
+                        <div className="p-2 border-b border-border-subtle bg-surface-deep rounded-t-lg">
                           <h3 className="text-xs font-bold text-accent">Bind Skill to Slot {index + 1}</h3>
                         </div>
                         <div className="p-1 max-h-48 overflow-y-auto">
@@ -575,19 +597,16 @@ export function CombatOverlay() {
                             const act = SKILLS[actId];
                             if (!act) return null;
                             const ActIcon = ICONS[act.icon] || Flame;
-                            const isBound = boundSkills.includes(act.id);
                             return (
                               <button
                                 key={act.id}
                                 className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors
-                                  ${isBound ? 'opacity-50 cursor-not-allowed text-text-muted' : 'hover:bg-surface-raised text-text-secondary hover:text-text-primary'}
+                                  hover:bg-surface-raised text-text-secondary hover:text-text-primary
                                 `}
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (!isBound) {
-                                    bindSkill(index, act.id);
-                                    setBindingSlotIndex(null);
-                                  }
+                                  bindSkill(index, act.id);
+                                  setBindingSlotIndex(null);
                                 }}
                               >
                                 <ActIcon className="w-4 h-4 text-sky-400" />
@@ -614,7 +633,7 @@ export function CombatOverlay() {
             <div className="flex gap-1.5 justify-center -mt-[0.0625rem]">
                {boundSkills.slice(0, 8).map((_, index) => (
                   <div key={`keybind-${index}`} className="w-12 flex justify-center">
-                      <span className="bg-surface-deep border border-border-subtle text-[0.625rem] font-bold text-text-secondary px-2 py-0.5 rounded">
+                      <span className="bg-surface-deep border border-border-subtle text-xs font-bold text-text-secondary px-2 py-1 rounded">
                        {index + 1}
                      </span>
                   </div>
@@ -643,7 +662,7 @@ export function CombatOverlay() {
       
 {/* UI Window Toggles (Bottom Right) */}
       <div className="absolute bottom-3 right-3 pointer-events-auto z-50 flex gap-2">
-        <button 
+        <button
           onClick={() => {
             const appState = useAppStore.getState();
             if (appState.characterWindowOpen && appState.characterWindowTab === 'inventory') {
@@ -653,14 +672,18 @@ export function CombatOverlay() {
               appState.setCharacterWindowOpen(true);
             }
           }}
-          className="w-12 h-12 bg-surface-base border border-border-subtle text-text-secondary hover:text-accent hover:border-accent rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group"
+          className={`w-12 h-12 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group ${
+            useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'inventory')
+              ? 'text-accent border-accent bg-surface-deep'
+              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
+          }`}
           title="Inventory (I)"
         >
-          <Backpack className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <Backpack className="w-5 h-5" />
           <span className="text-[0.5625rem] font-bold">INV</span>
         </button>
 
-        <button 
+        <button
           onClick={() => {
             const appState = useAppStore.getState();
             if (appState.characterWindowOpen && appState.characterWindowTab === 'stats') {
@@ -670,10 +693,14 @@ export function CombatOverlay() {
               appState.setCharacterWindowOpen(true);
             }
           }}
-          className="w-12 h-12 bg-surface-base border border-border-subtle text-text-secondary hover:text-accent hover:border-accent rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative"
+          className={`w-12 h-12 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
+            useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'stats')
+              ? 'text-accent border-accent bg-surface-deep'
+              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
+          }`}
           title="Character Stats (C)"
         >
-          <User className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <User className="w-5 h-5" />
           <span className="text-[0.5625rem] font-bold">CHAR</span>
           {usePlayerStore(state => state.attributePoints) > 0 && (
              <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse">
@@ -682,7 +709,7 @@ export function CombatOverlay() {
           )}
         </button>
 
-        <button 
+        <button
           onClick={() => {
             const appState = useAppStore.getState();
             if (appState.characterWindowOpen && appState.characterWindowTab === 'skills') {
@@ -692,10 +719,14 @@ export function CombatOverlay() {
               appState.setCharacterWindowOpen(true);
             }
           }}
-          className="w-12 h-12 bg-surface-base border border-border-subtle text-text-secondary hover:text-accent hover:border-accent rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative"
+          className={`w-12 h-12 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
+            useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'skills')
+              ? 'text-accent border-accent bg-surface-deep'
+              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
+          }`}
           title="Skills"
         >
-          <BookOpen className="w-5 h-5 group-hover:scale-110 transition-transform" />
+          <BookOpen className="w-5 h-5" />
           <span className="text-[0.5625rem] font-bold">SKILLS</span>
           {usePlayerStore(state => state.skillPoints) > 0 && (
              <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse">

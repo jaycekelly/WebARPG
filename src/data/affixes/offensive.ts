@@ -23,7 +23,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 4,
     levelMultiplier: 0.02,
-    descriptionTpl: '{value}% Increased Damage',
+    descriptionTpl: '+{value}% Damage',
     exclusivityGroup: 'Damage'
   },
 
@@ -39,7 +39,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.03,
-    descriptionTpl: '{value}% Increased Melee Damage',
+    descriptionTpl: '+{value}% Melee Damage',
     exclusivityGroup: 'Damage'
   },
   {
@@ -51,7 +51,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.03,
-    descriptionTpl: '{value}% Increased Ranged Damage',
+    descriptionTpl: '+{value}% Ranged Damage',
     exclusivityGroup: 'Damage'
   },
   {
@@ -64,7 +64,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     baseValue: 6,
     levelMultiplier: 0.04,
     weight: 200,
-    descriptionTpl: '{value}% Increased Spell Damage',
+    descriptionTpl: '+{value}% Spell Damage',
     exclusivityGroup: 'Damage'
   },
   {
@@ -75,7 +75,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 6,
     levelMultiplier: 0.04,
-    descriptionTpl: '{value}% Increased Spell Damage',
+    descriptionTpl: '+{value}% Spell Damage',
     exclusivityGroup: 'Damage'
   },
   {
@@ -86,7 +86,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 6,
     levelMultiplier: 0.04,
-    descriptionTpl: '{value}% Increased Skill Damage',
+    descriptionTpl: '+{value}% Skill Damage',
     exclusivityGroup: 'Damage'
   },
   {
@@ -97,7 +97,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 6,
     levelMultiplier: 0.04,
-    descriptionTpl: '{value}% Increased Area Damage',
+    descriptionTpl: '+{value}% Area Damage',
     exclusivityGroup: 'Damage'
   },
 
@@ -114,7 +114,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.03,
-    descriptionTpl: '{value}% Increased Physical Damage',
+    descriptionTpl: '+{value}% Physical Damage',
     exclusivityGroup: 'DamageType'
   },
   {
@@ -126,7 +126,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.03,
-    descriptionTpl: '{value}% Increased Elemental Damage',
+    descriptionTpl: '+{value}% Elemental Damage',
     exclusivityGroup: 'DamageType'
   },
   
@@ -141,7 +141,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     baseValue: 7,
     levelMultiplier: 0.04,
     weight: 200,
-    descriptionTpl: '{value}% Increased Strike Damage',
+    descriptionTpl: '+{value}% Strike Damage',
     exclusivityGroup: 'DamageType'
   },
   {
@@ -152,7 +152,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 7,
     levelMultiplier: 0.04,
-    descriptionTpl: '{value}% Increased Strike Damage',
+    descriptionTpl: '+{value}% Strike Damage',
     exclusivityGroup: 'DamageType'
   },
   {
@@ -165,7 +165,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     baseValue: 7,
     levelMultiplier: 0.04,
     weight: 200,
-    descriptionTpl: '{value}% Increased Pierce Damage',
+    descriptionTpl: '+{value}% Pierce Damage',
     exclusivityGroup: 'DamageType'
   },
   {
@@ -176,7 +176,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 7,
     levelMultiplier: 0.04,
-    descriptionTpl: '{value}% Increased Pierce Damage',
+    descriptionTpl: '+{value}% Pierce Damage',
     exclusivityGroup: 'DamageType'
   },
   {
@@ -189,7 +189,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     baseValue: 7,
     levelMultiplier: 0.04,
     weight: 200,
-    descriptionTpl: '{value}% Increased Fire Damage',
+    descriptionTpl: '+{value}% Fire Damage',
     exclusivityGroup: 'DamageType'
   },
   {
@@ -200,7 +200,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 7,
     levelMultiplier: 0.04,
-    descriptionTpl: '{value}% Increased Fire Damage',
+    descriptionTpl: '+{value}% Fire Damage',
     exclusivityGroup: 'DamageType'
   },
   {
@@ -213,7 +213,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     baseValue: 7,
     levelMultiplier: 0.04,
     weight: 200,
-    descriptionTpl: '{value}% Increased Cold Damage',
+    descriptionTpl: '+{value}% Cold Damage',
     exclusivityGroup: 'DamageType'
   },
   {
@@ -224,7 +224,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 7,
     levelMultiplier: 0.04,
-    descriptionTpl: '{value}% Increased Cold Damage',
+    descriptionTpl: '+{value}% Cold Damage',
     exclusivityGroup: 'DamageType'
   },
   {
@@ -237,7 +237,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     baseValue: 7,
     levelMultiplier: 0.04,
     weight: 200,
-    descriptionTpl: '{value}% Increased Lightning Damage',
+    descriptionTpl: '+{value}% Lightning Damage',
     exclusivityGroup: 'DamageType'
   },
   {
@@ -248,7 +248,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 7,
     levelMultiplier: 0.04,
-    descriptionTpl: '{value}% Increased Lightning Damage',
+    descriptionTpl: '+{value}% Lightning Damage',
     exclusivityGroup: 'DamageType'
   },
 
@@ -265,7 +265,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     baseValue: 5,
     levelMultiplier: 0.02,
     weight: 200,
-    descriptionTpl: '{value}% Increased Attack Speed'
+    descriptionTpl: '+{value}% Attack Speed'
   },
   {
     id: 'inc_attack_speed_jewelry',
@@ -275,7 +275,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.02,
-    descriptionTpl: '{value}% Increased Attack Speed'
+    descriptionTpl: '+{value}% Attack Speed'
   },
   {
     id: 'inc_cast_speed_weapon',
@@ -287,7 +287,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     baseValue: 5,
     levelMultiplier: 0.02,
     weight: 200,
-    descriptionTpl: '{value}% Increased Cast Speed'
+    descriptionTpl: '+{value}% Cast Speed'
   },
   {
     id: 'inc_cast_speed_jewelry',
@@ -297,7 +297,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.02,
-    descriptionTpl: '{value}% Increased Cast Speed'
+    descriptionTpl: '+{value}% Cast Speed'
   },
 
   // ----------------------------------------------------
@@ -312,7 +312,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 2,
     levelMultiplier: 0.2,
-    descriptionTpl: '+{value} Physical Penetration',
+    descriptionTpl: '+{value} Flat Phys Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -324,7 +324,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat', 
     baseValue: 3,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Physical Penetration',
+    descriptionTpl: '+{value}% Physical Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -336,7 +336,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.2,
-    descriptionTpl: '+{value} Strike Penetration',
+    descriptionTpl: '+{value} Flat Strike Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -348,7 +348,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 4,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Strike Penetration',
+    descriptionTpl: '+{value}% Strike Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -360,7 +360,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.2,
-    descriptionTpl: '+{value} Pierce Penetration',
+    descriptionTpl: '+{value} Flat Pierce Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -372,7 +372,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 4,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Pierce Penetration',
+    descriptionTpl: '+{value}% Pierce Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -384,7 +384,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.2,
-    descriptionTpl: '+{value} Fire Penetration',
+    descriptionTpl: '+{value} Flat Fire Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -396,7 +396,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 4,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Fire Penetration',
+    descriptionTpl: '+{value}% Fire Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -408,7 +408,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.2,
-    descriptionTpl: '+{value} Cold Penetration',
+    descriptionTpl: '+{value} Flat Cold Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -420,7 +420,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 4,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Cold Penetration',
+    descriptionTpl: '+{value}% Cold Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -432,7 +432,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.2,
-    descriptionTpl: '+{value} Lightning Penetration',
+    descriptionTpl: '+{value} Flat Light Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -444,7 +444,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 4,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Lightning Penetration',
+    descriptionTpl: '+{value}% Lightning Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -456,7 +456,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 2,
     levelMultiplier: 0.2,
-    descriptionTpl: '+{value} Elemental Penetration',
+    descriptionTpl: '+{value} Flat Ele Penetration',
     exclusivityGroup: 'Penetration'
   },
   {
@@ -468,7 +468,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Elemental Penetration',
+    descriptionTpl: '+{value}% Elemental Penetration',
     exclusivityGroup: 'Penetration'
   },
 
@@ -483,7 +483,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 1,
     levelMultiplier: 0.05,
-    descriptionTpl: '+{value}% Critical Strike Chance',
+    descriptionTpl: '+{value}% Base Crit Strike Chance',
     exclusivityGroup: 'CritChance'
   },
   {
@@ -494,7 +494,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 10,
     levelMultiplier: 0.2,
-    descriptionTpl: '{value}% Increased Critical Strike Chance',
+    descriptionTpl: '+{value}% Critical Strike Chance',
     exclusivityGroup: 'CritChance'
   },
   {
@@ -641,7 +641,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     baseValue: 6,
     levelMultiplier: 0.04,
     weight: 200,
-    descriptionTpl: '{value}% Weapon Elemental Damage',
+    descriptionTpl: '+{value}% Weapon Elemental Damage',
     exclusivityGroup: 'FlatDamage'
   },
   {
@@ -652,7 +652,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 6,
     levelMultiplier: 0.04,
-    descriptionTpl: '{value}% Weapon Elemental Damage',
+    descriptionTpl: '+{value}% Weapon Elemental Damage',
     exclusivityGroup: 'FlatDamage'
   },
 

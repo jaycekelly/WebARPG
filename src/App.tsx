@@ -80,27 +80,27 @@ function App() {
         const combatState = useCombatStore.getState();
         const playerState = usePlayerStore.getState();
 
-        // 1. Close Modal Windows
-        if (appState.vendorOpen) {
-          appState.setVendorOpen(false);
+        // 1. Cancel Casting (combat safety — highest priority)
+        if (combatState.castingSkillId) {
+          combatState.setCasting(null);
+          combatState.triggerGcd(0);
+          combatState.addLog("Spell cast cancelled.", 'system');
           return;
         }
-        if (appState.characterWindowOpen) {
-          appState.setCharacterWindowOpen(false);
-          return;
-        }
-        
+
         // 2. Cancel Aiming Mode
         if (combatState.targetingSkillId) {
           combatState.setTargetingSkill(null);
           return;
         }
 
-        // 3. Cancel Casting
-        if (combatState.castingSkillId) {
-          combatState.setCasting(null);
-          combatState.triggerGcd(0);
-          combatState.addLog("Spell cast cancelled.", 'system');
+        // 3. Close Modal Windows
+        if (appState.vendorOpen) {
+          appState.setVendorOpen(false);
+          return;
+        }
+        if (appState.characterWindowOpen) {
+          appState.setCharacterWindowOpen(false);
           return;
         }
 

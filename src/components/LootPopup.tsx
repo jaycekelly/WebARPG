@@ -51,6 +51,7 @@ export function LootPopup({ dropId, onClose }: Props) {
   // Auto-close if empty
   if (!drop || drop.items.length === 0) {
     onClose();
+    setContent(null);
     return null;
   }
 
@@ -63,11 +64,18 @@ export function LootPopup({ dropId, onClose }: Props) {
   };
 
   const handleLootSingle = (item: Item) => {
+    setContent(null);
     lootItem(item);
     removeLootItem(dropId, item.id);
     if (drop.items.length <= 1) {
-      onClose(); // Last item was just looted
+      handleClose(); // Last item was just looted
     }
+  };
+
+  // Clear tooltip when popup closes or unmounts
+  const handleClose = () => {
+    setContent(null);
+    onClose();
   };
 
   return (
@@ -77,7 +85,7 @@ export function LootPopup({ dropId, onClose }: Props) {
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border-subtle bg-surface-base">
           <h2 className="text-lg font-bold text-text-primary tracking-tight">Loot Nearby</h2>
-          <button onClick={onClose} className="p-1 hover:bg-surface-raised rounded-lg text-text-secondary hover:text-text-primary transition-colors">
+          <button onClick={handleClose} className="p-1 hover:bg-surface-raised rounded-lg text-text-secondary hover:text-text-primary transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>

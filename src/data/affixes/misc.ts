@@ -12,7 +12,7 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 10,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Increased Buff Effect',
+    descriptionTpl: '+{value}% Buff Effect',
     exclusivityGroup: 'Buff'
   },
   {
@@ -23,7 +23,7 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 10,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Increased Buff Duration',
+    descriptionTpl: '+{value}% Buff Duration',
     exclusivityGroup: 'Buff'
   },
 
@@ -38,7 +38,7 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Increased Experience Gain',
+    descriptionTpl: '+{value}% Experience Gain',
     exclusivityGroup: 'Junk'
   },
   {
@@ -49,7 +49,7 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 10,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Increased Gold Find',
+    descriptionTpl: '+{value}% Gold Find',
     exclusivityGroup: 'Junk'
   },
   {
@@ -100,7 +100,7 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Cooldown Reduction'
+    descriptionTpl: '+{value}% Cooldown Reduction'
   },
   {
     id: 'inc_mana_cost_reduction',
@@ -112,7 +112,7 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Mana Cost Reduction'
+    descriptionTpl: '-{value}% Mana Costs'
   },
 
   // ----------------------------------------------------
@@ -126,8 +126,8 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.1,
-    weight: 100,
-    descriptionTpl: '{value}% Increased Magic Find'
+    weight: 25,
+    descriptionTpl: '+{value}% Magic Find'
   },
   {
     id: 'mf_armor',
@@ -135,9 +135,9 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'MagicFind',
     type: 'increased',
-    baseValue: 3,
+    baseValue: 5,
     levelMultiplier: 0.1,
     weight: 25,
-    descriptionTpl: '{value}% Increased Magic Find'
+    descriptionTpl: '+{value}% Magic Find'
   }
 ];

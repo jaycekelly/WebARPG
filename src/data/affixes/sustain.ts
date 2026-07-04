@@ -12,7 +12,7 @@ export const SUSTAIN_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 10,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Increased Healing Dealt',
+    descriptionTpl: '+{value}% Healing Dealt',
     exclusivityGroup: 'Heal'
   },
   {
@@ -23,7 +23,7 @@ export const SUSTAIN_AFFIXES: AffixTemplate[] = [
     type: 'increased',
     baseValue: 10,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Increased Healing Received',
+    descriptionTpl: '+{value}% Healing Received',
     exclusivityGroup: 'Heal'
   },
   {
@@ -34,7 +34,7 @@ export const SUSTAIN_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 1,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Spell Vamp',
+    descriptionTpl: '+{value}% Spell Vamp',
     exclusivityGroup: 'Heal'
   },
   {
@@ -46,7 +46,7 @@ export const SUSTAIN_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 2,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Lifesteal',
+    descriptionTpl: '+{value}% Lifesteal',
     exclusivityGroup: 'Heal'
   },
   {
@@ -73,7 +73,7 @@ export const SUSTAIN_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 1,
     levelMultiplier: 0.1,
-    descriptionTpl: '{value}% Mana Leech',
+    descriptionTpl: '+{value}% Mana Leech',
     exclusivityGroup: 'ManaLeech'
   },
   {

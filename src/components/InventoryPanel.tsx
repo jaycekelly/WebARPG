@@ -1,8 +1,9 @@
+import { useEffect } from 'react';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useAppStore } from '../store/useAppStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import type { EquipmentSlot, Rarity } from '../engine/items/types';
-import { Sword, Shield, Circle, HelpCircle, Crown, Shirt, Hexagon, Hand, Footprints, Book, ShieldAlert, Layers } from 'lucide-react';
+import { Sword, Shield, Circle, HelpCircle, Crown, Shirt, Hexagon, Hand, Footprints, Book, ShieldAlert, Layers, Wand, Flame, Crosshair, Gem, Disc } from 'lucide-react';
 import { ItemTooltip } from './ItemTooltip';
 
 const SLOT_ICONS: Record<string, React.ElementType> = {
@@ -13,9 +14,9 @@ const SLOT_ICONS: Record<string, React.ElementType> = {
   'boots': Footprints,
   'weapon1': Sword,
   'weapon2': Sword,
-  'amulet': Circle,
-  'ring1': Circle,
-  'ring2': Circle,
+  'amulet': Gem,
+  'ring1': Disc,
+  'ring2': Disc,
 };
 
 const ICONS: Record<string, React.ElementType> = {
@@ -29,7 +30,12 @@ const ICONS: Record<string, React.ElementType> = {
   'Hand': Hand,
   'Footprints': Footprints,
   'Book': Book,
-  'ShieldAlert': ShieldAlert
+  'ShieldAlert': ShieldAlert,
+  'Wand': Wand,
+  'Flame': Flame,
+  'Crosshair': Crosshair,
+  'Gem': Gem,
+  'Disc': Disc
 };
 
 const RARITY_COLORS: Record<Rarity, string> = {
@@ -42,12 +48,16 @@ const RARITY_COLORS: Record<Rarity, string> = {
 };
 
 // Slot button — uniform size, purely rem-based so it scales with the UI font-size
-const SLOT_CLASS = 'w-10 h-10 flex items-center justify-center border rounded transition-all relative bg-surface-base hover:bg-surface-raised';
+const SLOT_CLASS = 'w-9 h-9 flex items-center justify-center border rounded transition-all relative bg-surface-base hover:bg-surface-raised';
 
 export function InventoryPanel() {
   const { inventory, equipment, equip, unequip, sellItem } = useInventoryStore();
   const { location, vendorOpen } = useAppStore();
   const { setContent } = useTooltipStore();
+
+  useEffect(() => {
+    return () => setContent(null);
+  }, [setContent]);
 
   const renderEquipmentSlot = (slot: EquipmentSlot) => {
     const item = equipment[slot];
@@ -68,10 +78,10 @@ export function InventoryPanel() {
 
   return (
     // Everything is w-max so container naturally sizes to content — no hardcoded px widths
-    <div className="flex flex-col items-center gap-2 py-4 w-max mx-auto">
+    <div className="flex flex-col items-center gap-2 pt-1.5 pb-4 w-max mx-auto">
 
       {/* Paper Doll — 3-col grid, gap-3 uniform */}
-      <div className="grid grid-cols-3 gap-3 justify-items-center">
+      <div className="grid grid-cols-3 gap-1 justify-items-center">
         {/* row 1 */}
         <div className="invisible" aria-hidden /> {/* col 1 spacer */}
         <div>{renderEquipmentSlot('helm')}</div>
@@ -92,11 +102,11 @@ export function InventoryPanel() {
 
       {/* Bag label — left-aligned, full width of the bag grid below */}
       <div className="w-full">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 mt-3 mb-0.5">Backpack</h3>
+        <h3 className="text-[15px] font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 mt-3 mb-0 leading-none">Backpack</h3>
       </div>
 
       {/* Bag Grid — 6 cols, gap-2, purely rem-based */}
-      <div className="grid grid-cols-6 gap-2">
+      <div className="grid grid-cols-6 gap-1.5">
         {Array.from({ length: 30 }).map((_, i) => {
           const item = inventory[i] ?? null;
           const rarityClasses = item ? RARITY_COLORS[item.rarity] : 'bg-surface-base/30 border-border-subtle/50';

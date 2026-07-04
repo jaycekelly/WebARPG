@@ -124,6 +124,16 @@ export class InputHandler {
 
     const target = tId ? worldState.enemies.find(e => e.id === tId) : undefined;
 
+    // Prevent casting Ground/Directional/Area spells directly on solid obstacles
+    if (tPos && !target && skill.targeting !== 'Self') {
+      const isObstacle = worldState.grid.obstacles.some(o => o.x === tPos!.x && o.y === tPos!.y);
+      if (isObstacle) {
+        addLog(`Cannot target obstacles with ${skill.name}.`, 'system');
+        combatState.setTargetingSkill(null);
+        return;
+      }
+    }
+
     // Check Mana
     const effectiveMana = getEffectiveManaCost(skill);
     if (currentMana < effectiveMana) {
@@ -132,7 +142,7 @@ export class InputHandler {
     }
 
     // Enter Targeting Mode if required
-    if (!tPos && !tId && (skill.targeting === 'Ground' || skill.targeting === 'Directional' || skill.targeting === 'Area')) {
+    if (!tPos && !tId && (skill.targeting === 'Ground' || skill.targeting === 'Directional' || skill.targeting === 'Area' || skill.targeting === 'Single')) {
       if (combatState.targetingSkillId === skill.id) {
         combatState.setTargetingSkill(null);
         return;
