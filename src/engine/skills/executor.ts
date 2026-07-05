@@ -6,6 +6,7 @@ import { usePlayerStore } from '../../store/usePlayerStore';
 import { useWorldStore } from '../../store/useWorldStore';
 import { useBuffStore } from '../../store/useBuffStore';
 import { useInventoryStore } from '../../store/useInventoryStore';
+// removed unused useMessageStore
 import { useAppStore } from '../../store/useAppStore';
 
 import { getAoETiles, getChebyshevDistance } from '../world/gridMath';
@@ -177,16 +178,16 @@ export class SkillExecutor {
     
     // Pre-calculate Area tiles if applicable
     let affectedTiles: {x: number, y: number}[] = [];
+    let finalTargetPos = targetPos;
+    if (!finalTargetPos && targetId) {
+      const t = worldState.enemies.find(e => e.id === targetId);
+      if (t) finalTargetPos = t.position;
+    }
+
     if (skill.targeting === 'Area' || skill.targeting === 'Ground' || skill.targeting === 'Directional') {
        const shape = effectiveAoeParams?.shape || 'square';
        const radius = effectiveAoeParams?.radius || skill.range || 0;
        const respectWalls = effectiveAoeParams?.respectWalls || false;
-       
-       let finalTargetPos = targetPos;
-       if (!finalTargetPos && targetId) {
-         const t = worldState.enemies.find(e => e.id === targetId);
-         if (t) finalTargetPos = t.position;
-       }
 
        const isSolid = (x: number, y: number) => {
          if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
@@ -206,7 +207,7 @@ export class SkillExecutor {
          target = finalTargetPos || playerPos;
        }
 
-       if (effectiveAoeParams || skill.targeting === 'Ground') {
+       if (effectiveAoeParams) {
          affectedTiles = getAoETiles(
            center,
            target,
@@ -219,6 +220,40 @@ export class SkillExecutor {
          );
        }
     }
+
+    // Determine VFX Color
+     let vfxColor = 0xffffff;
+     const inv = useInventoryStore.getState();
+     let finalElem = skill.effects.find(e => e.type === 'damage')?.element;
+     
+     if (!finalElem) {
+        if (skill.tags.includes('Fire')) finalElem = 'Fire';
+        else if (skill.tags.includes('Cold')) finalElem = 'Cold';
+        else if (skill.tags.includes('Lightning')) finalElem = 'Lightning';
+     }
+
+     if (!finalElem || (skill as any).damageType === 'Weapon') {
+        const w1 = inv.equipment['weapon1'];
+        finalElem = w1 ? (w1 as any).damageType : 'Strike';
+     }
+
+     if (finalElem === 'Fire') vfxColor = 0xf97316; // Orange-500
+     else if (finalElem === 'Cold') vfxColor = 0x38bdf8; // Sky-400 (Ice Blue)
+     else if (finalElem === 'Lightning') vfxColor = 0xa855f7; // Purple-500 (Electric Purple)
+     else if ((finalElem as string) === 'Poison') vfxColor = 0x4ade80; // Green-400
+     else if (finalElem === 'Strike') vfxColor = 0xd4d4d8; // Zinc-300 (Silver)
+     else if (finalElem === 'Pierce') vfxColor = 0x94a3b8; // Slate-400 (Sharp metal)
+     else if (finalElem === 'Physical') vfxColor = 0xd4d4d8; // Zinc-300 (Silver fallback)
+
+     // Dispatch AoE tile effects
+     if (affectedTiles.length > 0) {
+        affectedTiles.forEach(pt => {
+           useCombatStore.getState().addTileEffect(pt.x, pt.y, 'eruption', vfxColor);
+        });
+     } else if (finalTargetPos) {
+        // Single target hit effect on the target's tile
+        useCombatStore.getState().addTileEffect(finalTargetPos.x, finalTargetPos.y, 'eruption', vfxColor);
+     }
 
     for (const effect of skill.effects) {
        if (effect.type === 'charge') {
@@ -305,7 +340,7 @@ export class SkillExecutor {
        // 2. Select targets based on TargetingType
        let finalTargets: { enemy: any, multiplier: number }[] = [];
        
-       if (skill.targeting === 'Area' || skill.targeting === 'Ground' || skill.targeting === 'Directional') {
+       if (skill.targeting === 'Area' || skill.targeting === 'Directional' || (skill.targeting === 'Ground' && effectiveAoeParams)) {
           // If lingering is enabled, spawn zones (only do this for the first effect to avoid spam, or tie it to the damage effect)
           if (effect.type === 'damage' && effectiveAoeParams?.lingering) {
              const { durationMs, hazardId, damagePerSecond, element } = effectiveAoeParams.lingering;
@@ -483,7 +518,7 @@ export class SkillExecutor {
                  if (enemy.id === 'player') {
                     playerState.takeDamage(actualDamage);
                     useCombatStore.getState().addFloatingText(playerState.position.x, playerState.position.y, actualDamage.toFixed(0), 'text-zinc-100');
-                    useCombatStore.getState().addHitEffect('player');
+                    useCombatStore.getState().addHitEffect('player', playerState.position.x, playerState.position.y, vfxColor, finalElement);
                     addLog(`You hit yourself for ${actualDamage.toFixed(0)} damage!${resultText}`, 'enemy-attack');
                  } else {
                     worldState.damageEnemy(enemy.id, actualDamage);
@@ -494,7 +529,12 @@ export class SkillExecutor {
                     else if (finalElement === 'Lightning') dmgColor = 'text-yellow-400';
                     
                     useCombatStore.getState().addFloatingText(enemy.position.x, enemy.position.y, actualDamage.toFixed(0), dmgColor);
-                    useCombatStore.getState().addHitEffect(enemy.id);
+                    
+                    // For AoE skills, source is the center of the cast. Otherwise, it's the player.
+                    const srcX = (skill.targeting === 'Area' || skill.targeting === 'Ground') && finalTargetPos ? finalTargetPos.x : playerState.position.x;
+                    const srcY = (skill.targeting === 'Area' || skill.targeting === 'Ground') && finalTargetPos ? finalTargetPos.y : playerState.position.y;
+                    
+                    useCombatStore.getState().addHitEffect(enemy.id, srcX, srcY, vfxColor, finalElement);
                     
                     addLog(`You hit ${enemy.name} for ${actualDamage.toFixed(0)} ${finalElement} damage.${resultText}`, 'ability');
                     
@@ -546,25 +586,7 @@ export class SkillExecutor {
                       }
                    }
 
-                   // Handle Kill
-                   const updatedTarget = useWorldStore.getState().enemies.find(e => e.id === enemy.id);
-                   if (updatedTarget?.isDead && updatedTarget.faction === 'enemy') {
-                      addLog(`You defeated ${enemy.name}!`, 'system');
-                      
-                      const xpGain = Math.max(1, Math.floor(updatedTarget.xpReward * (1 + statsState.getStat('ExperienceGain') / 100)));
-                      const randomMultiplier = 0.5 + Math.random();
-                      const goldGain = Math.floor(updatedTarget.goldReward * randomMultiplier * (1 + statsState.getStat('GoldFind') / 100));
-                      
-                      const { leveledUp, newLevel } = playerState.addXp(xpGain);
-                      if (goldGain > 0) {
-                        playerState.addGold(goldGain);
-                        addLog(`You gained ${xpGain} XP and ${goldGain} Gold.`, 'system');
-                      } else {
-                        addLog(`You gained ${xpGain} XP.`, 'system');
-                      }
-                      if (leveledUp) addLog(`Level Up! You are now Level ${newLevel}!`, 'system');
-                      if (playerState.activeTargetId === enemy.id) playerState.setTarget(null);
-                   }
+                   // Handle Kill is now centralized in useGameEngine.ts
                 }
              }
           }

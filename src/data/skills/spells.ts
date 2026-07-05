@@ -9,6 +9,7 @@ export const SPELL_SKILLS: Record<string, Skill> = {
     tags: ['Spell', 'Fire', 'Area'],
     manaCost: 15,
     range: 5,
+    cooldownMs: 10000,
     gcdDuration: 1500,
     castTime: 1000,
     targeting: 'Area',

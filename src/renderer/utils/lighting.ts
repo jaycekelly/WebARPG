@@ -2,7 +2,7 @@ import type { LootDrop } from '../../store/useWorldStore';
 
 // Set ambient darkness much higher (0.9) so far away tiles are actually dark
 export const AMBIENT_DARKNESS = 0.9; 
-export const PLAYER_LIGHT_RADIUS = 12.0; // tighter radius so it gets darker closer
+export const PLAYER_LIGHT_RADIUS = 7.0; 
 
 /**
  * Calculates the light intensity for a given tile coordinate (0.0 to 1.0).
@@ -11,15 +11,15 @@ export function getTileLightIntensity(
   x: number,
   y: number,
   playerPos: { x: number; y: number },
-  lootDrops: LootDrop[],
-  visibleTiles: Set<string>
+  _lootDrops: LootDrop[],
+  _visibleTiles: Set<string>
 ): number {
   let lightIntensity = 0;
 
   // 1. Player Light (Non-linear falloff so it drops off faster)
   const distToPlayer = Math.sqrt(Math.pow(x - playerPos.x, 2) + Math.pow(y - playerPos.y, 2));
   const playerNorm = Math.max(0, 1.0 - (distToPlayer / PLAYER_LIGHT_RADIUS));
-  lightIntensity += Math.pow(playerNorm, 1.5); // 1.5 exponent steepens the curve
+  lightIntensity += Math.pow(playerNorm, 1.2) * 1.0;
 
 
 

@@ -91,7 +91,7 @@ export function createFogRenderer(): FogRenderer {
 
         // If explored but not currently visible (Memory)
         if (!isVisible && isExplored) {
-          drawTileFog(x, y, params, 0x000000, 0.85);
+          drawTileFog(x, y, params, 0x000000, 1.0);
           continue;
         }
 

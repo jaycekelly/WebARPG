@@ -3,7 +3,7 @@ import { useInventoryStore } from '../store/useInventoryStore';
 import { useAppStore } from '../store/useAppStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import type { EquipmentSlot, Rarity } from '../engine/items/types';
-import { Sword, Shield, Circle, HelpCircle, Crown, Shirt, Hexagon, Hand, Footprints, Book, ShieldAlert, Layers, Wand, Flame, Crosshair, Gem, Disc } from 'lucide-react';
+import { Sword, HelpCircle, Crown, Shirt, Hand, Footprints, Layers, Gem, Disc } from 'lucide-react';
 import { ItemTooltip } from './ItemTooltip';
 
 const SLOT_ICONS: Record<string, React.ElementType> = {
@@ -19,24 +19,7 @@ const SLOT_ICONS: Record<string, React.ElementType> = {
   'ring2': Disc,
 };
 
-const ICONS: Record<string, React.ElementType> = {
-  'Sword': Sword,
-  'Shield': Shield,
-  'Circle': Circle,
-  'Crown': Crown,
-  'Shirt': Shirt,
-  'Layers': Layers,
-  'Hexagon': Hexagon,
-  'Hand': Hand,
-  'Footprints': Footprints,
-  'Book': Book,
-  'ShieldAlert': ShieldAlert,
-  'Wand': Wand,
-  'Flame': Flame,
-  'Crosshair': Crosshair,
-  'Gem': Gem,
-  'Disc': Disc
-};
+import { ICONS } from './IconLibrary';
 
 const RARITY_COLORS: Record<Rarity, string> = {
   'Normal': 'border-border-strong text-text-secondary',

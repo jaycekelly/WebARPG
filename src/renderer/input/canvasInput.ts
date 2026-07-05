@@ -185,6 +185,13 @@ function handleTileClick(target: ClickTarget) {
 
 // ---- Canvas event binding ----------------------------------------------------
 
+let currentClientX: number | null = null;
+let currentClientY: number | null = null;
+
+export function getCurrentPointerClientCoords() {
+  return { x: currentClientX, y: currentClientY };
+}
+
 export interface CanvasInputCallbacks {
   /** Called when a click lands on a valid grid tile */
   onClick?: (target: ClickTarget) => void;
@@ -226,6 +233,9 @@ export function setupCanvasInput(
   };
 
   const onPointerMove = (e: PointerEvent) => {
+    currentClientX = e.clientX;
+    currentClientY = e.clientY;
+
     if (pointerDown) {
       const dx = e.clientX - lastPointerX;
       const dy = e.clientY - lastPointerY;
@@ -240,7 +250,7 @@ export function setupCanvasInput(
     const combat = useCombatStore.getState();
     const pos = getWorldPos(e);
     if (pos && combat.targetingSkillId) {
-      canvas.style.cursor = 'crosshair';
+      canvas.style.cursor = '';
     } else if (pos) {
       const target = getClickTarget(pos.gx, pos.gy);
       canvas.style.cursor = target.enemyId || target.lootId ? 'pointer' : '';

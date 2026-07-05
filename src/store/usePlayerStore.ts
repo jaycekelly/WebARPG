@@ -21,8 +21,10 @@ interface PlayerState {
   boundSkills: (string | null)[];
   flaskCharges: number;
   maxFlaskCharges: number;
-
-
+  lastFlaskTime: number;
+  manaFlaskCharges: number;
+  maxManaFlaskCharges: number;
+  lastManaFlaskTime: number;
   
   move: (dx: number, dy: number) => void;
   setPosition: (x: number, y: number) => void;
@@ -40,6 +42,8 @@ interface PlayerState {
   bindSkill: (slotIndex: number, skillId: string | null) => void;
   addFlaskCharges: (amount: number) => void;
   useFlask: () => boolean;
+  addManaFlaskCharges: (amount: number) => void;
+  useManaFlask: () => boolean;
 
 }
 
@@ -59,8 +63,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   boundSkills: ['heavy_strike', 'charge_attack', 'fireball', null, null, null, null, null],
   flaskCharges: 4,
   maxFlaskCharges: 4,
-
-
+  lastFlaskTime: 0,
+  manaFlaskCharges: 4,
+  maxManaFlaskCharges: 4,
+  lastManaFlaskTime: 0,
   move: (dx, dy) => {
     let moved = false;
     let nextPos: { x: number, y: number } | undefined;
@@ -222,9 +228,34 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   }),
 
   useFlask: () => {
-    const { flaskCharges } = get();
+    const { flaskCharges, lastFlaskTime } = get();
+    const now = useAppStore.getState().getGameTime();
+    
+    if (now - lastFlaskTime < 500) {
+      return false;
+    }
+    
     if (flaskCharges >= 1) {
-      set({ flaskCharges: flaskCharges - 1 });
+      set({ flaskCharges: flaskCharges - 1, lastFlaskTime: now });
+      return true;
+    }
+    return false;
+  },
+
+  addManaFlaskCharges: (amount) => set((state) => {
+    return { manaFlaskCharges: Math.min(state.maxManaFlaskCharges, state.manaFlaskCharges + amount) };
+  }),
+
+  useManaFlask: () => {
+    const { manaFlaskCharges, lastManaFlaskTime } = get();
+    const now = useAppStore.getState().getGameTime();
+    
+    if (now - lastManaFlaskTime < 500) {
+      return false;
+    }
+    
+    if (manaFlaskCharges >= 1) {
+      set({ manaFlaskCharges: manaFlaskCharges - 1, lastManaFlaskTime: now });
       return true;
     }
     return false;

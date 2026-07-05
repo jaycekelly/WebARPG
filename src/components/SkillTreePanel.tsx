@@ -4,15 +4,9 @@ import { useTooltipStore } from '../store/useTooltipStore';
 import { SKILL_TREE, type TalentNode } from '../data/skillTrees';
 import { SKILLS } from '../data/skills';
 import { getEffectiveManaCost } from '../engine/input/InputHandler';
-import { Flame, ShieldAlert, Footprints, ArrowUpCircle, Sword, Lock } from 'lucide-react';
+import { Lock, Flame } from 'lucide-react';
 
-const ICONS: Record<string, React.ElementType> = {
-  Flame,
-  ShieldAlert,
-  Footprints,
-  ArrowUpCircle,
-  Sword
-};
+import { ICONS } from './IconLibrary';
 
 export function SkillTreePanel() {
   const { allocatedPoints, allocatePoint, getTotalPointsSpent } = useSkillStore();

@@ -12,7 +12,7 @@ export const MELEE_SKILLS: Record<string, Skill> = {
     cooldownMs: 8000,
     gcdDuration: 1500,
     castTime: 0,
-    targeting: 'Single',
+    targeting: 'Ground',
     effects: [
       { type: 'charge' },
       { type: 'damage' }

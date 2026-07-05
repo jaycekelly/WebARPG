@@ -9,12 +9,15 @@ interface VisionState {
   
   updateVision: (playerPos: { x: number, y: number }) => void;
   resetVision: () => void;
+  setVisionRadius: (radius: number) => void;
 }
 
 export const useVisionStore = create<VisionState>((set, get) => ({
   exploredTiles: new Set(),
   visibleTiles: new Set(),
-  visionRadius: 8,
+  visionRadius: 6,
+
+  setVisionRadius: (radius) => set({ visionRadius: radius }),
 
   updateVision: (playerPos) => {
     const grid = useWorldStore.getState().grid;

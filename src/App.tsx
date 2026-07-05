@@ -130,7 +130,8 @@ function App() {
     <div className="flex w-screen h-screen items-center justify-center bg-black overflow-hidden">
       <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
         
-        {location === 'town' ? <TownView /> : <DungeonView />}
+        {location === 'dungeon' && <DungeonView />}
+        {location === 'town' && <TownView />}
 
         <CharacterWindow />
         <GlobalTooltip />

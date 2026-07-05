@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
+import { useMessageStore } from '../store/useMessageStore';
 import { InputHandler, getMainHandAttackCooldown, getOffHandAttackCooldown, getEffectiveGcd } from './input/InputHandler';
 import { useStatsStore } from '../store/useStatsStore';
 import { useInventoryStore } from '../store/useInventoryStore';
@@ -48,7 +49,7 @@ export function useGameEngine() {
 
       combatState.clearExpiredFloatingTexts(now);
 
-      const { dotEvents, hotEvents } = buffState.tickBuffs(deltaTime);
+      const { dotEvents, hotEvents, manaEvents } = buffState.tickBuffs(deltaTime);
       
       dotEvents.forEach(event => {
         if (event.entityId === 'player') {
@@ -74,6 +75,12 @@ export function useGameEngine() {
           // Removed floating text for HoTs to prevent visual clutter
         } else {
           // Implement enemy healing if necessary in the future
+        }
+      });
+
+      manaEvents.forEach(event => {
+        if (event.entityId === 'player') {
+          usePlayerStore.getState().restoreMana(event.manaAmount);
         }
       });
 
@@ -170,6 +177,9 @@ export function useGameEngine() {
           }
           SkillExecutor.execute(skill, combatState.castTargetId, execTargetPos);
           combatState.triggerGcd(getEffectiveGcd(skill));
+          if (skill.cooldownMs) {
+             combatState.triggerSkillCooldown(skill.id, skill.cooldownMs);
+          }
         }
         setCasting(null);
       }
@@ -304,8 +314,15 @@ export function useGameEngine() {
                  else if (damageType === 'Cold') dmgColor = 'text-blue-400';
                  else if (damageType === 'Lightning') dmgColor = 'text-yellow-400';
                  
+                 let vfxColor = 0xd4d4d8;
+                 if (damageType === 'Fire') vfxColor = 0xf97316;
+                 else if (damageType === 'Cold') vfxColor = 0x38bdf8;
+                 else if (damageType === 'Lightning') vfxColor = 0xa855f7;
+                 else if (damageType === 'Strike') vfxColor = 0xd4d4d8;
+                 else if (damageType === 'Pierce') vfxColor = 0x94a3b8;
+                 
                  combatState.addFloatingText(target.position.x, target.position.y, finalDamage.toFixed(0), dmgColor);
-                 combatState.addHitEffect(target.id);
+                 combatState.addHitEffect(target.id, position.x, position.y, vfxColor, damageType);
                  
                  combatState.addLog(`You hit ${target.name} for ${finalDamage.toFixed(0)} damage with ${handName}.${resultText}`, 'player-attack');
                  
@@ -503,7 +520,7 @@ export function useGameEngine() {
              } else {
                 usePlayerStore.getState().takeDamage(finalDamage);
                 combatState.addFloatingText(position.x, position.y, finalDamage.toFixed(0), 'text-zinc-100');
-                combatState.addHitEffect('player');
+                combatState.addHitEffect('player', enemy.position.x, enemy.position.y, 0xd4d4d8, 'Strike');
                 let resultText = '';
                if (result === 'block') resultText = ' (Blocked)';
                else if (result === 'parry') resultText = ' (Parried)';
@@ -593,16 +610,27 @@ export function useGameEngine() {
            const xpGain = Math.max(1, Math.floor(enemy.xpReward * (1 + statsState.getStat('ExperienceGain') / 100)));
            const randomMultiplier = 0.5 + Math.random();
            const goldGain = Math.floor(enemy.goldReward * randomMultiplier * (1 + statsState.getStat('GoldFind') / 100));
-           usePlayerStore.getState().addXp(xpGain);
+           const { leveledUp } = usePlayerStore.getState().addXp(xpGain);
            usePlayerStore.getState().addGold(goldGain);
            combatState.addLog(`Gained ${xpGain} XP and ${goldGain} Gold.`, 'system');
+           
+           if (leveledUp) {
+             useMessageStore.getState().addScreenMessage('above', `Level Up`, 4000);
+           }
+           
+           if (usePlayerStore.getState().activeTargetId === enemy.id) {
+             usePlayerStore.getState().setTarget(null);
+           }
            
            // Flask Charges
            let chargesGained = 0;
            if (enemy.rarity === 'Normal') chargesGained = 1 / 3;
            else if (enemy.rarity === 'Magic') chargesGained = 0.5;
            else if (enemy.rarity === 'Rare' || enemy.rarity === 'Boss') chargesGained = 2;
-           if (chargesGained > 0) usePlayerStore.getState().addFlaskCharges(chargesGained);
+           if (chargesGained > 0) {
+             usePlayerStore.getState().addFlaskCharges(chargesGained);
+             usePlayerStore.getState().addManaFlaskCharges(chargesGained);
+           }
            
            // Drop Loot
            let dropChance = 0;

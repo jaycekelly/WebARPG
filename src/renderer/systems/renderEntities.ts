@@ -3,6 +3,8 @@ import { getEntityTexture } from '../assets';
 import { projectTileToScreen } from '../../engine/world/screenProjection';
 import type { ProjectionParams, ProjectedPoint } from '../../engine/world/screenProjection';
 import type { Enemy, LootDrop, Obstacle } from '../../store/useWorldStore';
+import { useCombatStore } from '../../store/useCombatStore';
+import type { HitEffect } from '../../store/useCombatStore';
 import { getTileLightIntensity, getEntityTint } from '../utils/lighting';
 
 // ---- Constants ---------------------------------------------------------------
@@ -57,9 +59,8 @@ export interface EntityRenderer {
     activeTargetId: string | null,
     lootDrops: LootDrop[],
     obstacles: Obstacle[],
-    hitEffectIds: Set<string>,
+    hitEffects: HitEffect[],
     hoveredEnemyId?: string | null,
-    showHoverRing?: boolean,
     visibleTiles?: Set<string>,
   ) => void;
 }
@@ -183,11 +184,6 @@ export function createEntityRenderer(): EntityRenderer {
   // Flash fade tracking: per-entity flash alpha that decays each frame
   const flashAlphas = new Map<string, number>();
 
-  // Hit shake: random 3px jitter to sell impact, decays each frame
-  function hitJitter(): number {
-    return (Math.random() - 0.5) * 6;
-  }
-
   function updateFlash(entry: TrackedSprite, key: string, isHit: boolean) {
     let alpha = flashAlphas.get(key) ?? 0;
     if (isHit) {
@@ -207,7 +203,6 @@ export function createEntityRenderer(): EntityRenderer {
   function setPosition(
     entry: TrackedSprite,
     projected: ProjectedPoint,
-    shake = false,
     hopOffset = 0,
     wx: number,
     wy: number,
@@ -215,8 +210,8 @@ export function createEntityRenderer(): EntityRenderer {
     lootDrops: LootDrop[],
     visibleTiles: Set<string>
   ) {
-    const sx = projected.screenX + (shake ? hitJitter() : 0);
-    const sy = projected.screenY + (shake ? hitJitter() : 0);
+    const sx = projected.screenX;
+    const sy = projected.screenY;
     entry.container.position.set(sx, sy);
     entry.container.scale.set(projected.scale * activeBaseScale);
     entry.container.zIndex = projected.zDepth;
@@ -265,14 +260,16 @@ export function createEntityRenderer(): EntityRenderer {
     activeTargetId: string | null,
     lootDrops: LootDrop[],
     obstacles: Obstacle[],
-    hitEffectIds: Set<string>,
+    hitEffects: HitEffect[],
     hoveredEnemyId?: string | null,
-    showHoverRing?: boolean,
     visibleTiles?: Set<string>,
   ) {
     activeBaseScale = baseScale;
     const activeKeys = new Set<string>();
     const visibleTilesSet = visibleTiles ?? new Set<string>();
+    
+    const hitsMap = new Map<string, HitEffect>();
+    for (const h of hitEffects) hitsMap.set(h.targetId, h);
 
     // --- Player ---
     const playerKey = 'player';
@@ -311,15 +308,41 @@ export function createEntityRenderer(): EntityRenderer {
     const isVerticalOnly = fracX < 0.01 && fracY > 0.01;
     const hopMax = isVerticalOnly ? 50 : 25;
 
-    const hopPlayer = playerEntry.isDashing ? 0 : hopMax * Math.pow(progress, 0.8); // Less smooth easing
+    const hopPlayer = playerEntry.isDashing ? 0 : hopMax * Math.pow(progress, 0.8);
 
     const projPlayer = projectTileToScreen(playerEntry.currentX, playerEntry.currentY, params);
-    projPlayer.zDepth += 100; // slightly above enemies
+    projPlayer.zDepth += 100;
+    
+    // Apply directional hit jitter
+    const pHit = hitsMap.get('player');
+    if (pHit) {
+       const dx = playerEntry.currentX - pHit.sourceX;
+       const dy = playerEntry.currentY - pHit.sourceY;
+       let len = Math.sqrt(dx*dx + dy*dy);
+       if (len === 0) { len = 1; } // fallback
+       
+       // Jitter pushes the sprite rapidly back and forth along the hit vector
+       const lifeLeft = Math.max(0, pHit.expiresAt - Date.now());
+       const progress = lifeLeft / 150; // 1.0 to 0.0
+       // High frequency sine wave (oscillates rapidly every ~30ms), max distance 0.08 tiles (~5px)
+       const jitterFactor = Math.sin(Date.now() / 15) * 0.08 * progress;
+       
+       // Calculate an isometric screen-space offset
+       // dx, dy are in grid space.
+       const jitterX = (dx / len) * jitterFactor;
+       const jitterY = (dy / len) * jitterFactor;
+       
+       // We can just add this to the screen coordinates!
+       const jitterProj = projectTileToScreen(playerEntry.currentX + jitterX, playerEntry.currentY + jitterY, params);
+       projPlayer.screenX = jitterProj.screenX;
+       projPlayer.screenY = jitterProj.screenY;
+    }
+    
     playerEntry.container.zIndex = projPlayer.zDepth;
 
-    setPosition(playerEntry, projPlayer, playerHit, hopPlayer, playerEntry.currentX, playerEntry.currentY, playerPos, lootDrops, visibleTilesSet);
-    if (playerHit) {
-      playerEntry.icon.tint = 0xffaaaa;
+    setPosition(playerEntry, projPlayer, hopPlayer, playerEntry.currentX, playerEntry.currentY, playerPos, lootDrops, visibleTilesSet);
+    if (pHit) {
+      playerEntry.icon.tint = pHit.color; // use the hit's color (e.g. fire/lightning)
     }
     updateFlash(playerEntry, playerKey, playerHit);
     }
@@ -370,15 +393,36 @@ export function createEntityRenderer(): EntityRenderer {
       const hopEnemy = entry.isDashing ? 0 : hopMax * Math.pow(progress, 0.8); // Less smooth easing
 
       const projEnemy = projectTileToScreen(entry.currentX, entry.currentY, params);
-      const isHit = hitEffectIds.has(enemy.id);
-      setPosition(entry, projEnemy, isHit, hopEnemy, entry.currentX, entry.currentY, playerPos, lootDrops, visibleTilesSet);
+      
+      const eHit = hitsMap.get(enemy.id);
+      const isHit = !!eHit;
+      
+      if (eHit) {
+         const dx = entry.currentX - eHit.sourceX;
+         const dy = entry.currentY - eHit.sourceY;
+         let len = Math.sqrt(dx*dx + dy*dy);
+         if (len === 0) len = 1;
+         
+         const lifeLeft = Math.max(0, eHit.expiresAt - Date.now());
+         const progress = lifeLeft / 150;
+         const jitterFactor = Math.sin(Date.now() / 15) * 0.08 * progress;
+         
+         const jitterX = (dx / len) * jitterFactor;
+         const jitterY = (dy / len) * jitterFactor;
+         
+         const jitterProj = projectTileToScreen(entry.currentX + jitterX, entry.currentY + jitterY, params);
+         projEnemy.screenX = jitterProj.screenX;
+         projEnemy.screenY = jitterProj.screenY;
+      }
+      
+      setPosition(entry, projEnemy, hopEnemy, entry.currentX, entry.currentY, playerPos, lootDrops, visibleTilesSet);
       
       const intensity = getTileLightIntensity(entry.currentX, entry.currentY, playerPos, lootDrops, visibleTilesSet);
-      entry.icon.tint = getEntityTint(intensity); // RESTORE BASE TINT
-      if (isHit) {
-        entry.icon.tint = 0xffaaaa;
+      entry.icon.tint = getEntityTint(intensity);
+      if (eHit) {
+        entry.icon.tint = eHit.color;
       }
-      entry.flashSprite.tint = 0xffffff; // ensure flash/hover overlay is always pure white
+      entry.flashSprite.tint = 0xffffff;
       updateFlash(entry, key, isHit);
 
         // Hover and Targeting
@@ -387,56 +431,71 @@ export function createEntityRenderer(): EntityRenderer {
         
         // Handle Hover Tint
         if (isHovered) {
+          const currentHitAlpha = flashAlphas.get(key) ?? 0;
           entry.flashSprite.visible = true;
-          entry.flashSprite.alpha = 1.0; // Solid pure white overlay
+          entry.flashSprite.alpha = Math.max(0.80, currentHitAlpha); // Uniform 80% opacity
+          entry.icon.scale.set(0.85);
+          entry.flashSprite.scale.set(0.85);
+        } else {
+          entry.icon.scale.set(0.85);
+          entry.flashSprite.scale.set(0.85);
         }
 
-        // Handle Targeting Brackets
+        // Handle Targeting Reticle
         if (isTargeted) {
           entry.selectRing.visible = true;
-          
-          const iconW = entry.icon.width;
-          const iconH = entry.icon.height;
-          
           entry.selectRing.clear();
-          
-          // Animated Corner Brackets
+
+          // Animated Floor Reticle using Camera Perspective
           const time = Date.now();
-          const bounce = (Math.sin(time / 250) + 1) / 2; // 0 to 1, slower pulse
           
-          // Base extent relative to sprite size
-          const baseExtent = Math.max(iconW, iconH) * 0.45; // tighter to body
-          // Pulse outwards slightly
-          const extent = baseExtent + bounce * 6;
-          const len = 16; // Longer arms
+          const ex = entry.currentX;
+          const ey = entry.currentY;
           
-          // Bracket center (with hop applied so they follow the jumping sprite)
-          const cy = -iconH * 0.4 - hopEnemy;
+          // Project the 4 corners of the 1x1 tile the entity is standing on
+          const tl = projectTileToScreen(ex - 0.5, ey - 0.5, params);
+          const tr = projectTileToScreen(ex + 0.5, ey - 0.5, params);
+          const br = projectTileToScreen(ex + 0.5, ey + 0.5, params);
+          const bl = projectTileToScreen(ex - 0.5, ey + 0.5, params);
+          const center = projectTileToScreen(ex, ey, params);
           
-          // Pronounced alpha fading
-          const bracketAlpha = 0.3 + 0.7 * bounce; 
+          // Convert to local space of the container
+          const toLocal = (pt: ProjectedPoint) => ({
+             x: (pt.screenX - center.screenX) / center.scale,
+             y: (pt.screenY - center.screenY) / center.scale
+          });
+
+          // Pulse slightly
+          const bounce = (Math.sin(time / 200) + 1) / 2;
+          const exp = 0.75 + bounce * 0.05; // Hug the tile much tighter
           
-          // Top-Left
-          entry.selectRing.moveTo(-extent, cy - extent + len);
-          entry.selectRing.lineTo(-extent, cy - extent);
-          entry.selectRing.lineTo(-extent + len, cy - extent);
+          const ltl = toLocal(tl);
+          const ltr = toLocal(tr);
+          const lbr = toLocal(br);
+          const lbl = toLocal(bl);
           
-          // Top-Right
-          entry.selectRing.moveTo(extent - len, cy - extent);
-          entry.selectRing.lineTo(extent, cy - extent);
-          entry.selectRing.lineTo(extent, cy - extent + len);
+          // Expand from center and add a tiny upward offset
+          const yOffset = -8;
+          const ptTL = { x: ltl.x * exp, y: ltl.y * exp + yOffset };
+          const ptTR = { x: ltr.x * exp, y: ltr.y * exp + yOffset };
+          const ptBR = { x: lbr.x * exp, y: lbr.y * exp + yOffset };
+          const ptBL = { x: lbl.x * exp, y: lbl.y * exp + yOffset };
+
+          // Helper to draw an L-bracket at a corner pointing towards adjacent corners
+          const drawBracket = (corner: {x:number, y:number}, adj1: {x:number, y:number}, adj2: {x:number, y:number}) => {
+             const arm = 0.20; // arm length is 20% of the edge
+             entry.selectRing.moveTo(corner.x + (adj1.x - corner.x) * arm, corner.y + (adj1.y - corner.y) * arm);
+             entry.selectRing.lineTo(corner.x, corner.y);
+             entry.selectRing.lineTo(corner.x + (adj2.x - corner.x) * arm, corner.y + (adj2.y - corner.y) * arm);
+          };
           
-          // Bottom-Right
-          entry.selectRing.moveTo(extent, cy + extent - len);
-          entry.selectRing.lineTo(extent, cy + extent);
-          entry.selectRing.lineTo(extent - len, cy + extent);
+          drawBracket(ptTL, ptTR, ptBL);
+          drawBracket(ptTR, ptBR, ptTL);
+          drawBracket(ptBR, ptBL, ptTR);
+          drawBracket(ptBL, ptTL, ptBR);
           
-          // Bottom-Left
-          entry.selectRing.moveTo(-extent + len, cy + extent);
-          entry.selectRing.lineTo(-extent, cy + extent);
-          entry.selectRing.lineTo(-extent, cy + extent - len);
-          
-          entry.selectRing.stroke({ color: 0xef4444, width: 5, alpha: bracketAlpha });
+          entry.selectRing.stroke({ color: 0xef4444, width: 4, alpha: 1.0 });
+
         } else {
           entry.selectRing.visible = false;
         }
@@ -492,7 +551,7 @@ export function createEntityRenderer(): EntityRenderer {
       showEntry(entry);
       {
         const projLoot = projectTileToScreen(drop.position.x, drop.position.y, params);
-        setPosition(entry, projLoot, false, 0, drop.position.x, drop.position.y, playerPos, lootDrops, visibleTilesSet);
+        setPosition(entry, projLoot, 0, drop.position.x, drop.position.y, playerPos, lootDrops, visibleTilesSet);
 
         // Pulsing glow ring for loot
         if (entry.lootGlow) {
@@ -521,7 +580,7 @@ export function createEntityRenderer(): EntityRenderer {
       showEntry(entry);
       {
         const projObs = projectTileToScreen(obs.x, obs.y, params);
-        setPosition(entry, projObs, false, 0, obs.x, obs.y, playerPos, lootDrops, visibleTilesSet);
+        setPosition(entry, projObs, 0, obs.x, obs.y, playerPos, lootDrops, visibleTilesSet);
       }
     }
 

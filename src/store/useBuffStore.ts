@@ -30,6 +30,7 @@ export interface Buff {
   // HoT specific
   isHoT?: boolean;
   hotHealPerTick?: number;
+  hotManaPerTick?: number;
   hotTickRateMs?: number;
 }
 
@@ -38,10 +39,11 @@ interface BuffState {
   entityBuffs: Record<string, Buff[]>;
   
   addBuff: (entityId: string, buff: Omit<Buff, 'id'>) => void;
-  removeBuff: (entityId: string, buffInstanceId: string) => void;
+  removeBuff: (entityId: string, instanceId: string) => void;
   tickBuffs: (deltaTime: number) => { 
     dotEvents: { entityId: string, damage: number, damageType: string }[],
-    hotEvents: { entityId: string, healAmount: number }[]
+    hotEvents: { entityId: string, healAmount: number }[],
+    manaEvents: { entityId: string, manaAmount: number }[]
   };
 }
 
@@ -90,6 +92,7 @@ export const useBuffStore = create<BuffState>((set) => ({
   tickBuffs: (deltaTime) => {
     let dotEvents: { entityId: string, damage: number, damageType: string }[] = [];
     let hotEvents: { entityId: string, healAmount: number }[] = [];
+    let manaEvents: { entityId: string, manaAmount: number }[] = [];
     
     set((state) => {
       let changed = false;
@@ -122,15 +125,23 @@ export const useBuffStore = create<BuffState>((set) => ({
           }
 
           // Handle HoT
-          if (updatedBuff.isHoT && updatedBuff.hotTickRateMs && updatedBuff.hotHealPerTick) {
+          if (updatedBuff.isHoT && updatedBuff.hotTickRateMs && (updatedBuff.hotHealPerTick || updatedBuff.hotManaPerTick)) {
             updatedBuff.timeSinceLastTickMs = (updatedBuff.timeSinceLastTickMs || 0) + deltaTime;
             if (updatedBuff.timeSinceLastTickMs >= updatedBuff.hotTickRateMs) {
               const ticks = Math.floor(updatedBuff.timeSinceLastTickMs / updatedBuff.hotTickRateMs);
               updatedBuff.timeSinceLastTickMs -= ticks * updatedBuff.hotTickRateMs;
-              hotEvents.push({
-                entityId,
-                healAmount: (updatedBuff.hotHealPerTick * updatedBuff.stacks) * ticks
-              });
+              if (updatedBuff.hotHealPerTick) {
+                hotEvents.push({
+                  entityId,
+                  healAmount: (updatedBuff.hotHealPerTick * updatedBuff.stacks) * ticks
+                });
+              }
+              if (updatedBuff.hotManaPerTick) {
+                manaEvents.push({
+                  entityId,
+                  manaAmount: (updatedBuff.hotManaPerTick * updatedBuff.stacks) * ticks
+                });
+              }
             }
           }
           
@@ -149,6 +160,6 @@ export const useBuffStore = create<BuffState>((set) => ({
       return changed ? { entityBuffs: newEntityBuffs } : state;
     });
 
-    return { dotEvents, hotEvents };
+    return { dotEvents, hotEvents, manaEvents };
   }
 }));

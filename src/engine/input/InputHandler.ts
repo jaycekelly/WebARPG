@@ -1,4 +1,10 @@
-import { useCombatStore, type InputRequest } from '../../store/useCombatStore';
+import { useCombatStore } from '../../store/useCombatStore';
+
+export type InputRequest = 
+  | { type: 'skill'; skillId: string; targetPos?: { x: number; y: number }; targetId?: string }
+  | { type: 'move'; dx: number; dy: number }
+  | { type: 'interact'; targetId: string };
+
 import { useStatsStore } from '../../store/useStatsStore';
 import { useInventoryStore } from '../../store/useInventoryStore';
 import { usePlayerStore } from '../../store/usePlayerStore';
@@ -7,6 +13,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { SKILLS } from '../../data/skills';
 import type { Skill } from '../skills/types';
 import { SkillExecutor } from '../skills/executor';
+import { hasLineOfSight } from '../world/gridMath';
 
 const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => {
   return Math.max(Math.abs(p1.x - p2.x), Math.abs(p1.y - p2.y));
@@ -56,8 +63,21 @@ export class InputHandler {
     if (this.canExecute(action, now, combatState)) {
       this.executeAction(action);
     } else {
-      // Queue it
       const buffer = action.type === 'move' ? this.MOVE_QUEUE_BUFFER_MS : this.SKILL_QUEUE_BUFFER_MS;
+      
+      if (action.type === 'skill') {
+         const cdEnd = combatState.skillCooldowns[action.skillId];
+         const isCdDoomed = cdEnd && (cdEnd - now > buffer);
+         const isGcdDoomed = (combatState.gcdEndTime - now > buffer);
+         
+         if (isCdDoomed || isGcdDoomed) {
+            const pos = usePlayerStore.getState().position;
+            combatState.addFloatingText(pos.x, pos.y, 'On Cooldown', 'text-orange-500');
+            return; // Drop doomed action
+         }
+      }
+
+      // Queue it
       combatState.queueAction({
         ...action,
         expiresAt: now + buffer
@@ -126,8 +146,15 @@ export class InputHandler {
 
     // Prevent casting Ground/Directional/Area spells directly on solid obstacles
     if (tPos && !target && skill.targeting !== 'Self') {
+      if (skill.targeting === 'Single') {
+        combatState.addFloatingText(position.x, position.y, 'No Target', 'text-orange-500');
+        addLog(`You need a target for ${skill.name}.`, 'system');
+        combatState.setTargetingSkill(null);
+        return;
+      }
       const isObstacle = worldState.grid.obstacles.some(o => o.x === tPos!.x && o.y === tPos!.y);
       if (isObstacle) {
+        combatState.addFloatingText(position.x, position.y, 'Invalid Target', 'text-orange-500');
         addLog(`Cannot target obstacles with ${skill.name}.`, 'system');
         combatState.setTargetingSkill(null);
         return;
@@ -137,6 +164,7 @@ export class InputHandler {
     // Check Mana
     const effectiveMana = getEffectiveManaCost(skill);
     if (currentMana < effectiveMana) {
+      combatState.addFloatingText(position.x, position.y, 'Not Enough Mana', 'text-blue-400');
       addLog(`Not enough mana for ${skill.name}.`, 'system');
       return;
     }
@@ -157,18 +185,33 @@ export class InputHandler {
     if (target) {
       const dist = getDistance(position, target.position);
       if (dist > effectiveRange) {
-        addLog(`Target is out of range for ${skill.name}.`, 'system');
+        combatState.addFloatingText(position.x, position.y, 'Out of Range', 'text-yellow-400');
         return;
       }
     } else if (tPos) {
       const dist = getDistance(position, tPos);
       if (dist > effectiveRange) {
-        addLog(`Target area is out of range for ${skill.name}.`, 'system');
+        combatState.addFloatingText(position.x, position.y, 'Out of Range', 'text-yellow-400');
         return;
       }
-    } else if (skill.targeting === 'Single') {
+    } else if (skill.targeting === 'Single' && !target) {
+      combatState.addFloatingText(position.x, position.y, 'Need Target', 'text-orange-500');
       addLog(`You need a target for ${skill.name}.`, 'system');
       return;
+    }
+
+    // Check Line of Sight
+    if (target || tPos) {
+      const checkPos = target ? target.position : tPos!;
+      const isSolid = (x: number, y: number) => {
+        if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
+        return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
+      };
+      if (!hasLineOfSight(position, checkPos, isSolid)) {
+        combatState.addFloatingText(position.x, position.y, 'Obstructed', 'text-yellow-400');
+        addLog(`Line of sight is blocked.`, 'system');
+        return;
+      }
     }
 
     // Execute Skill or Start Cast

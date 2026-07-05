@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { Item, EquipmentSlot, ItemType } from '../engine/items/types';
 import { useStatsStore } from './useStatsStore';
 import { useCombatStore } from './useCombatStore';
+import { useMessageStore } from './useMessageStore';
 import { usePlayerStore } from './usePlayerStore';
 import { useAppStore } from './useAppStore';
 import { ItemGenerator } from '../engine/items/ItemGenerator';
@@ -67,23 +68,23 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
        const reqs = item.requirements;
        
        if (reqs.level && playerStore.level < reqs.level) {
-          useCombatStore.getState().addLog(`Level ${reqs.level} required to equip ${item.name}.`, 'system');
+          useMessageStore.getState().addScreenMessage('above', `Level ${reqs.level} required`);
           return;
        }
        if (reqs.strength && statsStore.getStat('Strength') < reqs.strength) {
-          useCombatStore.getState().addLog(`${reqs.strength} Strength required to equip ${item.name}.`, 'system');
+          useMessageStore.getState().addScreenMessage('above', `${reqs.strength} STR required`);
           return;
        }
        if (reqs.dexterity && statsStore.getStat('Dexterity') < reqs.dexterity) {
-          useCombatStore.getState().addLog(`${reqs.dexterity} Dexterity required to equip ${item.name}.`, 'system');
+          useMessageStore.getState().addScreenMessage('above', `${reqs.dexterity} DEX required`);
           return;
        }
        if (reqs.intelligence && statsStore.getStat('Intelligence') < reqs.intelligence) {
-          useCombatStore.getState().addLog(`${reqs.intelligence} Intelligence required to equip ${item.name}.`, 'system');
+          useMessageStore.getState().addScreenMessage('above', `${reqs.intelligence} INT required`);
           return;
        }
        if (reqs.vitality && statsStore.getStat('Vitality') < reqs.vitality) {
-          useCombatStore.getState().addLog(`${reqs.vitality} Vitality required to equip ${item.name}.`, 'system');
+          useMessageStore.getState().addScreenMessage('above', `${reqs.vitality} VIT required`);
           return;
        }
     }
@@ -93,7 +94,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       const combatState = useCombatStore.getState();
       const lastAttack = Math.max(combatState.lastMainHandAttackTime, combatState.lastOffHandAttackTime);
       if (useAppStore.getState().getGameTime() - lastAttack < 4000) {
-        combatState.addLog(`Cannot change equipment while in combat.`, 'system');
+        useMessageStore.getState().addScreenMessage('above', 'Cannot change equipment in combat');
         return;
       }
     }
@@ -180,7 +181,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
       const combatState = useCombatStore.getState();
       const lastAttack = Math.max(combatState.lastMainHandAttackTime, combatState.lastOffHandAttackTime);
       if (useAppStore.getState().getGameTime() - lastAttack < 4000) {
-        combatState.addLog(`Cannot change equipment while in combat.`, 'system');
+        useMessageStore.getState().addScreenMessage('above', 'Cannot change equipment in combat');
         return;
       }
     }
@@ -249,6 +250,7 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
           if (reqs.vitality && statsStore.getStat('Vitality') < reqs.vitality) isValid = false;
           
           if (!isValid) {
+             useMessageStore.getState().addScreenMessage('above', `${item.name} requirements no longer met!`);
              useCombatStore.getState().addLog(`${item.name} requirements no longer met, unequipping...`, 'system');
              get().unequip(slot as EquipmentSlot, true);
              revalidated = false; // Need to loop again since stats changed

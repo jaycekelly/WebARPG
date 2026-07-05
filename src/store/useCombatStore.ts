@@ -17,16 +17,40 @@ export interface FloatingText {
   expiresAt: number;
 }
 
-export type InputRequest = 
-  | { type: 'move'; dx: number; dy: number }
-  | { type: 'skill'; skillId: string; targetId?: string; targetPos?: {x: number, y: number} };
+export interface TileEffect {
+  id: string;
+  x: number;
+  y: number;
+  type: string;
+  color: number;
+  expiresAt: number;
+}
 
-export type QueuedAction = InputRequest & { expiresAt: number };
+export interface HitEffect {
+  id: string;
+  targetId: string;
+  sourceX: number;
+  sourceY: number;
+  color: number;
+  damageType?: string;
+  expiresAt: number;
+}
+
+export interface QueuedAction {
+  type: 'skill' | 'interact' | 'move';
+  skillId?: string;
+  targetId?: string;
+  targetPos?: { x: number, y: number };
+  dx?: number;
+  dy?: number;
+  expiresAt: number;
+}
 
 interface CombatState {
   logs: CombatLogEntry[];
   floatingTexts: FloatingText[];
-  hitEffects: { targetId: string; id: string; expiresAt: number }[];
+  hitEffects: HitEffect[];
+  tileEffects: TileEffect[];
   isAutoAttacking: boolean;
   
   // Timers for the real-time engine
@@ -54,7 +78,8 @@ interface CombatState {
 
   addLog: (message: string, type: CombatLogEntry['type']) => void;
   addFloatingText: (x: number, y: number, text: string, color: string) => void;
-  addHitEffect: (targetId: string) => void;
+  addHitEffect: (targetId: string, sourceX: number, sourceY: number, color: number, damageType?: string) => void;
+  addTileEffect: (x: number, y: number, type: string, color: number) => void;
   clearExpiredFloatingTexts: (now: number) => void;
   setAutoAttacking: (val: boolean) => void;
   
@@ -82,6 +107,7 @@ export const useCombatStore = create<CombatState>((set) => ({
   logs: [],
   floatingTexts: [],
   hitEffects: [],
+  tileEffects: [],
   isAutoAttacking: false,
   gcdEndTime: 0,
   lastMoveTime: 0,
@@ -95,23 +121,35 @@ export const useCombatStore = create<CombatState>((set) => ({
   skillCooldowns: {},
   queuedAction: null,
 
-  addLog: (message, type) => set((state) => {
-    const newLog = { id: Math.random().toString(), message, timestamp: new Date(), type };
-    return { logs: [...state.logs, newLog].slice(-50) }; // Keep last 50 logs
-  }),
+  addLog: (_message, _type) => {
+    // Combat log disabled per user request
+  },
   
   addFloatingText: (x, y, text, color) => {
-    const expiresAt = useAppStore.getState().getGameTime() + 800; // Live for 800ms
-    const id = Math.random().toString();
-    set((state) => ({
-      floatingTexts: [
-        ...state.floatingTexts,
-        { id, x, y, text, color, expiresAt }
-      ]
-    }));
+    const now = useAppStore.getState().getGameTime();
+    const expiresAt = now + 800; // Live for 800ms
+    
+    set((state) => {
+      // Throttle exact same error messages (only allow 1 every 250ms globally)
+      const isCombatText = text === 'Miss' || text === 'Dodge' || text === 'Block' || text.includes('Crit') || !isNaN(Number(text));
+      if (!isCombatText) {
+          const existing = state.floatingTexts.find(f => f.text === text);
+          if (existing && existing.expiresAt - now > 550) { // 800 - 550 = 250ms cooldown
+            return state;
+          }
+      }
+      
+      const id = Math.random().toString();
+      return {
+        floatingTexts: [
+          ...state.floatingTexts,
+          { id, x, y, text, color, expiresAt }
+        ]
+      };
+    });
   },
 
-  addHitEffect: (targetId: string) => {
+  addHitEffect: (targetId: string, sourceX: number, sourceY: number, color: number, damageType?: string) => {
     const expiresAt = useAppStore.getState().getGameTime() + 150; // 150ms flash duration
     const id = Math.random().toString();
     set((state) => {
@@ -120,21 +158,32 @@ export const useCombatStore = create<CombatState>((set) => ({
       return {
         hitEffects: [
           ...filtered,
-          { targetId, id, expiresAt }
+          { targetId, id, sourceX, sourceY, color, expiresAt, damageType }
         ]
       };
     });
+  },
+  
+  addTileEffect: (x, y, type, color) => {
+    const expiresAt = useAppStore.getState().getGameTime() + 300; // 300ms default lifespan
+    const id = Math.random().toString();
+    set((state) => ({
+      tileEffects: [...(state.tileEffects || []), { id, x, y, type, color, expiresAt }]
+    }));
   },
 
   clearExpiredFloatingTexts: (now: number) => {
     set((state) => {
       const activeTexts = state.floatingTexts.filter((ft) => ft.expiresAt > now);
       const activeHits = state.hitEffects.filter((he) => he.expiresAt > now);
+      const currentTiles = state.tileEffects || [];
+      const activeTiles = currentTiles.filter((te) => te.expiresAt > now);
       
-      if (activeTexts.length !== state.floatingTexts.length || activeHits.length !== state.hitEffects.length) {
+      if (activeTexts.length !== state.floatingTexts.length || activeHits.length !== state.hitEffects.length || activeTiles.length !== currentTiles.length) {
         return { 
           floatingTexts: activeTexts,
-          hitEffects: activeHits
+          hitEffects: activeHits,
+          tileEffects: activeTiles
         };
       }
       return state; // No change

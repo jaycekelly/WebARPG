@@ -10,44 +10,41 @@ import { useAppStore } from '../store/useAppStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import { useVisionStore } from '../store/useVisionStore';
-import { Crosshair, X, Flame, ShieldAlert, Footprints, ArrowUpCircle, Sword, Droplet, FlaskConical, Zap, Backpack, User, BookOpen } from 'lucide-react';
+import { useMessageStore } from '../store/useMessageStore';
+import { FlaskConical, X, Flame, ArrowUpCircle, Backpack, User, BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SKILLS } from '../data/skills';
 
-// Map icon strings to actual Lucide components for MVP
-const ICONS: Record<string, React.ElementType> = {
-  Flame,
-  ShieldAlert,
-  Footprints,
-  ArrowUpCircle,
-  Sword,
-  Droplet,
-  FlaskConical,
-  Zap
-};
+import { ICONS } from './IconLibrary';
 
 const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => {
   return Math.max(Math.abs(p1.x - p2.x), Math.abs(p1.y - p2.y));
 };
 
 export function CombatOverlay() {
-  const { activeTargetId, setTarget, position, currentMana, currentHealth, level, currentXp, boundSkills, bindSkill, flaskCharges, maxFlaskCharges, useFlask } = usePlayerStore();
+  const { activeTargetId, setTarget, position, currentMana, currentHealth, level, currentXp, boundSkills, bindSkill, flaskCharges, maxFlaskCharges, useFlask, manaFlaskCharges, maxManaFlaskCharges, useManaFlask } = usePlayerStore();
   const setContent = useTooltipStore(state => state.setContent);
   const { enemies } = useWorldStore();
   const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime } = useCombatStore();
   const { getStat } = useStatsStore();
   const { entityBuffs } = useBuffStore();
   const { unlockedActives } = useSkillStore();
+  const { messages } = useMessageStore();
   const isPaused = useAppStore(state => state.isPaused);
   
   const playerBuffs = entityBuffs['player'] || [];
-  const visiblePlayerBuffs = playerBuffs.filter(b => b.maxDurationMs !== null && b.maxDurationMs <= 30000 && b.buffId !== 'flask_recovery');
+  const visiblePlayerBuffs = playerBuffs.filter(b => b.maxDurationMs !== null && b.maxDurationMs <= 30000 && b.buffId !== 'flask_recovery' && b.buffId !== 'mana_flask_recovery');
   
   let expectedHealAmount = 0;
+  let expectedManaAmount = 0;
   for (const b of playerBuffs) {
       if (b.isHoT && b.hotHealPerTick && b.durationMs && b.hotTickRateMs) {
           const ticksRemaining = Math.floor(b.durationMs / b.hotTickRateMs);
           expectedHealAmount += ticksRemaining * b.hotHealPerTick;
+      }
+      if (b.buffId === 'mana_flask_recovery' && b.isHoT && b.hotManaPerTick && b.durationMs && b.hotTickRateMs) {
+          const ticksRemaining = Math.floor(b.durationMs / b.hotTickRateMs);
+          expectedManaAmount += ticksRemaining * b.hotManaPerTick;
       }
   }
   
@@ -55,7 +52,7 @@ export function CombatOverlay() {
   const maxMana = getStat('Mana');
   const xpRequired = 100 * Math.pow(level, 2);
 
-  const target = enemies.find(e => e.id === activeTargetId);
+  const target = enemies.find(e => e.id === activeTargetId && !e.isDead);
 
 
   const [now, setNow] = useState(useAppStore.getState().getGameTime());
@@ -146,26 +143,18 @@ export function CombatOverlay() {
         const skill = SKILLS[boundId];
         if (!skill) return;
 
-        const appState = useAppStore.getState();
         const playerState = usePlayerStore.getState();
         const worldState = useWorldStore.getState();
-        const combatState = useCombatStore.getState();
 
         let targetEntity = null;
         if (playerState.activeTargetId) {
           targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId);
         }
         
-        const now = appState.getGameTime();
-        const cdEnd = combatState.skillCooldowns[boundId] || 0;
-        if (now < cdEnd) {
-           return; // Do not open targeting if skill is on cooldown
-        }
-
-        if (!targetEntity || appState.isPaused) {
-          combatState.setTargetingSkill(boundId);
-        } else {
+        if (targetEntity) {
           InputHandler.requestAction({ type: 'skill', skillId: boundId, targetPos: targetEntity.position, targetId: targetEntity.id });
+        } else {
+          InputHandler.requestAction({ type: 'skill', skillId: boundId });
         }
       };
 
@@ -206,6 +195,32 @@ export function CombatOverlay() {
            useCombatStore.getState().addLog('Used Healing Flask.', 'system');
         }
       }
+
+      // Handle Mana Flask
+      if (e.key.toLowerCase() === 't') {
+        const playerState = usePlayerStore.getState();
+        const maxMp = useStatsStore.getState().getStat('Mana');
+        if (playerState.currentMana < maxMp && playerState.manaFlaskCharges >= 1) {
+           playerState.useManaFlask();
+           useBuffStore.getState().addBuff('player', {
+             buffId: 'mana_flask_recovery',
+             name: 'Mana Flask Recovery',
+             type: 'buff',
+             stackingBehavior: 'refresh',
+             durationMs: 4000,
+             maxDurationMs: 4000,
+             stacks: 1,
+             maxStacks: 1,
+             icon: 'Zap',
+             statModifiers: [],
+             isHoT: true,
+             hotTickRateMs: 50,
+             hotManaPerTick: (maxMp * 0.5) / (4000 / 50)
+           });
+           
+           useCombatStore.getState().addLog('Used Mana Flask.', 'system');
+        }
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -242,13 +257,32 @@ export function CombatOverlay() {
         )}
       </div>
 
+      {/* Screen Messages (Type 2 and 3) */}
+      {messages.map(msg => {
+         if (msg.type === 'above') {
+           return (
+             <div key={msg.id} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -mt-[8rem] pointer-events-none z-50">
+               <span className="text-yellow-400 font-bold text-lg drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
+                 {msg.text}
+               </span>
+             </div>
+           );
+         }
+         if (msg.type === 'below') {
+           const isPause = msg.text === 'TACTICAL PAUSE';
+           return (
+             <div key={msg.id} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-[7rem] pointer-events-none z-50">
+               <span className={isPause ? "text-sky-400 font-black text-lg uppercase tracking-widest animate-pulse drop-shadow-lg" : "text-text-primary italic text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
+                 {msg.text}
+               </span>
+             </div>
+           );
+         }
+         return null;
+      })}
+
       {/* HUD & Action Bar (Bottom Center) */}
       <div className="flex flex-col items-center pointer-events-none gap-1.5 relative">
-        {isPaused && (
-          <div className="absolute bottom-[calc(100%+6rem)] left-1/2 -translate-x-1/2 text-sky-400 font-black text-lg uppercase tracking-widest animate-pulse drop-shadow-lg pointer-events-none w-max">
-            Tactical Pause
-          </div>
-        )}
         {/* Dynamic Floating Bars (Cast Bar, Swing Timers) */}
         <div className="absolute bottom-[calc(100%+0.5rem)] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none" style={{ width: '10rem' }}>
           
@@ -397,14 +431,68 @@ export function CombatOverlay() {
                </button>
             </div>
             
+            {/* Mana Flask Button (Moved to absolute right of Action Bar) */}
+            <div className="absolute -top-[0.1875rem] -right-10 z-30">
+               <button 
+                 className={`relative w-8 h-8 rounded-full border flex items-center justify-center transition-all focus:outline-none focus:ring-0
+                   ${manaFlaskCharges >= 1 ? 'bg-surface-deep border-border-subtle hover:border-accent' : 'bg-surface-deep border-border-subtle cursor-not-allowed'}
+                 `}
+                 onClick={() => {
+                   if (currentMana < maxMana && manaFlaskCharges >= 1) {
+                      useManaFlask();
+                      useBuffStore.getState().addBuff('player', {
+                        buffId: 'mana_flask_recovery',
+                        name: 'Mana Flask Recovery',
+                        type: 'buff',
+                        stackingBehavior: 'refresh',
+                        durationMs: 4000,
+                        maxDurationMs: 4000,
+                        stacks: 1,
+                        maxStacks: 1,
+                        icon: 'Zap',
+                        statModifiers: [],
+                        isHoT: true,
+                        hotTickRateMs: 50,
+                        hotManaPerTick: (maxMana * 0.5) / (4000 / 50)
+                      });
+                      
+                      useCombatStore.getState().addLog('Used Mana Flask.', 'system');
+                   }
+                 }}
+                 onMouseEnter={() => setContent(
+                  <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none">
+                    <div className="font-bold text-blue-400 mb-1">
+                      Mana Flask
+                    </div>
+                    <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-border-subtle uppercase tracking-widest">
+                      {Math.floor(manaFlaskCharges)} / {maxManaFlaskCharges} charges
+                    </div>
+                    <div className="text-xs text-text-primary leading-snug mb-1">
+                      Restores <span className="text-blue-400 font-bold">50%</span> of your maximum mana over <span className="text-text-primary font-bold">4 seconds</span>.
+                    </div>
+                    <div className="text-[0.625rem] text-text-secondary leading-snug mt-1 pt-1 border-t border-border-subtle">
+                      Recharges by killing monsters.
+                    </div>
+                  </div>
+                )}
+                onMouseLeave={() => setContent(null)}
+               >
+                  <FlaskConical className="w-4 h-4 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)] z-10" />
+                  <span className="absolute -top-1.5 -right-0.5 text-[0.6875rem] font-black text-text-primary z-10 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{Math.floor(manaFlaskCharges)}</span>
+                  <span className="absolute -bottom-1 -left-1 text-[0.6875rem] font-bold text-white z-10 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{`T`}</span>
+               </button>
+            </div>
+            
             {/* Health & Mana Bars */}
             <div className="flex w-full gap-1 relative z-20 mb-0.5">
                {/* Health Bar (slots 1-4) */}
                <div className="relative flex-1 h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
-                  <div 
-                    className="absolute top-0 left-0 h-full bg-red-400/70 border-r border-red-300/50 transition-all duration-75"
-                    style={{ width: `${Math.min(100, ((currentHealth + expectedHealAmount) / maxHealth) * 100)}%` }}
-                  />
+                  {expectedHealAmount > 0 && (
+                    <div 
+                      className="absolute top-0 left-0 h-full bg-red-400/70 border-r border-red-300/50 transition-all duration-75"
+                      style={{ width: `${Math.min(100, ((currentHealth + expectedHealAmount) / maxHealth) * 100)}%` }}
+                    />
+                  )}
                   <div 
                     className="absolute top-0 left-0 h-full transition-all duration-75 border-r border-red-950"
                     style={{ 
@@ -418,6 +506,12 @@ export function CombatOverlay() {
                </div>
                {/* Mana Bar (slots 5-8) */}
                <div className="relative flex-1 h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
+                  {expectedManaAmount > 0 && (
+                    <div 
+                      className="absolute top-0 left-0 h-full bg-blue-400/70 border-r border-blue-300/50 transition-all duration-75"
+                      style={{ width: `${Math.min(100, ((currentMana + expectedManaAmount) / maxMana) * 100)}%` }}
+                    />
+                  )}
                   <div 
                     className="absolute top-0 left-0 h-full transition-all duration-300 border-r border-blue-950"
                     style={{ 

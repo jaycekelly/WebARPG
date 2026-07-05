@@ -5,10 +5,12 @@ import { getPixiApp, destroyPixiApp } from './pixiApp';
 import { createCamera } from './camera';
 import { createFloorRenderer } from './systems/renderFloor';
 import { createEntityRenderer } from './systems/renderEntities';
+import { createBoundaryWallRenderer } from './systems/renderBoundaryWalls';
 import { createFloatingTextRenderer } from './systems/renderFloatingTexts';
-import { createTargetingOverlayRenderer } from './systems/renderTargetingOverlay';
+import { createTileVfxRenderer } from './systems/renderTileVfx';
+import { createParticleRenderer } from './systems/renderParticles';
 import { createFogRenderer } from './systems/renderFog';
-import { setupCanvasInput, getClickTarget } from './input/canvasInput';
+import { setupCanvasInput, getClickTarget, unprojectScreenToWorld, getCurrentPointerClientCoords } from './input/canvasInput';
 import { useWorldStore } from '../store/useWorldStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useCombatStore } from '../store/useCombatStore';
@@ -22,7 +24,7 @@ import type { WorldPoint } from './input/canvasInput';
 
 const BASE_TILE_SIZE = 72;
 const BASE_GAP_SIZE = 0;
-const DEFAULT_ZOOM = 1.2;
+const DEFAULT_ZOOM = 1.0;
 const BASE_ICON_SIZE = 32;
 const REF_TILE_SIZE = BASE_TILE_SIZE * 0.55;
 const TEXTURE_SIZE = 128;
@@ -123,15 +125,20 @@ export function GameCanvas() {
         const fog = createFogRenderer();
         gameLayer.addChild(fog.container);
 
+        const boundaryWalls = createBoundaryWallRenderer();
+        gameLayer.addChild(boundaryWalls.container);
+
         const entities = createEntityRenderer();
         gameLayer.addChild(entities.container);
 
-        // Targeting range overlay (dims tiles outside effective range)
-        const targetingOverlay = createTargetingOverlayRenderer();
-        gameLayer.addChild(targetingOverlay.container);
+        const tileVfx = createTileVfxRenderer();
+        gameLayer.addChild(tileVfx.container);
 
         // Entity UI layer (health bars, target rings) on top of lighting/overlays
         gameLayer.addChild(entities.uiContainer);
+
+        const particles = createParticleRenderer();
+        gameLayer.addChild(particles.container);
 
         // Floating text in screen space (not affected by world/camera transforms)
         const floatingTexts = createFloatingTextRenderer();
@@ -157,15 +164,7 @@ export function GameCanvas() {
           () => projParamsRef.current!,
           {
             onHover: (tile: WorldPoint | null) => {
-              // Track hovered enemy for target ring display
-              if (tile) {
-                const target = getClickTarget(tile.gx, tile.gy);
-                hoveredEnemyId = target.enemyId;
-                hoveredTile = { x: tile.gx, y: tile.gy };
-              } else {
-                hoveredEnemyId = null;
-                hoveredTile = null;
-              }
+              // Now dynamically handled in the ticker to support camera movement
             },
             onHoverLoot: (_tile: WorldPoint, lootId: string) => {
               hoveredLootId = lootId;
@@ -183,8 +182,11 @@ export function GameCanvas() {
           },
         );
         floor.rebuild(world.grid);
+        boundaryWalls.rebuild(world.grid);
         const gridKey = `${world.grid.width}x${world.grid.height}:${world.grid.obstacles.length}`;
         let lastGridKey = gridKey;
+        
+        let processedHitIds = new Set<string>();
 
         app.ticker.add(() => {
           const w = useWorldStore.getState();
@@ -195,7 +197,8 @@ export function GameCanvas() {
           if (a.location !== 'dungeon') {
             entities.container.visible = false;
             floor.container.visible = false;
-            targetingOverlay.container.visible = false;
+            boundaryWalls.container.visible = false;
+            tileVfx.container.visible = false;
             fog.container.visible = false;
             floatingTexts.container.visible = false;
             pauseOverlay.visible = false;
@@ -246,7 +249,8 @@ export function GameCanvas() {
           // All game layers visible in dungeon (even during pause — frozen world)
           entities.container.visible = true;
           floor.container.visible = true;
-          targetingOverlay.container.visible = true;
+          boundaryWalls.container.visible = true;
+          tileVfx.container.visible = true;
           fog.container.visible = true;
           floatingTexts.container.visible = true;
 
@@ -255,6 +259,7 @@ export function GameCanvas() {
             const gridKey2 = `${w.grid.width}x${w.grid.height}:${w.grid.obstacles.length}`;
             if (gridKey2 !== lastGridKey) {
               floor.rebuild(w.grid);
+              boundaryWalls.rebuild(w.grid);
               lastGridKey = gridKey2;
             }
           }
@@ -298,8 +303,31 @@ export function GameCanvas() {
             focusWorldY,
             perspectivePx: FLOOR_PERSPECTIVE_PX,
             floorTiltDeg: FLOOR_TILT_DEG,
-          };
           projParamsRef.current = projParams;
+
+          // Re-evaluate mouse position with current camera to keep targeting tight even if mouse doesn't move
+          const ptr = getCurrentPointerClientCoords();
+          if (ptr.x !== null && ptr.y !== null) {
+            const rect = canvas.getBoundingClientRect();
+            const sx = ((ptr.x - rect.left) / rect.width) * canvas.width;
+            const sy = ((ptr.y - rect.top) / rect.height) * canvas.height;
+            const worldPos = unprojectScreenToWorld(sx, sy, projParams);
+            if (worldPos) {
+              hoveredTile = { x: worldPos.gx, y: worldPos.gy };
+              const target = getClickTarget(worldPos.gx, worldPos.gy);
+              hoveredEnemyId = target.enemyId;
+              
+              if (c.targetingSkillId) {
+                canvas.style.cursor = '';
+              } else {
+                canvas.style.cursor = (target.enemyId || target.lootId) ? 'pointer' : '';
+              }
+            } else {
+              hoveredTile = null;
+              hoveredEnemyId = null;
+              canvas.style.cursor = '';
+            }
+          }
 
           const vs = useVisionStore.getState();
           fog.update(
@@ -315,12 +343,21 @@ export function GameCanvas() {
             p.position,
             w.lootDrops
           );
+          boundaryWalls.update(
+            projParams.panX,
+            projParams.panY,
+            canvas.width,
+            canvas.height,
+            w.grid,
+            tileSize,
+            focusWorldY,
+            p.position,
+            w.lootDrops,
+            vs.visibleTiles
+          );
 
           const iconSize = BASE_ICON_SIZE * (tileSize / REF_TILE_SIZE);
           const baseScale = iconSize / TEXTURE_SIZE;
-
-          // Show hover target ring during targeting mode or tactical pause
-          const showHoverRing = !!c.targetingSkillId || a.isPaused;
 
           if (a.isPaused) {
             // Cinematic "Time Freeze" overlay
@@ -342,14 +379,13 @@ export function GameCanvas() {
               p.activeTargetId,
               w.lootDrops,
               w.grid.obstacles,
-              new Set(), // no hit effects during pause
+              [], // no hit effects during pause
               hoveredEnemyId,
-              true, // showHoverRing during pause
               vs.visibleTiles,
             );
 
             // Targeting overlay: still works during pause for skill aiming
-            targetingOverlay.update(projParams, p.position, c.targetingSkillId, hoveredTile, w.grid.obstacles);
+            tileVfx.update(projParams, p.position, c.targetingSkillId, hoveredTile, w.grid.obstacles);
 
             // No floating text update during pause
             return;
@@ -357,7 +393,6 @@ export function GameCanvas() {
 
           pauseOverlay.visible = false;
 
-          const hitEffectIds = new Set<string>(c.hitEffects.map(h => h.targetId));
           const playerHit = c.hitEffects.some(h => h.targetId === 'player');
 
           entities.update(
@@ -369,14 +404,39 @@ export function GameCanvas() {
             p.activeTargetId,
             w.lootDrops,
             w.grid.obstacles,
-            hitEffectIds,
+            c.hitEffects,
             hoveredEnemyId,
-            showHoverRing,
             vs.visibleTiles,
           );
 
           // Targeting overlay: dim tiles outside effective range
-          targetingOverlay.update(projParams, p.position, c.targetingSkillId, hoveredTile, w.grid.obstacles);
+          tileVfx.update(projParams, p.position, c.targetingSkillId, hoveredTile, w.grid.obstacles);
+
+          // Particles
+          const currentHitIds = new Set<string>();
+          for (const h of c.hitEffects) {
+             currentHitIds.add(h.id);
+             if (!processedHitIds.has(h.id)) {
+                processedHitIds.add(h.id);
+                // Spawn particles at target location
+                let tx = 0, ty = 0;
+                if (h.targetId === 'player') {
+                   tx = p.position.x; ty = p.position.y;
+                } else {
+                   const enemy = w.enemies.find(e => e.id === h.targetId);
+                   if (enemy) { tx = enemy.position.x; ty = enemy.position.y; }
+                }
+                
+                const pType = h.damageType ? h.damageType.toLowerCase() : 'physical';
+                particles.spawn(tx, ty, 0, h.color, pType, 1, h.targetId, h.sourceX, h.sourceY);
+             }
+          }
+          // Clean up old hit ids
+          for (const id of processedHitIds) {
+             if (!currentHitIds.has(id)) processedHitIds.delete(id);
+          }
+          
+          particles.update(projParams);
 
           floatingTexts.update(projParams);
         });
