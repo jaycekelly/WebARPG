@@ -294,7 +294,7 @@ export function getEntityTexture(kind: string, color: string): Texture {
   return texture;
 }
 
-function clearTextureCache() {
+export function clearTextureCache() {
   cache.forEach(e => e.texture.destroy());
   cache.clear();
 }
