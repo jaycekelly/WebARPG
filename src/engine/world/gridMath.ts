@@ -12,7 +12,7 @@ export const getChebyshevDistance = (p1: Point, p2: Point) => {
  * Manhattan distance (4-way grid movement).
  * Distance is 2 for diagonal tiles.
  */
-export const getManhattanDistance = (p1: Point, p2: Point) => {
+const getManhattanDistance = (p1: Point, p2: Point) => {
   return Math.abs(p1.x - p2.x) + Math.abs(p1.y - p2.y);
 };
 
@@ -20,7 +20,7 @@ export const getManhattanDistance = (p1: Point, p2: Point) => {
  * Traces a line from p0 to p1 using Bresenham's Line Algorithm.
  * Returns an array of Points including start and end.
  */
-export const getBresenhamLine = (p0: Point, p1: Point): Point[] => {
+const getBresenhamLine = (p0: Point, p1: Point): Point[] => {
   const points: Point[] = [];
   let x = p0.x;
   let y = p0.y;

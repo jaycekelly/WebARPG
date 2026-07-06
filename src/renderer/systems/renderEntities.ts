@@ -156,11 +156,7 @@ export function createEntityRenderer(): EntityRenderer {
     flashSprite.visible = false;
     c.addChild(flashSprite);
 
-    // Glow ring for loot (behind icon, above shadow)
-    const lootGlow: Graphics | null = key.startsWith('loot:') ? new Graphics() : null;
-    if (lootGlow) {
-      c.addChildAt(lootGlow, 1); // Insert after shadow (index 0)
-    }
+    // Glow ring for loot has been removed
 
     const entry: TrackedSprite = {
       container: c,
@@ -169,7 +165,7 @@ export function createEntityRenderer(): EntityRenderer {
       healthBar,
       selectRing,
       flashSprite,
-      lootGlow,
+      lootGlow: null,
       key,
       kind: kind as keyof typeof ENTITY_Z,
     };
@@ -561,14 +557,7 @@ export function createEntityRenderer(): EntityRenderer {
         const projLoot = projectTileToScreen(drop.position.x, drop.position.y, params);
         setPosition(entry, projLoot, 0, drop.position.x, drop.position.y, playerPos, lootDrops, visibleTilesSet);
 
-        // Pulsing glow ring for loot
-        if (entry.lootGlow) {
-          entry.icon.y = 0; // Reset any previous bobbing
-          const pulseAlpha = 0.15 + 0.1 * (Math.sin(Date.now() / 800) + 1) / 2;
-          entry.lootGlow.clear();
-          entry.lootGlow.circle(0, 0, 18);
-          entry.lootGlow.fill({ color: 0xfef08a, alpha: pulseAlpha }); // yellow-200 glow
-        }
+        // No VFX for loot currently
       }
     }
 

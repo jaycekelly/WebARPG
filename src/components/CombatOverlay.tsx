@@ -770,8 +770,31 @@ export function CombatOverlay() {
           {/* MP Globe Removed */}
         </div>
       </div>
+      {/* Control Hints (Bottom Left) */}
+      <div className="absolute bottom-3 left-3 pointer-events-none z-50 flex flex-col gap-1 items-start opacity-75">
+         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
+           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">W A S D</span>
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Move</span>
+         </div>
+         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
+           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">Q E Z C</span>
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Move Diagonal</span>
+         </div>
+         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
+           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">1 - 8</span>
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Skills</span>
+         </div>
+         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
+           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">R, T</span>
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Flasks</span>
+         </div>
+         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
+           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">SPACE</span>
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Tactical View</span>
+         </div>
+      </div>
       
-{/* UI Window Toggles (Bottom Right) */}
+      {/* UI Window Toggles (Bottom Right) */}
       <div className="absolute bottom-3 right-3 pointer-events-auto z-50 flex gap-2">
         <button
           onClick={() => {
@@ -783,7 +806,7 @@ export function CombatOverlay() {
               appState.setCharacterWindowOpen(true);
             }
           }}
-          className={`w-12 h-12 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group ${
+          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'inventory')
               ? 'text-accent border-accent bg-surface-deep'
               : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
@@ -791,7 +814,6 @@ export function CombatOverlay() {
           title="Inventory (I)"
         >
           <Backpack className="w-5 h-5" />
-          <span className="text-[0.5625rem] font-bold">INV</span>
           {usePlayerStore(state => state.attributePoints) > 0 && (
              <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse z-50">
                {usePlayerStore.getState().attributePoints}
@@ -809,7 +831,7 @@ export function CombatOverlay() {
               appState.setCharacterWindowOpen(true);
             }
           }}
-          className={`w-12 h-12 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
+          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'skills')
               ? 'text-accent border-accent bg-surface-deep'
               : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
@@ -817,7 +839,6 @@ export function CombatOverlay() {
           title="Skills"
         >
           <BookOpen className="w-5 h-5" />
-          <span className="text-[0.5625rem] font-bold">SKILLS</span>
           {usePlayerStore(state => state.skillPoints) > 0 && (
              <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse z-50">
                {usePlayerStore.getState().skillPoints}

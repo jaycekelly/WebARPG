@@ -2,7 +2,7 @@ import type { LootDrop } from '../../store/useWorldStore';
 
 // Set ambient darkness much higher (0.9) so far away tiles are actually dark
 export const AMBIENT_DARKNESS = 0.9; 
-export const PLAYER_LIGHT_RADIUS = 7.0; 
+const PLAYER_LIGHT_RADIUS = 7.0; 
 
 /**
  * Calculates the light intensity for a given tile coordinate (0.0 to 1.0).
