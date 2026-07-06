@@ -212,13 +212,13 @@ export function createParticleRenderer() {
         const oy = 0;
         const oz = 0.1;
         
-        // 360-degree radial explosion
+        // 360-degree radial explosion in world space
         const expAngle = Math.random() * Math.PI * 2;
         const speed = 0.01 + Math.random() * 0.02; // Reduced speed to tighten the explosion
         const vx = Math.cos(expAngle) * speed;
-        // Multiply Y by 2.0 to counteract the isometric camera squashing the grid's Y-axis,
-        // which creates a perfectly circular explosion on the user's screen!
-        const vy = Math.sin(expAngle) * speed * 2.0; 
+        // Do not multiply by 2.0! Letting the isometric engine squash the Y-axis naturally 
+        // makes the explosion look like it's correctly sticking to the 3D floor perspective!
+        const vy = Math.sin(expAngle) * speed; 
         // Keep Z-velocity at 0 so they don't spray wildly up and down the screen's Y-axis!
         const vz = 0; 
         

@@ -3,13 +3,14 @@ import { projectTileToScreen } from '../../engine/world/screenProjection';
 import type { ProjectionParams } from '../../engine/world/screenProjection';
 import { useCombatStore } from '../../store/useCombatStore';
 import { useAppStore } from '../../store/useAppStore';
+import { useWorldStore } from '../../store/useWorldStore';
+import { usePlayerStore } from '../../store/usePlayerStore';
 
 // ---- Constants ---------------------------------------------------------------
 
 const FLOAT_DURATION_MS = 800;
 const FADE_START_MS = 500; // Start fading after 500ms
 const FLOAT_DISTANCE = 40; // Total upward pixels over lifetime
-const FLOAT_OFFSET_Y = -103; // Vertical offset from entity at spawn
 
 // Tailwind → hex color mapping
 const COLOR_MAP: Record<string, string> = {
@@ -59,6 +60,8 @@ interface TrackedText {
   spawnTime: number;
   screenX: number;
   screenY: number;
+  iconScale: number;
+  isPlayer: boolean;
 }
 
 export interface FloatingTextRenderer {
@@ -87,12 +90,27 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
         text.anchor.set(0.5, 0.5);
         container.addChild(text);
 
+        let iconScale = 0.85; // default
+        let isPlayer = false;
+        const player = usePlayerStore.getState();
+        if (player.position.x === ft.x && player.position.y === ft.y) {
+          iconScale = 0.85;
+          isPlayer = true;
+        } else {
+          const enemy = useWorldStore.getState().enemies.find(e => e.position.x === ft.x && e.position.y === ft.y);
+          if (enemy && enemy.scale) {
+            iconScale = enemy.scale;
+          }
+        }
+
         entry = {
           text,
           id: ft.id,
           spawnTime: now,
           screenX: 0,
           screenY: 0,
+          iconScale,
+          isPlayer,
         };
         tracked.set(ft.id, entry);
       }
@@ -108,8 +126,12 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
       const elapsed = now - entry.spawnTime;
       const progress = Math.min(1.0, elapsed / FLOAT_DURATION_MS);
       
-      const rawOffset = FLOAT_OFFSET_Y - (FLOAT_DISTANCE * progress);
-      const dynamicOffset = rawOffset * (activeBaseScale / 0.9) * projected.scale;
+      const baseOffset = entry.isPlayer 
+        ? -100 // Player doesn't have a health bar, spawn right above head
+        : -(95 * entry.iconScale) - 75; // Enemies have health bars, spawn higher
+        
+      const rawOffset = baseOffset - (FLOAT_DISTANCE * progress);
+      const dynamicOffset = rawOffset * activeBaseScale * projected.scale;
       
       entry.screenX = projected.screenX;
       entry.screenY = projected.screenY + dynamicOffset;

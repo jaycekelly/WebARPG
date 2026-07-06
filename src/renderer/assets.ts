@@ -236,10 +236,8 @@ function drawIcon(
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  ctx.fillStyle = '#09090b'; // zinc-950 background color to act as a solid mask
   for (const d of paths) {
     const p = new Path2D(d);
-    ctx.fill(p);
     ctx.stroke(p);
   }
 
@@ -296,7 +294,57 @@ export function getEntityTexture(kind: string, color: string): Texture {
   return texture;
 }
 
+const glowCache = new Map<string, CacheEntry>();
+
+export function getEntityGlowTexture(kind: string, color: string): Texture {
+  const key = makeKey(kind, color);
+
+  const cached = glowCache.get(key);
+  if (cached) return cached.texture;
+
+  const [canvas, ctx] = createCanvas();
+  const def = ICON_PATHS[kind];
+  if (def) {
+    const isArray = Array.isArray(def);
+    const paths = isArray ? def : def.paths;
+    const scaleOpt = isArray ? 1 : (def.scale || 1);
+
+    ctx.save();
+    ctx.translate(PADDING, PADDING);
+    ctx.scale(SCALE, SCALE);
+    if (scaleOpt !== 1) {
+      ctx.translate(12, 12);
+      ctx.scale(scaleOpt, scaleOpt);
+      ctx.translate(-12, -12);
+    }
+
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 4; // Thicker base for glow
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = color;
+
+    for (const d of paths) {
+      const p = new Path2D(d);
+      ctx.stroke(p);
+      ctx.stroke(p); // Stroke twice for intense center core glow!
+    }
+    ctx.restore();
+  } else {
+    drawPlaceholder(ctx, kind, color);
+  }
+
+  const texture = Texture.from(canvas);
+  const entry: CacheEntry = { texture };
+  glowCache.set(key, entry);
+
+  return texture;
+}
+
 export function clearTextureCache() {
   cache.forEach(e => e.texture.destroy());
   cache.clear();
+  glowCache.forEach(e => e.texture.destroy());
+  glowCache.clear();
 }
