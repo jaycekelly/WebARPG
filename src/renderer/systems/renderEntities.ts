@@ -595,7 +595,7 @@ export function createEntityRenderer(): EntityRenderer {
       const color = RARITY_COLORS[bestRarity] ?? '#a1a1aa';
       let entry = tracked.get(key);
       if (!entry) {
-        entry = makeEntitySprite(bestIcon, color, key, ENTITY_Z.loot, false, 0.5); // Shrink floor loot
+        entry = makeEntitySprite(bestIcon, color, key, ENTITY_Z.loot, false, 0.65); // Shrink floor loot
       }
       if (visibleTiles && !visibleTiles.has(`${drop.position.x},${drop.position.y}`)) {
         hideEntry(entry);
