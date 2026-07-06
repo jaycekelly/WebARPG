@@ -10,7 +10,7 @@ export function DataEditorView() {
   const { lootItem } = useInventoryStore();
 
   return (
-    <div className="flex-1 bg-surface-deep p-8 flex flex-col h-screen overflow-hidden">
+    <div className="flex-1 bg-surface-deep p-8 flex flex-col h-full overflow-hidden">
       <div className="flex items-center gap-4 border-b border-border-subtle pb-4 mb-8">
         <button 
           onClick={() => setLocation('town')}

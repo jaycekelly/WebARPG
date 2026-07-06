@@ -156,8 +156,8 @@ export function useGameEngine() {
       if (queuedAction) {
         if (now > queuedAction.expiresAt) {
           clearQueue();
-        } else if (InputHandler.canExecute(queuedAction, now, combatState)) {
-          InputHandler.executeAction(queuedAction);
+        } else if (InputHandler.canExecute(queuedAction as any, now, combatState)) {
+          InputHandler.executeAction(queuedAction as any);
           clearQueue();
         }
       }
@@ -615,8 +615,10 @@ export function useGameEngine() {
            combatState.addLog(`Gained ${xpGain} XP and ${goldGain} Gold.`, 'system');
            
            if (leveledUp) {
-             useMessageStore.getState().addScreenMessage('above', `Level Up`, 4000);
+             useMessageStore.getState().addScreenMessage('above', `Level Up`, 3000);
            }
+           
+           combatState.addHitEffect(enemy.id, enemy.position.x, enemy.position.y, 0xcc0000, 'death');
            
            if (usePlayerStore.getState().activeTargetId === enemy.id) {
              usePlayerStore.getState().setTarget(null);

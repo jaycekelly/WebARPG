@@ -100,54 +100,60 @@ export class LevelGenerator {
     playerStore.setPosition(playerSpawn.x, playerSpawn.y);
     playerStore.setTarget(null);
 
-    // For the test level, we spawn 1 solo goblin, and 1 group of 2 goblins
-    const template = ENEMY_TEMPLATES['goblin'];
+    // For the test level, we spawn 10 solo bats, and 5 groups of 2 bats
+    const template = ENEMY_TEMPLATES['bat'];
     if (!template) return;
-
-    // Helper to spawn a goblin
-    const spawnGoblin = (spawnPos: {x: number, y: number}, groupId?: string) => {
-      const levelDiff = Math.max(0, playerLevel - template.minLevel);
+    
+    // Helper to spawn a bat
+    const spawnBat = (spawnPos: {x: number, y: number}, groupId?: string) => {
+      const level = Math.max(template.minLevel, Math.min(template.maxLevel, playerLevel));
+      const levelDiff = Math.max(0, level - template.minLevel);
       const scaleFactor = 1 + (levelDiff * 0.10);
-      const scaledStats = { ...template.stats };
-      scaledStats.maxHealth = Math.floor(scaledStats.maxHealth * scaleFactor);
-      scaledStats.attackPower = Math.floor(scaledStats.attackPower * scaleFactor);
 
-      worldStore.spawnEnemy({
+      const health = Math.floor(template.stats.maxHealth * scaleFactor);
+
+      useWorldStore.getState().spawnEnemy({
         templateId: template.id,
         name: template.name,
-        level: playerLevel,
+        level: level,
         position: spawnPos,
-        health: scaledStats.maxHealth,
-        stats: scaledStats,
+        spawnOrigin: { x: spawnPos.x, y: spawnPos.y },
+        rarity: 'Normal',
+        health: health,
         aiProfile: template.aiProfile,
         faction: 'enemy',
-        xpReward: Math.floor(template.baseXpReward * scaleFactor),
-        goldReward: Math.floor((template.baseGoldReward || 0) * scaleFactor),
-        groupId,
-        spawnOrigin: spawnPos,
-        rarity: 'Normal',
-        isAggroed: false
+        groupId: groupId,
+        scale: template.scale, // Pull scale from template
+        xpReward: Math.floor(template.baseXpReward * (1 + levelDiff * 0.2)),
+        goldReward: Math.floor((template.baseGoldReward || 0) * (1 + levelDiff * 0.2)),
+        stats: {
+          ...template.stats,
+          maxHealth: health,
+          attackPower: Math.floor(template.stats.attackPower * scaleFactor),
+        }
       });
     };
 
-    // Spawn 10 Solo Goblins
+    const getRandomValidTile = (_avoid?: {x: number, y: number}) => this.getValidSpawnPointInZone(grid, enemyZone.minX, enemyZone.maxX, enemyZone.minY, enemyZone.maxY);
+
+    // Spawn 10 Solo Bats
     for (let i = 0; i < 10; i++) {
-      const soloPos = this.getValidSpawnPointInZone(grid, enemyZone.minX, enemyZone.maxX, enemyZone.minY, enemyZone.maxY);
-      spawnGoblin(soloPos);
+      const soloPos = getRandomValidTile();
+      spawnBat(soloPos);
     }
 
-    // Spawn 5 Groups of 2 Goblins
+    // Spawn 5 Groups of 2 Bats
     for (let i = 0; i < 5; i++) {
-      const groupId = `test-group-${i}`;
-      const groupOrigin = this.getValidSpawnPointInZone(grid, enemyZone.minX, enemyZone.maxX, enemyZone.minY, enemyZone.maxY);
-      spawnGoblin(groupOrigin, groupId);
+      const groupOrigin = getRandomValidTile();
+      const groupId = `group_${Date.now()}_${i}`;
+      spawnBat(groupOrigin, groupId);
       
       // Find an adjacent tile for the second group member
       let member2Pos = { x: groupOrigin.x + 1, y: groupOrigin.y };
       if (grid.obstacles.some(o => o.x === member2Pos.x && o.y === member2Pos.y) || member2Pos.x >= grid.width) {
          member2Pos = { x: groupOrigin.x - 1, y: groupOrigin.y };
       }
-      spawnGoblin(member2Pos, groupId);
+      spawnBat(member2Pos, groupId);
     }
   }
 }

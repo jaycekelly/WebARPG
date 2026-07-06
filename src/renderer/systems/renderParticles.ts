@@ -4,7 +4,7 @@ import { projectTileToScreen } from '../../engine/world/screenProjection';
 import { useWorldStore } from '../../store/useWorldStore';
 import { usePlayerStore } from '../../store/usePlayerStore';
 
-type VfxShape = 'slash' | 'ring' | 'orb' | 'streak' | 'zigzag' | 'needle' | 'bolt' | 'pillar' | 'shatter' | 'spark';
+type VfxShape = 'slash' | 'ring' | 'orb' | 'streak' | 'zigzag' | 'needle' | 'bolt' | 'pillar' | 'shatter' | 'spark' | 'cube';
 
 interface VfxElement {
   x: number;
@@ -95,6 +95,10 @@ export function createParticleRenderer() {
     } else if (shape === 'spark') {
       // Thinner and slightly shorter version of the slash
       p.gfx.poly([-25, 0, 0, -5, 25, 0, 0, 5]);
+      p.gfx.fill({ color: color, alpha: 1.0 });
+    } else if (shape === 'cube') {
+      // Small blocky square for pixel-art style evaporation
+      p.gfx.rect(-8, -8, 16, 16);
       p.gfx.fill({ color: color, alpha: 1.0 });
     } else if (shape === 'needle') {
       // Bulky spearhead (slightly larger)
@@ -200,6 +204,26 @@ export function createParticleRenderer() {
         // Zero velocity so they just flash in place like static crackles
         spawnElement(x + ox, y + oy, z + 0.2, color, 'spark', 100 + Math.random() * 80, angle, 0, 0, 0, targetId);
       }
+    } else if (type === 'death') {
+      // Explode outwards into blocky white particles uniformly
+      for (let i = 0; i < 12; i++) {
+        // Start dead-center of the entity, lower to the ground
+        const ox = 0;
+        const oy = 0;
+        const oz = 0.1;
+        
+        // 360-degree radial explosion on the XY plane
+        const expAngle = Math.random() * Math.PI * 2;
+        const speed = 0.02 + Math.random() * 0.03; // Reduced speed so they don't explode as far out
+        const vx = Math.cos(expAngle) * speed;
+        const vy = Math.sin(expAngle) * speed;
+        const vz = 0; // Disable Z-axis velocity so it doesn't bias up/down on the screen
+        
+        // Random visual rotation for the cubes
+        const angle = Math.random() * Math.PI * 2;
+        
+        spawnElement(x + ox, y + oy, z + oz, 0xffffff, 'cube', 250 + Math.random() * 150, angle, vx, vy, vz, targetId);
+      }
     } else {
       // Generic condensed blast
       spawnElement(x, y, z + 0.2, color, 'slash', 200, Math.PI / 4, 0, 0, 0, targetId);
@@ -263,6 +287,11 @@ export function createParticleRenderer() {
           p.scaleX = proj.scale * (0.2 + progress * 3.0);
           p.scaleY = p.scaleX * 0.5; // Squashed for isometric perspective
           p.gfx.alpha = 1.0 - Math.pow(progress, 1.5);
+        } else if (p.shape === 'cube') {
+          // Cubes stay full size but fade out completely linearly
+          p.scaleX = proj.scale;
+          p.scaleY = proj.scale;
+          p.gfx.alpha = 1.0 - progress;
         } else if (p.shape === 'orb') {
           // Orb bursts and shrinks
           p.scaleX = proj.scale * (1.5 - progress);

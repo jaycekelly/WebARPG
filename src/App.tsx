@@ -7,8 +7,8 @@ import { usePlayerStore } from './store/usePlayerStore';
 import { TownView } from './components/TownView';
 import { DungeonView } from './components/DungeonView';
 import { DataEditorView } from './components/DataEditorView';
-
 import { GlobalTooltip } from './components/GlobalTooltip';
+import { useUIScale } from './hooks/useUIScale';
 
 const GameOverScreen = () => {
   const currentHealth = usePlayerStore(state => state.currentHealth);
@@ -23,6 +23,7 @@ const GameOverScreen = () => {
 
 function App() {
   useGameEngine(); // Mount the 60fps game engine loop
+  useUIScale(); // Mount the responsive UI scaler
   const { location, setLocation } = useAppStore();
 
   useEffect(() => {
@@ -55,15 +56,7 @@ function App() {
         }
       }
 
-      if (e.key.toLowerCase() === 'p') {
-        const appState = useAppStore.getState();
-        if (appState.characterWindowOpen && appState.characterWindowTab === 'stats') {
-          appState.setCharacterWindowOpen(false);
-        } else {
-          appState.setCharacterWindowTab('stats');
-          appState.setCharacterWindowOpen(true);
-        }
-      }
+
 
       if (e.key.toLowerCase() === 'k') {
         const appState = useAppStore.getState();
@@ -117,7 +110,7 @@ function App() {
 
   if (location === 'editor') {
     return (
-      <div className="flex w-screen h-screen items-center justify-center bg-black overflow-hidden">
+      <div className="flex w-full h-full items-center justify-center bg-black overflow-hidden">
         <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
           <DataEditorView />
           <GlobalTooltip />
@@ -127,7 +120,7 @@ function App() {
   }
 
   return (
-    <div className="flex w-screen h-screen items-center justify-center bg-black overflow-hidden">
+    <div className="flex w-full h-full items-center justify-center bg-black overflow-hidden">
       <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
         
         {location === 'dungeon' && <DungeonView />}

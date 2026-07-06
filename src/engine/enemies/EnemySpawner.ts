@@ -33,6 +33,7 @@ export class EnemySpawner {
       health: Math.floor(template.stats.maxHealth * scaleFactor),
       aiProfile: template.aiProfile,
       faction: 'enemy',
+      scale: template.scale,
       xpReward: Math.floor(template.baseXpReward * (1 + levelDiff * 0.2)),
       goldReward: Math.floor((template.baseGoldReward || 0) * (1 + levelDiff * 0.2)),
       stats: {

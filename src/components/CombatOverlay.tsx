@@ -11,7 +11,7 @@ import { useInventoryStore } from '../store/useInventoryStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import { useVisionStore } from '../store/useVisionStore';
 import { useMessageStore } from '../store/useMessageStore';
-import { FlaskConical, X, Flame, ArrowUpCircle, Backpack, User, BookOpen } from 'lucide-react';
+import { FlaskConical, X, Flame, ArrowUpCircle, Backpack, BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { SKILLS } from '../data/skills';
 
@@ -30,7 +30,6 @@ export function CombatOverlay() {
   const { entityBuffs } = useBuffStore();
   const { unlockedActives } = useSkillStore();
   const { messages } = useMessageStore();
-  const isPaused = useAppStore(state => state.isPaused);
   
   const playerBuffs = entityBuffs['player'] || [];
   const visiblePlayerBuffs = playerBuffs.filter(b => b.maxDurationMs !== null && b.maxDurationMs <= 30000 && b.buffId !== 'flask_recovery' && b.buffId !== 'mana_flask_recovery');
@@ -260,9 +259,10 @@ export function CombatOverlay() {
       {/* Screen Messages (Type 2 and 3) */}
       {messages.map(msg => {
          if (msg.type === 'above') {
+           const isLevelUp = msg.text.includes('Level Up');
            return (
-             <div key={msg.id} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -mt-[8rem] pointer-events-none z-50">
-               <span className="text-yellow-400 font-bold text-lg drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
+             <div key={msg.id} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -mt-[14rem] pointer-events-none z-50 flex flex-col items-center ${isLevelUp ? 'animate-[levelUpFade_3s_ease-in-out_forwards]' : 'animate-in fade-in slide-in-from-bottom-2 duration-500'}`}>
+               <span className={isLevelUp ? "text-accent font-black text-2xl uppercase tracking-[0.2em] drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]" : "text-yellow-400 font-bold text-lg drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
                  {msg.text}
                </span>
              </div>
@@ -271,8 +271,8 @@ export function CombatOverlay() {
          if (msg.type === 'below') {
            const isPause = msg.text === 'TACTICAL PAUSE';
            return (
-             <div key={msg.id} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-[7rem] pointer-events-none z-50">
-               <span className={isPause ? "text-sky-400 font-black text-lg uppercase tracking-widest animate-pulse drop-shadow-lg" : "text-text-primary italic text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
+             <div key={msg.id} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-[14rem] pointer-events-none z-50 flex flex-col items-center animate-in slide-in-from-top-2 fade-in duration-300">
+               <span className={isPause ? "text-accent font-black text-lg uppercase tracking-widest animate-pulse drop-shadow-lg" : "text-text-primary italic text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
                  {msg.text}
                </span>
              </div>
@@ -408,7 +408,7 @@ export function CombatOverlay() {
                    }
                  }}
                  onMouseEnter={() => setContent(
-                  <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none">
+                  <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none backdrop-blur-md">
                     <div className="font-bold text-red-400 mb-1">
                       Healing Flask
                     </div>
@@ -460,7 +460,7 @@ export function CombatOverlay() {
                    }
                  }}
                  onMouseEnter={() => setContent(
-                  <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none">
+                  <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none backdrop-blur-md">
                     <div className="font-bold text-blue-400 mb-1">
                       Mana Flask
                     </div>
@@ -617,23 +617,46 @@ export function CombatOverlay() {
                       onMouseEnter={() => {
                         if (!isBinding && skill) {
                           setContent(
-                            <div className="w-48 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none">
-                              <div className="font-bold text-sky-400 mb-1">{skill.name}</div>
-                              <div className="flex justify-between text-[0.625rem] text-text-secondary mb-2 pb-1 border-b border-border-subtle uppercase tracking-widest">
-                                 <span>{skill.range > 0 ? `Range ${skill.range}` : 'Melee'}</span>
+                            <div className="w-56 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 text-left pointer-events-none backdrop-blur-md">
+                              <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
+                              <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
                                  <span>{getEffectiveManaCost(skill)} Mana</span>
+                                 <span>{skill.cooldownMs ? `${(skill.cooldownMs / 1000).toFixed(1)} CD` : 'No CD'}</span>
+                              </div>
+                              <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
+                                 <span>{skill.range > 0 ? `Range ${skill.range}` : 'Melee'}</span>
+                                 <span>{skill.castTime ? `${(getEffectiveCastTime(skill) / 1000).toFixed(1)} Cast` : 'Instant'}</span>
                               </div>
                               {skill.effects.some(e => e.type === 'damage') && (
-                                <div className="mb-2 pb-2 border-b border-border-subtle">
-                                  {skill.effects.filter(e => e.type === 'damage').map((effect, i) => (
-                                    <div key={i} className="text-xs font-bold text-text-secondary">
-                                      {effect.baseValue} {effect.element} Damage
-                                    </div>
-                                  ))}
+                                <div className="mb-1 pb-1 border-b border-border-subtle space-y-0.5">
+                                  {skill.effects.filter(e => e.type === 'damage').map((effect, i) => {
+                                    const weaponDamage = useStatsStore.getState().getStat('Damage');
+                                    const weaponType = (useInventoryStore.getState().equipment['weapon1'] as any)?.damageType || 'Physical';
+                                    const mult = effect.damageMultiplier || 0;
+                                    const base = effect.baseValue || 0;
+                                    const totalAvg = base + (weaponDamage * mult);
+                                    const el = effect.element || (mult > 0 ? weaponType : 'Physical');
+                                    
+                                    if (skill.id === 'basic_attack') {
+                                      const min = Math.floor(totalAvg * 0.75);
+                                      const max = Math.ceil(totalAvg * 1.25);
+                                      return (
+                                        <div key={i} className="text-xs font-bold text-text-secondary">
+                                          {min} - {max} {el} Damage
+                                        </div>
+                                      );
+                                    }
+                                    
+                                    return (
+                                      <div key={i} className="text-xs font-bold text-text-secondary">
+                                        {Math.floor(totalAvg)} {el} Damage
+                                      </div>
+                                    );
+                                  })}
                                 </div>
                               )}
 
-                              <div className="text-xs text-text-primary leading-snug mb-2">
+                              <div className="text-xs text-text-primary leading-snug">
                                  {skill.description}
                               </div>
                             </div>
@@ -769,29 +792,8 @@ export function CombatOverlay() {
         >
           <Backpack className="w-5 h-5" />
           <span className="text-[0.5625rem] font-bold">INV</span>
-        </button>
-
-        <button
-          onClick={() => {
-            const appState = useAppStore.getState();
-            if (appState.characterWindowOpen && appState.characterWindowTab === 'stats') {
-              appState.setCharacterWindowOpen(false);
-            } else {
-              appState.setCharacterWindowTab('stats');
-              appState.setCharacterWindowOpen(true);
-            }
-          }}
-          className={`w-12 h-12 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
-            useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'stats')
-              ? 'text-accent border-accent bg-surface-deep'
-              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
-          }`}
-          title="Character Stats (C)"
-        >
-          <User className="w-5 h-5" />
-          <span className="text-[0.5625rem] font-bold">CHAR</span>
           {usePlayerStore(state => state.attributePoints) > 0 && (
-             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse">
+             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse z-50">
                {usePlayerStore.getState().attributePoints}
              </span>
           )}
@@ -817,7 +819,7 @@ export function CombatOverlay() {
           <BookOpen className="w-5 h-5" />
           <span className="text-[0.5625rem] font-bold">SKILLS</span>
           {usePlayerStore(state => state.skillPoints) > 0 && (
-             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse">
+             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse z-50">
                {usePlayerStore.getState().skillPoints}
              </span>
           )}

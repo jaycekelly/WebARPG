@@ -24,6 +24,7 @@ export interface Enemy {
   isAggroed?: boolean;
   groupId?: string;
   autoTargetChecked?: boolean;
+  scale?: number;
 }
 
 export interface LootDrop {

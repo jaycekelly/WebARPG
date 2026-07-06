@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@fontsource-variable/noto-sans": "^5.2.10",
+    "@fontsource/rajdhani": "^5.2.7",
     "@tabler/icons-react": "^3.44.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.22.0",

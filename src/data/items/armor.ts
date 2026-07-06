@@ -7,7 +7,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   iron_helm: {
     id: 'iron_helm',
     name: 'Iron Helm',
-    icon: 'Crown',
+    icon: 'helmet',
     itemType: 'helm',
     armorCategory: 'Heavy',
     baseStats: [Stat('Armor', 8)],
@@ -15,7 +15,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   iron_chest: {
     id: 'iron_chest',
     name: 'Iron Chestplate',
-    icon: 'Shirt',
+    icon: 'chest_armor',
     itemType: 'chest',
     armorCategory: 'Heavy',
     baseStats: [Stat('Armor', 15)],
@@ -23,7 +23,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   iron_legs: {
     id: 'iron_legs',
     name: 'Iron Legs',
-    icon: 'Layers',
+    icon: 'leg_armor',
     itemType: 'legs',
     armorCategory: 'Heavy',
     baseStats: [Stat('Armor', 10)],
@@ -31,7 +31,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   iron_gloves: {
     id: 'iron_gloves',
     name: 'Iron Gauntlets',
-    icon: 'Hand',
+    icon: 'gloves',
     itemType: 'gloves',
     armorCategory: 'Heavy',
     baseStats: [Stat('Armor', 4)],
@@ -39,7 +39,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   iron_boots: {
     id: 'iron_boots',
     name: 'Iron Boots',
-    icon: 'Footprints',
+    icon: 'boots',
     itemType: 'boots',
     armorCategory: 'Heavy',
     baseStats: [Stat('Armor', 5)],
@@ -69,7 +69,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   leather_cowl: {
     id: 'leather_cowl',
     name: 'Leather Cowl',
-    icon: 'Crown',
+    icon: 'helmet',
     itemType: 'helm',
     armorCategory: 'Light',
     baseStats: [Stat('Armor', 6), Stat('DeflectChance', 1)],
@@ -77,7 +77,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   leather_tunic: {
     id: 'leather_tunic',
     name: 'Leather Tunic',
-    icon: 'Shirt',
+    icon: 'chest_armor',
     itemType: 'chest',
     armorCategory: 'Light',
     baseStats: [Stat('Armor', 14), Stat('DeflectChance', 3)],
@@ -85,7 +85,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   leather_leggings: {
     id: 'leather_leggings',
     name: 'Leather Leggings',
-    icon: 'Layers',
+    icon: 'leg_armor',
     itemType: 'legs',
     armorCategory: 'Light',
     baseStats: [Stat('Armor', 8), Stat('DeflectChance', 2)],
@@ -93,7 +93,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   leather_gloves: {
     id: 'leather_gloves',
     name: 'Leather Gloves',
-    icon: 'Hand',
+    icon: 'gloves',
     itemType: 'gloves',
     armorCategory: 'Light',
     baseStats: [Stat('Armor', 4), Stat('DeflectChance', 1)],
@@ -101,7 +101,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   leather_boots: {
     id: 'leather_boots',
     name: 'Leather Boots',
-    icon: 'Footprints',
+    icon: 'boots',
     itemType: 'boots',
     armorCategory: 'Light',
     baseStats: [Stat('Armor', 4), Stat('DeflectChance', 1)],
@@ -123,7 +123,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   silk_hood: {
     id: 'silk_hood',
     name: 'Silk Hood',
-    icon: 'Crown',
+    icon: 'helmet',
     itemType: 'helm',
     armorCategory: 'Caster',
     baseStats: [Stat('Armor', 5), Stat('ManaRegenPercent', 5)],
@@ -131,7 +131,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   silk_robe: {
     id: 'silk_robe',
     name: 'Silk Robe',
-    icon: 'Shirt',
+    icon: 'chest_armor',
     itemType: 'chest',
     armorCategory: 'Caster',
     baseStats: [Stat('Armor', 12), Stat('ManaRegenPercent', 10)],
@@ -139,7 +139,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   silk_leggings: {
     id: 'silk_leggings',
     name: 'Silk Leggings',
-    icon: 'Layers',
+    icon: 'leg_armor',
     itemType: 'legs',
     armorCategory: 'Caster',
     baseStats: [Stat('Armor', 7), Stat('ManaRegenPercent', 8)],
@@ -147,7 +147,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   silk_gloves: {
     id: 'silk_gloves',
     name: 'Silk Gloves',
-    icon: 'Hand',
+    icon: 'gloves',
     itemType: 'gloves',
     armorCategory: 'Caster',
     baseStats: [Stat('Armor', 3), Stat('ManaRegenPercent', 4)],
@@ -155,7 +155,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   silk_shoes: {
     id: 'silk_shoes',
     name: 'Silk Shoes',
-    icon: 'Footprints',
+    icon: 'boots',
     itemType: 'boots',
     armorCategory: 'Caster',
     baseStats: [Stat('Armor', 3), Stat('ManaRegenPercent', 4)],

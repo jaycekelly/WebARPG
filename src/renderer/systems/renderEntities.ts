@@ -3,7 +3,6 @@ import { getEntityTexture } from '../assets';
 import { projectTileToScreen } from '../../engine/world/screenProjection';
 import type { ProjectionParams, ProjectedPoint } from '../../engine/world/screenProjection';
 import type { Enemy, LootDrop, Obstacle } from '../../store/useWorldStore';
-import { useCombatStore } from '../../store/useCombatStore';
 import type { HitEffect } from '../../store/useCombatStore';
 import { getTileLightIntensity, getEntityTint } from '../utils/lighting';
 
@@ -110,6 +109,7 @@ export function createEntityRenderer(): EntityRenderer {
     key: string,
     zIdx: number,
     hasHealthBar: boolean,
+    iconScale: number = 0.85,
   ): TrackedSprite {
     const c = new Container();
     c.zIndex = zIdx;
@@ -121,7 +121,7 @@ export function createEntityRenderer(): EntityRenderer {
     if (isObstacle) {
       shadow.scale.set(1.15, 1.15); // Widen obstacle shadows
     } else {
-      shadow.scale.set(0.85, 0.85); // Shrink others to match icon
+      shadow.scale.set(iconScale, iconScale); // Dynamically scale shadow based on entity size
     }
     c.addChild(shadow);
     
@@ -130,7 +130,7 @@ export function createEntityRenderer(): EntityRenderer {
     const icon = new Sprite(texture);
     icon.anchor.set(0.5, 0.85);
     if (!isObstacle) {
-      icon.scale.set(0.85, 0.85); // Shrink non-obstacle icons
+      icon.scale.set(iconScale, iconScale); // Dynamically scale icon based on entity size
     }
     c.addChild(icon);
 
@@ -157,7 +157,7 @@ export function createEntityRenderer(): EntityRenderer {
     c.addChild(flashSprite);
 
     // Glow ring for loot (behind icon, above shadow)
-    const lootGlow: Graphics | null = kind === 'loot' ? new Graphics() : null;
+    const lootGlow: Graphics | null = key.startsWith('loot:') ? new Graphics() : null;
     if (lootGlow) {
       c.addChildAt(lootGlow, 1); // Insert after shadow (index 0)
     }
@@ -228,7 +228,8 @@ export function createEntityRenderer(): EntityRenderer {
     entry.icon.y = -hopOffset;
     entry.flashSprite.y = -hopOffset;
     if (entry.healthBar) {
-      entry.healthBar.position.set(sx, sy + HEALTH_BAR_OFFSET_Y - hopOffset);
+      const dynamicOffset = HEALTH_BAR_OFFSET_Y * (activeBaseScale / 0.9) * projected.scale;
+      entry.healthBar.position.set(sx, sy + dynamicOffset - hopOffset);
       entry.healthBar.scale.set(projected.scale * activeBaseScale);
     }
     entry.selectRing.position.set(sx, sy);
@@ -276,9 +277,11 @@ export function createEntityRenderer(): EntityRenderer {
     activeKeys.add(playerKey);
     let playerEntry = tracked.get(playerKey);
     if (!playerEntry) {
-      playerEntry = makeEntitySprite('squirrel', '#10b981', playerKey, ENTITY_Z.player, false);
+      playerEntry = makeEntitySprite('robot', '#e4e4e7', playerKey, ENTITY_Z.player, false);
+      tracked.set(playerKey, playerEntry);
     }
     showEntry(playerEntry);
+    
     {
       if (playerEntry.currentX === undefined || playerEntry.currentY === undefined) {
         playerEntry.currentX = playerPos.x;
@@ -343,6 +346,8 @@ export function createEntityRenderer(): EntityRenderer {
     setPosition(playerEntry, projPlayer, hopPlayer, playerEntry.currentX, playerEntry.currentY, playerPos, lootDrops, visibleTilesSet);
     if (pHit) {
       playerEntry.icon.tint = pHit.color; // use the hit's color (e.g. fire/lightning)
+    } else {
+      playerEntry.icon.tint = 0xe4e4e7;
     }
     updateFlash(playerEntry, playerKey, playerHit);
     }
@@ -354,7 +359,10 @@ export function createEntityRenderer(): EntityRenderer {
       activeKeys.add(key);
       let entry = tracked.get(key);
       if (!entry) {
-        entry = makeEntitySprite('rabbit', '#ef4444', key, ENTITY_Z.enemy, true);
+        // Fallback to 0.85 if scale isn't defined, or use the enemy's defined scale
+        const scale = enemy.scale ?? 0.85; 
+        entry = makeEntitySprite(enemy.templateId || 'rabbit', '#ef4444', key, ENTITY_Z.enemy, true, scale);
+        tracked.set(key, entry);
       }
       if (visibleTiles && !visibleTiles.has(`${enemy.position.x},${enemy.position.y}`)) {
         hideEntry(entry);
@@ -530,19 +538,19 @@ export function createEntityRenderer(): EntityRenderer {
     for (const drop of lootDrops) {
       const key = `loot:${drop.id}`;
       activeKeys.add(key);
-      let bestIcon = drop.items[0]?.icon ?? 'Sword';
+      let bestIcon = drop.items[0]?.icon ?? 'leg_armor';
       let bestRarity = 'Normal';
       const rv = { Normal: 0, Magic: 1, Rare: 2, Epic: 3, Legendary: 4, Unique: 5 } as Record<string, number>;
       for (const item of drop.items) {
         if ((rv[item.rarity] ?? 0) > (rv[bestRarity] ?? 0)) {
           bestRarity = item.rarity;
-          bestIcon = item.icon ?? 'Sword';
+          bestIcon = item.icon ?? 'leg_armor';
         }
       }
+      const color = RARITY_COLORS[bestRarity] ?? '#a1a1aa';
       let entry = tracked.get(key);
       if (!entry) {
-        const color = RARITY_COLORS[bestRarity] ?? '#a1a1aa';
-        entry = makeEntitySprite(bestIcon, color, key, ENTITY_Z.loot, false);
+        entry = makeEntitySprite(bestIcon, color, key, ENTITY_Z.loot, false, 0.5); // Shrink floor loot
       }
       if (visibleTiles && !visibleTiles.has(`${drop.position.x},${drop.position.y}`)) {
         hideEntry(entry);
@@ -555,6 +563,7 @@ export function createEntityRenderer(): EntityRenderer {
 
         // Pulsing glow ring for loot
         if (entry.lootGlow) {
+          entry.icon.y = 0; // Reset any previous bobbing
           const pulseAlpha = 0.15 + 0.1 * (Math.sin(Date.now() / 800) + 1) / 2;
           entry.lootGlow.clear();
           entry.lootGlow.circle(0, 0, 18);

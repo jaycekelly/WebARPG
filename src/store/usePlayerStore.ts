@@ -7,6 +7,7 @@ import type { ClassType } from '../engine/player/types';
 
 interface PlayerState {
   playerClass: ClassType;
+  secondaryClass: ClassType | null;
   position: { x: number; y: number };
   currentHealth: number;
   currentMana: number;
@@ -49,6 +50,7 @@ interface PlayerState {
 
 export const usePlayerStore = create<PlayerState>((set, get) => ({
   playerClass: 'Fighter',
+  secondaryClass: 'Mage',
   position: { x: 5, y: 5 },
   currentHealth: 80,
   currentMana: 50,

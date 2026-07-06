@@ -20,7 +20,7 @@ import { useTooltipStore } from '../store/useTooltipStore';
 import { ItemTooltip } from '../components/ItemTooltip';
 import { InputHandler } from '../engine/input/InputHandler';
 import type { ProjectionParams } from '../engine/world/screenProjection';
-import type { WorldPoint } from './input/canvasInput';
+
 
 const BASE_TILE_SIZE = 72;
 const BASE_GAP_SIZE = 0;
@@ -84,15 +84,16 @@ export function GameCanvas() {
     if (!canvas || !container) return;
 
     const syncSize = () => {
-      const rect = container.getBoundingClientRect();
+      const cw = container.clientWidth;
+      const ch = container.clientHeight;
       const dpr = window.devicePixelRatio || 1;
-      const w = Math.round(rect.width * dpr);
-      const h = Math.round(rect.height * dpr);
+      const w = Math.round(cw * dpr);
+      const h = Math.round(ch * dpr);
       if (w > 0 && h > 0 && (canvas.width !== w || canvas.height !== h)) {
         canvas.width = w;
         canvas.height = h;
-        canvas.style.width = rect.width + 'px';
-        canvas.style.height = rect.height + 'px';
+        canvas.style.width = cw + 'px';
+        canvas.style.height = ch + 'px';
       }
     };
     syncSize();
@@ -162,24 +163,6 @@ export function GameCanvas() {
         canvasInputCleanupRef.current = setupCanvasInput(
           canvas,
           () => projParamsRef.current!,
-          {
-            onHover: (tile: WorldPoint | null) => {
-              // Now dynamically handled in the ticker to support camera movement
-            },
-            onHoverLoot: (_tile: WorldPoint, lootId: string) => {
-              hoveredLootId = lootId;
-              const drop = useWorldStore.getState().lootDrops.find(d => d.id === lootId);
-              if (drop && drop.items.length > 0) {
-                useTooltipStore.getState().setContent(
-                  createElement(ItemTooltip, { item: drop.items[0] }),
-                );
-              }
-            },
-            onHoverLootEnd: () => {
-              hoveredLootId = null;
-              useTooltipStore.getState().setContent(null);
-            },
-          },
         );
         floor.rebuild(world.grid);
         boundaryWalls.rebuild(world.grid);
@@ -303,6 +286,7 @@ export function GameCanvas() {
             focusWorldY,
             perspectivePx: FLOOR_PERSPECTIVE_PX,
             floorTiltDeg: FLOOR_TILT_DEG,
+          };
           projParamsRef.current = projParams;
 
           // Re-evaluate mouse position with current camera to keep targeting tight even if mouse doesn't move
@@ -317,6 +301,22 @@ export function GameCanvas() {
               const target = getClickTarget(worldPos.gx, worldPos.gy);
               hoveredEnemyId = target.enemyId;
               
+              if (target.lootId !== hoveredLootId) {
+                hoveredLootId = target.lootId;
+                if (hoveredLootId) {
+                  const drop = w.lootDrops.find(d => d.id === hoveredLootId);
+                  if (drop && drop.items.length > 0) {
+                    useTooltipStore.getState().setContent(
+                      createElement(ItemTooltip, { item: drop.items[0] })
+                    );
+                  } else {
+                    useTooltipStore.getState().setContent(null);
+                  }
+                } else {
+                  useTooltipStore.getState().setContent(null);
+                }
+              }
+
               if (c.targetingSkillId) {
                 canvas.style.cursor = '';
               } else {
@@ -325,8 +325,17 @@ export function GameCanvas() {
             } else {
               hoveredTile = null;
               hoveredEnemyId = null;
+              if (hoveredLootId !== null) {
+                hoveredLootId = null;
+                useTooltipStore.getState().setContent(null);
+              }
               canvas.style.cursor = '';
             }
+          } else {
+             if (hoveredLootId !== null) {
+                hoveredLootId = null;
+                useTooltipStore.getState().setContent(null);
+             }
           }
 
           const vs = useVisionStore.getState();

@@ -40,4 +40,5 @@ export interface EnemyTemplate {
   aiProfile: AIProfile;
   baseXpReward: number; // XP to give at minLevel, can be scaled up
   baseGoldReward: number; // Gold to give at minLevel
+  scale?: number; // Optional rendering scale factor
 }

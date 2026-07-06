@@ -668,7 +668,7 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     type: 'flat',
     baseValue: 10,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value} Status Effect Power',
+    descriptionTpl: '+{value}% Status Effectiveness',
     exclusivityGroup: 'BurnDamage'
   },
   {

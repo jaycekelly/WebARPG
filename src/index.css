@@ -51,10 +51,18 @@
 
 @layer base {
   html {
-    font-size: 24px; /* Base UI scale — increase to make all UI bigger */
+    font-size: 24px;
+    overflow: hidden;
   }
+  
   body {
     @apply bg-zinc-950 text-text-primary font-sans antialiased;
+    overflow: hidden;
+  }
+
+  #root {
+    width: 100%;
+    height: 100%;
   }
 }
 
@@ -64,16 +72,18 @@
   to { opacity: 1; }
 }
 
+@keyframes levelUpFade {
+  0% { opacity: 0; }
+  10% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
 @layer utilities {
   .character-window-responsive {
-    top: 4rem;
-  }
-  @media (min-height: 1100px) {
-    .character-window-responsive {
-      top: 0;
-      bottom: 0;
-      margin-top: auto;
-      margin-bottom: auto;
-    }
+    top: 0;
+    bottom: 0;
+    margin-top: auto;
+    margin-bottom: auto;
   }
 }

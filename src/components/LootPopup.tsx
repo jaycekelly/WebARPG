@@ -1,11 +1,12 @@
 import { useWorldStore } from '../store/useWorldStore';
 import { useInventoryStore } from '../store/useInventoryStore';
-import { X, Sword, Shield, Circle, CircleDashed, Crown, Shirt, Hexagon, Hand, Footprints, Book, ShieldAlert } from 'lucide-react';
+import { X, CircleDashed } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import type { Item } from '../engine/items/types';
 import { ItemTooltip } from './ItemTooltip';
 import { useTooltipStore } from '../store/useTooltipStore';
+import { ICONS } from './IconLibrary';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -18,22 +19,6 @@ const RARITY_COLORS = {
   Epic: 'text-purple-400',
   Legendary: 'text-orange-400',
   Unique: 'text-amber-500'
-};
-
-const getIcon = (iconName: string) => {
-  switch (iconName) {
-    case 'Sword': return Sword;
-    case 'Shield': return Shield;
-    case 'Circle': return Circle;
-    case 'Crown': return Crown;
-    case 'Shirt': return Shirt;
-    case 'Hexagon': return Hexagon;
-    case 'Hand': return Hand;
-    case 'Footprints': return Footprints;
-    case 'Book': return Book;
-    case 'ShieldAlert': return ShieldAlert;
-    default: return CircleDashed;
-  }
 };
 
 interface Props {
@@ -93,7 +78,7 @@ export function LootPopup({ dropId, onClose }: Props) {
         {/* Item List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {drop.items.map((item) => {
-            const Icon = getIcon(item.icon);
+            const Icon = ICONS[item.icon] || CircleDashed;
             return (
               <div 
                 key={item.id}

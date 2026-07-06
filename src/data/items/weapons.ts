@@ -75,7 +75,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
   ember_staff: {
     id: 'ember_staff',
     name: 'Ember Staff',
-    icon: 'Flame',
+    icon: 'staff',
     itemType: 'weapon-2h',
     weaponCategory: 'Staff',
     damageType: 'Fire',

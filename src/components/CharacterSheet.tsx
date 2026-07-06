@@ -1,6 +1,5 @@
 import { useStatsStore } from '../store/useStatsStore';
-import { usePlayerStore } from '../store/usePlayerStore';
-import { Sword, Shield, Zap, Activity, Heart, Book, Crosshair, Wrench, Flame, ShieldOff, Plus, ArrowUp } from 'lucide-react';
+import { Sword, Shield, Zap, Heart, Book, Crosshair, Wrench, Flame, ShieldOff, Activity } from 'lucide-react';
 import type { StatType } from '../engine/stats/types';
 
 interface StatDefinition {
@@ -185,58 +184,17 @@ function computeTotalRegen(getStat: (stat: StatType) => number, statId: StatType
 
 export function CharacterSheet() {
   const { getStat } = useStatsStore();
-  const { level, attributePoints, allocateAttribute } = usePlayerStore();
 
   return (
-    <div className="px-4 pb-4 pt-1 flex flex-col gap-3">
-      <div className="flex items-center justify-between pb-2 border-b border-border-subtle">
-        <div>
-          <h2 className="text-xl font-black text-text-primary">Level {level}</h2>
-        </div>
-        <div className="flex gap-2">
-          {attributePoints > 0 && (
-            <div className="bg-blue-500/10 border border-blue-500/20 text-blue-500 px-2 py-1 rounded text-xs font-bold flex items-center gap-1.5 animate-pulse shadow-[0_0_10px_rgba(59,130,246,0.2)]">
-              <ArrowUp className="w-3 h-3" />
-              {attributePoints} AP
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Core Attributes */}
-      <div className="space-y-2">
-        <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2">
-          <Activity className="w-4 h-4 opacity-70" />
-          Attributes
-        </h3>
-        <div className="grid grid-cols-2 gap-2">
-          {(['Strength', 'Dexterity', 'Intelligence', 'Vitality'] as const).map(attr => (
-            <div key={attr} className="bg-surface-base rounded-xl border border-border-subtle overflow-hidden shadow-inner flex items-center justify-between p-2">
-               <div className="flex flex-col px-2">
-                 <span className="text-text-secondary text-xs uppercase tracking-wide">{attr.substring(0, 3)}</span>
-                 <span className="font-mono text-text-primary">{getStat(attr).toFixed(0)}</span>
-               </div>
-               {attributePoints > 0 && (
-                 <button 
-                   onClick={() => allocateAttribute(attr)}
-                   className="w-8 h-8 rounded-lg bg-blue-600 hover:bg-blue-500 text-text-primary flex items-center justify-center transition-all hover:scale-105 active:scale-95 shrink-0 shadow-lg shadow-blue-500/20"
-                 >
-                   <Plus className="w-4 h-4" />
-                 </button>
-               )}
-            </div>
-          ))}
-        </div>
-      </div>
-
+    <div className="p-4 flex flex-col gap-3 h-full overflow-y-auto custom-scrollbar">
       <div className="flex flex-col gap-3">
         {STAT_CATEGORIES.map((category) => (
           <div key={category.title} className="flex flex-col gap-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 mb-1">
+            <h3 className="text-[15px] font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 mb-1">
               <category.icon className="w-4 h-4 opacity-70" />
               {category.title}
             </h3>
-            <div className="bg-surface-base rounded-xl border border-border-subtle overflow-hidden shadow-inner">
+            <div className="bg-surface-base rounded-xl border border-border-subtle overflow-hidden shadow-inner py-0.5">
               {category.stats.map((statDef, index) => {
                 const isRegen = statDef.id === 'HealthRegeneration' || statDef.id === 'ManaRegeneration';
                 const rawVal = isRegen ? computeTotalRegen(getStat, statDef.id) : getStat(statDef.id);
@@ -258,7 +216,7 @@ export function CharacterSheet() {
                 return (
                   <div
                     key={statDef.id}
-                    className={`flex justify-between items-center px-4 py-1.5 text-xs transition-colors
+                    className={`flex justify-between items-center px-4 py-1 text-xs transition-colors
                       ${index !== category.stats.length - 1 ? 'border-b border-border-subtle' : ''}
                       ${hasStat ? 'hover:bg-surface-raised' : 'opacity-40'}
                     `}

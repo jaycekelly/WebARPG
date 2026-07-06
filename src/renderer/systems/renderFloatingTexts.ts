@@ -32,10 +32,10 @@ function resolveColor(colorClass: string): string {
 // Clamped to [2, 3] — 1x is blurry, >3x wastes texture memory for imperceptible gain.
 const TEXT_RESOLUTION = Math.min(3, Math.max(2, window.devicePixelRatio || 2));
 
-function makeTextStyle(fillColor: string): TextStyle {
+function makeTextStyle(fillColor: string, isNumeric: boolean): TextStyle {
   return new TextStyle({
-    fontFamily: 'Noto Sans, sans-serif',
-    fontSize: 18,
+    fontFamily: isNumeric ? 'Rajdhani, sans-serif' : 'Noto Sans, sans-serif',
+    fontSize: 22,
     fontWeight: 'bold',
     fill: fillColor,
     padding: 4,
@@ -43,9 +43,10 @@ function makeTextStyle(fillColor: string): TextStyle {
 }
 
 function createText(content: string, colorClass: string): Text {
+  const isNumeric = /^[-+0-9.,]+$/.test(content);
   return new Text({
     text: content,
-    style: makeTextStyle(resolveColor(colorClass)),
+    style: makeTextStyle(resolveColor(colorClass), isNumeric),
     resolution: TEXT_RESOLUTION,
   });
 }
@@ -98,26 +99,29 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
 
       // Re-project screen position every frame so text follows entity as camera moves
       const projected = projectTileToScreen(ft.x, ft.y, params);
-      const baseX = Math.round(projected.screenX);
-      const baseY = Math.round(projected.screenY + FLOAT_OFFSET_Y);
 
       // Compute lifetime progress
-      const age = now - entry.spawnTime;
-      const progress = Math.max(0, Math.min(1, age / FLOAT_DURATION_MS));
+      // Calculate base scale exactly like renderEntities does so it perfectly tracks
+      const baseIconSize = 32 * (params.tileSize / (72 * 0.55));
+      const activeBaseScale = baseIconSize / 128;
 
-      // Float upward — round Y to pixel boundary to prevent blur
-      const floatY = -FLOAT_DISTANCE * progress;
-      const currentX = Math.round(baseX);
-      const currentY = Math.round(baseY + floatY);
+      const elapsed = now - entry.spawnTime;
+      const progress = Math.min(1.0, elapsed / FLOAT_DURATION_MS);
+      
+      const rawOffset = FLOAT_OFFSET_Y - (FLOAT_DISTANCE * progress);
+      const dynamicOffset = rawOffset * (activeBaseScale / 0.9) * projected.scale;
+      
+      entry.screenX = projected.screenX;
+      entry.screenY = projected.screenY + dynamicOffset;
 
       // Fade out in last portion of lifetime
       let alpha = 1;
-      if (age > FADE_START_MS) {
-        const fadeProgress = (age - FADE_START_MS) / (FLOAT_DURATION_MS - FADE_START_MS);
+      if (elapsed > FADE_START_MS) {
+        const fadeProgress = (elapsed - FADE_START_MS) / (FLOAT_DURATION_MS - FADE_START_MS);
         alpha = Math.max(0, 1 - fadeProgress);
       }
 
-      entry.text.position.set(currentX, currentY);
+      entry.text.position.set(entry.screenX, entry.screenY);
       entry.text.alpha = alpha;
     }
 

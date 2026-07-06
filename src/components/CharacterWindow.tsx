@@ -1,4 +1,4 @@
-import { Backpack, User, BookOpen, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useAppStore } from '../store/useAppStore';
 import { useTooltipStore } from '../store/useTooltipStore';
@@ -7,58 +7,73 @@ import { CharacterSheet } from './CharacterSheet';
 import { SkillTreePanel } from './SkillTreePanel';
 
 export function CharacterWindow() {
-  const { skillPoints, attributePoints } = usePlayerStore();
   const { 
     characterWindowOpen, 
     characterWindowTab, 
+    statsPopoutOpen,
     setCharacterWindowOpen, 
-    setCharacterWindowTab 
+    setCharacterWindowTab,
+    setStatsPopoutOpen
   } = useAppStore();
   
+  const attributePoints = usePlayerStore(state => state.attributePoints);
+  const skillPoints = usePlayerStore(state => state.skillPoints);
+  
+  const showStats = statsPopoutOpen && characterWindowTab === 'inventory';
+
   if (!characterWindowOpen) return null;
 
-  const isSkills = characterWindowTab === 'skills';
-
   return (
-    <div className={`absolute right-3 character-window-responsive ${isSkills ? 'w-[36rem]' : 'w-[20rem]'} h-[30rem] bg-surface-deep backdrop-blur-md border border-border-subtle rounded-2xl flex flex-col z-40 overflow-hidden transition-all duration-300`}>
+    <div className="absolute inset-x-0 top-[45%] -translate-y-1/2 pointer-events-none flex justify-center z-40">
+      <div 
+        className={`relative w-[30rem] h-[33.75rem] pointer-events-auto transition-transform duration-[400ms] ease-in-out ${showStats ? 'translate-x-[7.75rem]' : 'translate-x-0'}`}
+      >
+        {/* Stats Popout */}
+        {statsPopoutOpen && characterWindowTab === 'inventory' && (
+          <div className="absolute right-[calc(100%+0.5rem)] w-[15rem] h-[33.75rem] bg-surface-deep backdrop-blur-md border border-border-subtle rounded-2xl z-30 overflow-hidden shadow-2xl animate-in slide-in-from-right-8 fade-in duration-[400ms]">
+            <CharacterSheet />
+          </div>
+        )}
+
+        {/* Main Window */}
+        <div className="absolute inset-0 bg-surface-deep backdrop-blur-md border border-border-subtle rounded-2xl flex flex-col z-40 overflow-hidden shadow-2xl">
       
       {/* Header & Tabs */}
-      <div className="flex justify-between items-end border-b border-border-subtle px-4 pt-1 bg-surface-base flex-shrink-0">
-        <div className="flex gap-4">
+      <div className="flex items-end justify-center px-4 border-b border-border-subtle bg-surface-base flex-shrink-0 relative h-[1.625rem]">
+        <div className="flex gap-2 h-full">
           <button 
             onClick={() => setCharacterWindowTab('inventory')}
-            className={`text-xs font-bold pb-1.5 border-b-2 transition-colors flex items-center gap-1 ${characterWindowTab === 'inventory' ? 'text-accent border-accent' : 'text-text-secondary border-transparent hover:text-text-primary'}`}
+            className={`w-16 text-[10px] uppercase tracking-widest font-black h-full border-b-[2px] transition-colors flex items-center justify-center gap-1.5 ${characterWindowTab === 'inventory' ? 'text-accent border-accent' : 'text-text-secondary border-transparent hover:text-text-primary'}`}
           >
-            <Backpack className="w-[1rem] h-[1rem] mt-0.5" />
-            Inventory
+            Inv
+            {attributePoints > 0 && (
+               <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse mb-0.5" />
+            )}
           </button>
+          
           <button 
-            onClick={() => setCharacterWindowTab('stats')}
-            className={`text-xs font-bold pb-1.5 border-b-2 transition-colors flex items-center gap-1 ${characterWindowTab === 'stats' ? 'text-accent border-accent' : 'text-text-secondary border-transparent hover:text-text-primary'}`}
+            onClick={() => {
+              setCharacterWindowTab('skills');
+              if (statsPopoutOpen) setStatsPopoutOpen(false);
+            }}
+            className={`w-16 text-[10px] uppercase tracking-widest font-black h-full border-b-[2px] transition-colors flex items-center justify-center gap-1.5 ${characterWindowTab === 'skills' ? 'text-accent border-accent' : 'text-text-secondary border-transparent hover:text-text-primary'}`}
           >
-            <User className="w-[1rem] h-[1rem] mt-0.5" />
-            Stats
-            {attributePoints > 0 && <span className="bg-red-600 text-text-primary w-4 h-4 rounded-full flex items-center justify-center text-[0.5625rem] animate-pulse">{attributePoints}</span>}
-          </button>
-          <button 
-            onClick={() => setCharacterWindowTab('skills')}
-            className={`text-xs font-bold pb-1.5 border-b-2 transition-colors flex items-center gap-1 ${characterWindowTab === 'skills' ? 'text-accent border-accent' : 'text-text-secondary border-transparent hover:text-text-primary'}`}
-          >
-            <BookOpen className="w-[1rem] h-[1rem] mt-0.5" />
             Skills
-            {skillPoints > 0 && <span className="bg-red-600 text-text-primary w-4 h-4 rounded-full flex items-center justify-center text-[0.5625rem] animate-pulse">{skillPoints}</span>}
+            {skillPoints > 0 && (
+               <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse mb-0.5" />
+            )}
           </button>
         </div>
         
-        {/* Close Button */}
+        {/* Close Button overlapping on the far right */}
         <button
           onClick={() => {
             setCharacterWindowOpen(false);
             useTooltipStore.getState().setContent(null);
           }}
-          className="mb-2 text-text-muted hover:text-text-primary transition-colors"
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-red-400 transition-colors"
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
       </div>
 
@@ -68,15 +83,13 @@ export function CharacterWindow() {
           <InventoryPanel />
         )}
 
-        {characterWindowTab === 'stats' && (
-          <CharacterSheet />
-        )}
-
         {characterWindowTab === 'skills' && (
           <SkillTreePanel />
         )}
       </div>
 
+        </div>
+      </div>
     </div>
   );
 }

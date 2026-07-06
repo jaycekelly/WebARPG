@@ -7,7 +7,8 @@ interface AppState {
   location: AppLocation;
   vendorOpen: boolean;
   characterWindowOpen: boolean;
-  characterWindowTab: 'inventory' | 'stats' | 'skills';
+  characterWindowTab: 'inventory' | 'skills';
+  statsPopoutOpen: boolean;
   isPaused: boolean;
   pauseTimeOffset: number;
   pauseStartTime: number | null;
@@ -16,7 +17,8 @@ interface AppState {
   setLocation: (loc: AppLocation) => void;
   setVendorOpen: (isOpen: boolean) => void;
   setCharacterWindowOpen: (isOpen: boolean) => void;
-  setCharacterWindowTab: (tab: 'inventory' | 'stats' | 'skills') => void;
+  setCharacterWindowTab: (tab: 'inventory' | 'skills') => void;
+  setStatsPopoutOpen: (isOpen: boolean) => void;
   setPaused: (paused: boolean) => void;
   togglePause: () => void;
   togglePixiFloor: () => void;
@@ -29,6 +31,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   vendorOpen: false,
   characterWindowOpen: false,
   characterWindowTab: 'inventory',
+  statsPopoutOpen: false,
   isPaused: false,
   pauseTimeOffset: 0,
   pauseStartTime: null,
@@ -36,8 +39,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   selectedLootDropId: null,
   setLocation: (location) => set({ location, vendorOpen: false, characterWindowOpen: false }), // Auto close on move
   setVendorOpen: (vendorOpen) => set({ vendorOpen }),
-  setCharacterWindowOpen: (characterWindowOpen) => set({ characterWindowOpen }),
+  setCharacterWindowOpen: (isOpen) => set(() => ({ 
+    characterWindowOpen: isOpen,
+    ...(isOpen ? {} : { statsPopoutOpen: false })
+  })),
   setCharacterWindowTab: (characterWindowTab) => set({ characterWindowTab }),
+  setStatsPopoutOpen: (statsPopoutOpen) => set({ statsPopoutOpen }),
   setPaused: (isPaused) => set((state) => {
     if (isPaused === state.isPaused) return {};
     if (isPaused) {
