@@ -12,6 +12,7 @@ interface PlayerState {
   currentHealth: number;
   currentMana: number;
   activeTargetId: string | null;
+  ignoredTargetId: string | null;
   level: number;
   currentXp: number;
   skillPoints: number;
@@ -29,7 +30,7 @@ interface PlayerState {
   
   move: (dx: number, dy: number) => void;
   setPosition: (x: number, y: number) => void;
-  setTarget: (id: string | null) => void;
+  setTarget: (id: string | null, fromCancel?: boolean) => void;
   takeDamage: (amount: number) => void;
   heal: (amount: number) => void;
   restoreMana: (amount: number) => void;
@@ -55,6 +56,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   currentHealth: 80,
   currentMana: 50,
   activeTargetId: null,
+  ignoredTargetId: null,
   level: 1,
   currentXp: 0,
   skillPoints: 0,
@@ -107,7 +109,12 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     useVisionStore.getState().updateVision({ x, y });
   },
   
-  setTarget: (id) => set({ activeTargetId: id }),
+  setTarget: (id, fromCancel = false) => set((state) => {
+    if (id === null && fromCancel && state.activeTargetId) {
+      return { activeTargetId: null, ignoredTargetId: state.activeTargetId };
+    }
+    return { activeTargetId: id, ignoredTargetId: id !== null ? null : state.ignoredTargetId };
+  }),
 
   takeDamage: (amount) => set((state) => {
     const newHealth = Math.max(0, state.currentHealth - amount);

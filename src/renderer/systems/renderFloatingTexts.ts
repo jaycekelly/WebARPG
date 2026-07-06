@@ -9,7 +9,7 @@ import { useAppStore } from '../../store/useAppStore';
 const FLOAT_DURATION_MS = 800;
 const FADE_START_MS = 500; // Start fading after 500ms
 const FLOAT_DISTANCE = 40; // Total upward pixels over lifetime
-const FLOAT_OFFSET_Y = -128; // Vertical offset from entity at spawn
+const FLOAT_OFFSET_Y = -103; // Vertical offset from entity at spawn
 
 // Tailwind → hex color mapping
 const COLOR_MAP: Record<string, string> = {
@@ -35,7 +35,7 @@ const TEXT_RESOLUTION = Math.min(3, Math.max(2, window.devicePixelRatio || 2));
 function makeTextStyle(fillColor: string, isNumeric: boolean): TextStyle {
   return new TextStyle({
     fontFamily: isNumeric ? 'Rajdhani, sans-serif' : 'Noto Sans, sans-serif',
-    fontSize: 22,
+    fontSize: isNumeric ? 22 : 20,
     fontWeight: 'bold',
     fill: fillColor,
     padding: 4,

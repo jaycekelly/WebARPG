@@ -184,31 +184,39 @@ export function useGameEngine() {
         setCasting(null);
       }
 
-      // Auto Target Checking (1-time check per enemy)
-      const inventoryState = useInventoryStore.getState();
-      const mainHand = inventoryState.equipment['weapon1'];
-      const offHand = inventoryState.equipment['weapon2'];
-      const playerWeapon = mainHand || offHand;
-      const weaponRange = playerWeapon?.weaponRange || 1;
-      
+      // Auto Target Checking
       let acquiredTargetId = activeTargetId;
-      worldState.enemies.forEach(e => {
-         if (e.isDead || e.autoTargetChecked) return;
-         const dist = getChebyshevDistance(position, e.position);
-         if (dist <= weaponRange) {
-            let canHit = false;
-            if (weaponRange <= 1) canHit = !checkCornerBlock(position, e.position, isSolid);
-            else canHit = hasLineOfSight(position, e.position, isSolid);
-            
-            if (canHit) {
-               worldState.updateEnemy(e.id, { autoTargetChecked: true });
-               if (!acquiredTargetId) {
-                  usePlayerStore.getState().setTarget(e.id);
-                  acquiredTargetId = e.id;
+      if (!acquiredTargetId) {
+         const inventoryState = useInventoryStore.getState();
+         const mainHand = inventoryState.equipment['weapon1'];
+         const offHand = inventoryState.equipment['weapon2'];
+         const playerWeapon = mainHand || offHand;
+         const weaponRange = playerWeapon?.weaponRange || 1;
+         const ignoredTargetId = usePlayerStore.getState().ignoredTargetId;
+         
+         let closestDist = Infinity;
+         let bestTargetId: string | null = null;
+         
+         worldState.enemies.forEach(e => {
+            if (e.isDead || e.id === ignoredTargetId) return;
+            const dist = getChebyshevDistance(position, e.position);
+            if (dist <= weaponRange && dist < closestDist) {
+               let canHit = false;
+               if (weaponRange <= 1) canHit = !checkCornerBlock(position, e.position, isSolid);
+               else canHit = hasLineOfSight(position, e.position, isSolid);
+               
+               if (canHit) {
+                  closestDist = dist;
+                  bestTargetId = e.id;
                }
             }
+         });
+         
+         if (bestTargetId) {
+            usePlayerStore.getState().setTarget(bestTargetId);
+            acquiredTargetId = bestTargetId;
          }
-      });
+      }
 
       // Auto Attack Logic
       if (acquiredTargetId && !castingSkillId) {

@@ -234,7 +234,7 @@ export function CombatOverlay() {
       <div className="flex justify-center pointer-events-none">
         {target && (
           <div className="bg-surface-deep border-2 border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.15)] rounded-lg pt-1.5 pb-2.5 px-2 flex flex-col items-center w-fit relative pointer-events-auto animate-[fadeIn_0.3s_ease-out]">
-            <button onClick={() => setTarget(null)} className="absolute top-1 right-1 text-text-secondary hover:text-text-primary transition-colors z-40">
+            <button onClick={() => setTarget(null, true)} className="absolute top-1 right-1 text-text-secondary hover:text-text-primary transition-colors z-40">
               <X className="w-3 h-3" />
             </button>
             <div className="flex-col justify-center w-[13.1875rem]">
@@ -790,7 +790,7 @@ export function CombatOverlay() {
          </div>
          <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
            <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">SPACE</span>
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Tactical View</span>
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Tactical Pause</span>
          </div>
       </div>
       

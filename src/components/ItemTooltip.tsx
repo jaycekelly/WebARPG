@@ -14,8 +14,8 @@ const RARITY_COLORS: Record<Rarity, string> = {
   Magic: 'text-blue-500',
   Rare: 'text-yellow-500',
   Epic: 'text-purple-500',
-  Legendary: 'text-sky-400',
-  Unique: 'text-amber-500'
+  Legendary: 'text-orange-500',
+  Unique: 'text-yellow-400',
 };
 
 interface Props {

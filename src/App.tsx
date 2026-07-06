@@ -99,7 +99,7 @@ function App() {
 
         // 4. Clear Target
         if (playerState.activeTargetId) {
-          playerState.setTarget(null);
+          playerState.setTarget(null, true);
           return;
         }
       }

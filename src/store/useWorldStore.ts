@@ -23,7 +23,6 @@ export interface Enemy {
   spawnOrigin: { x: number; y: number };
   isAggroed?: boolean;
   groupId?: string;
-  autoTargetChecked?: boolean;
   scale?: number;
 }
 

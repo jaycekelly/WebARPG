@@ -1,4 +1,4 @@
-import { Container, Sprite, Graphics } from 'pixi.js';
+import { Container, Sprite, Graphics, Texture } from 'pixi.js';
 import { getEntityTexture } from '../assets';
 import { projectTileToScreen } from '../../engine/world/screenProjection';
 import type { ProjectionParams, ProjectedPoint } from '../../engine/world/screenProjection';
@@ -9,7 +9,7 @@ import { getTileLightIntensity, getEntityTint } from '../utils/lighting';
 // ---- Constants ---------------------------------------------------------------
 const HEALTH_BAR_WIDTH = 90;
 const HEALTH_BAR_HEIGHT = 10;
-const HEALTH_BAR_OFFSET_Y = -110;
+const HEALTH_BAR_OFFSET_Y = -85;
 
 const SHADOW_WIDTH = 110; // wide oval shadow
 const SHADOW_HEIGHT = 65; // ~62% of width = oval
@@ -21,13 +21,45 @@ const ENTITY_Z = {
   player: 3,
 } as const;
 
+let lootGlowTexture: Texture | null = null;
+let lootBeamTexture: Texture | null = null;
+
+function getLootVFXTextures() {
+  if (!lootGlowTexture) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 64;
+    canvas.height = 64;
+    const ctx = canvas.getContext('2d')!;
+    const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
+    grad.addColorStop(0.3, 'rgba(255, 255, 255, 0.4)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 64, 64);
+    lootGlowTexture = Texture.from(canvas);
+  }
+  if (!lootBeamTexture) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 16;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d')!;
+    const grad = ctx.createLinearGradient(0, 0, 0, 128);
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0)'); // Top transparent
+    grad.addColorStop(1, 'rgba(255, 255, 255, 1)'); // Bottom solid
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 16, 128);
+    lootBeamTexture = Texture.from(canvas);
+  }
+  return { lootGlowTexture, lootBeamTexture };
+}
+
 const RARITY_COLORS: Record<string, string> = {
   Normal: '#a1a1aa',
-  Magic: '#60a5fa',
-  Rare: '#fde047',
-  Epic: '#c084fc',
-  Legendary: '#fb923c',
-  Unique: '#d97706',
+  Magic: '#3b82f6',
+  Rare: '#eab308',
+  Epic: '#a855f7',
+  Legendary: '#f97316', // Orange
+  Unique: '#facc15', // Gold
 };
 
 // ---- Types ------------------------------------------------------------------
@@ -38,7 +70,8 @@ interface TrackedSprite {
   healthBar: Graphics | null;
   selectRing: Graphics;
   flashSprite: Sprite;
-  lootGlow: Graphics | null;
+  lootGlow?: Sprite | null;
+  lootBeam?: Sprite | null;
   key: string;
   kind: keyof typeof ENTITY_Z;
   currentX?: number;
@@ -156,7 +189,22 @@ export function createEntityRenderer(): EntityRenderer {
     flashSprite.visible = false;
     c.addChild(flashSprite);
 
-    // Glow ring for loot has been removed
+    // Glow & beam for loot (rendered behind icon so the icon acts as a mask/no-render zone)
+    let lootGlow: Sprite | null = null;
+    let lootBeam: Sprite | null = null;
+    if (key.startsWith('loot:')) {
+      const tex = getLootVFXTextures();
+      
+      lootGlow = new Sprite(tex.lootGlowTexture!);
+      lootGlow.anchor.set(0.5, 0.5);
+      lootGlow.blendMode = 'add';
+      c.addChildAt(lootGlow, 1); // Behind icon
+      
+      lootBeam = new Sprite(tex.lootBeamTexture!);
+      lootBeam.anchor.set(0.5, 1); // Anchor at bottom center
+      lootBeam.blendMode = 'add';
+      c.addChildAt(lootBeam, 2); // Behind icon
+    }
 
     const entry: TrackedSprite = {
       container: c,
@@ -165,7 +213,8 @@ export function createEntityRenderer(): EntityRenderer {
       healthBar,
       selectRing,
       flashSprite,
-      lootGlow: null,
+      lootGlow,
+      lootBeam,
       key,
       kind: kind as keyof typeof ENTITY_Z,
     };
@@ -557,7 +606,42 @@ export function createEntityRenderer(): EntityRenderer {
         const projLoot = projectTileToScreen(drop.position.x, drop.position.y, params);
         setPosition(entry, projLoot, 0, drop.position.x, drop.position.y, playerPos, lootDrops, visibleTilesSet);
 
-        // No VFX for loot currently
+        // Soft procedural VFX for loot
+        if (entry.lootGlow && entry.lootBeam) {
+          const time = Date.now();
+          const floatY = Math.sin(time / 400 + drop.position.x) * 4;
+          entry.icon.y = floatY; // Bob the item sprite up and down
+          
+          // Now that items are filled with a solid color, they act as a perfect mask!
+          // We can anchor the beam directly behind the visual center of the item (-12px)
+          // and the solid item will completely obscure the base of the beam!
+          entry.lootGlow.y = 0;
+          entry.lootBeam.y = floatY - 12;
+
+          const hexColor = parseInt(color.replace('#', '0x'), 16);
+          const pulseAlpha = 0.5 + 0.3 * Math.sin(time / 500);
+          
+          entry.lootGlow.tint = hexColor;
+          entry.lootGlow.alpha = pulseAlpha;
+          entry.lootGlow.scale.set(0.8 + pulseAlpha * 0.2); // Pulse size slightly
+
+          const rarityVal = rv[bestRarity] ?? 0;
+          
+          const BEAM_SIZES = [
+            { h: 90, w: 18 },  // 0: Normal
+            { h: 120, w: 18 }, // 1: Magic
+            { h: 150, w: 20 }, // 2: Rare
+            { h: 180, w: 22 }, // 3: Epic
+            { h: 210, w: 24 }, // 4: Legendary
+            { h: 210, w: 24 }, // 5: Unique
+          ];
+          const size = BEAM_SIZES[rarityVal] ?? BEAM_SIZES[0];
+          
+          entry.lootBeam.tint = hexColor;
+          entry.lootBeam.alpha = 0.5 + (pulseAlpha * 0.2);
+          entry.lootBeam.height = size.h;
+          entry.lootBeam.width = size.w;
+        }
       }
     }
 

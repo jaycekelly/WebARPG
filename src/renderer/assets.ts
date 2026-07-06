@@ -236,8 +236,10 @@ function drawIcon(
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
+  ctx.fillStyle = '#09090b'; // zinc-950 background color to act as a solid mask
   for (const d of paths) {
     const p = new Path2D(d);
+    ctx.fill(p);
     ctx.stroke(p);
   }
 

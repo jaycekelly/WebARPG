@@ -26,11 +26,11 @@ const SLOT_ICONS: Record<string, React.ElementType> = {
 
 const RARITY_COLORS: Record<Rarity, string> = {
   'Normal': 'border-border-strong text-text-secondary',
-  'Magic': 'border-blue-500 text-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.2)]',
-  'Rare': 'border-yellow-500 text-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.2)]',
-  'Epic': 'border-purple-500 text-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.3)]',
-  'Legendary': 'border-orange-500 text-sky-400 shadow-[0_0_8px_rgba(249,115,22,0.3)]',
-  'Unique': 'border-amber-500 text-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]',
+  'Magic': 'border-blue-500/50 text-blue-500',
+  'Rare': 'border-yellow-500/50 text-yellow-500',
+  'Epic': 'border-purple-500/50 text-purple-500',
+  'Legendary': 'border-orange-500/70 text-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.3)]',
+  'Unique': 'border-yellow-400/70 text-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.3)]',
 };
 
 // Slot button — purely responsive based on parent grid

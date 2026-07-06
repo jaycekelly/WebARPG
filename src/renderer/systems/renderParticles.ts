@@ -212,12 +212,15 @@ export function createParticleRenderer() {
         const oy = 0;
         const oz = 0.1;
         
-        // 360-degree radial explosion on the XY plane
+        // 360-degree radial explosion
         const expAngle = Math.random() * Math.PI * 2;
-        const speed = 0.02 + Math.random() * 0.03; // Reduced speed so they don't explode as far out
+        const speed = 0.01 + Math.random() * 0.02; // Reduced speed to tighten the explosion
         const vx = Math.cos(expAngle) * speed;
-        const vy = Math.sin(expAngle) * speed;
-        const vz = 0; // Disable Z-axis velocity so it doesn't bias up/down on the screen
+        // Multiply Y by 2.0 to counteract the isometric camera squashing the grid's Y-axis,
+        // which creates a perfectly circular explosion on the user's screen!
+        const vy = Math.sin(expAngle) * speed * 2.0; 
+        // Keep Z-velocity at 0 so they don't spray wildly up and down the screen's Y-axis!
+        const vz = 0; 
         
         // Random visual rotation for the cubes
         const angle = Math.random() * Math.PI * 2;

@@ -157,7 +157,7 @@ function handleTileClick(target: ClickTarget) {
       player.setTarget(target.enemyId);
     } else {
       // Clicking already-targeted enemy: untarget
-      player.setTarget(null);
+      player.setTarget(null, true);
     }
     return;
   }
