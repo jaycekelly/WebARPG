@@ -8,6 +8,7 @@ export type InputRequest =
 import { useStatsStore } from '../../store/useStatsStore';
 import { useInventoryStore } from '../../store/useInventoryStore';
 import { usePlayerStore } from '../../store/usePlayerStore';
+import { RatingCalculator } from '../stats/RatingCalculator';
 import { useWorldStore } from '../../store/useWorldStore';
 import { useAppStore } from '../../store/useAppStore';
 import { SKILLS } from '../../data/skills';
@@ -25,8 +26,15 @@ export const getEffectiveManaCost = (skill: Skill) => {
 };
 
 export const getEffectiveGcd = (skill: Skill) => {
-  const reduction = useStatsStore.getState().getStat('CooldownReduction');
-  return Math.max(100, Math.floor(skill.gcdDuration * (1 - (reduction / 100))));
+  const cdrRating = useStatsStore.getState().getStat('CooldownReductionRating');
+  const hasteRating = useStatsStore.getState().getStat('HasteRating');
+  const playerLevel = usePlayerStore.getState().level;
+  
+  const cdrPercent = RatingCalculator.getCooldownReduction(cdrRating, playerLevel);
+  const hastePercent = RatingCalculator.getHasteReduction(hasteRating, playerLevel);
+  
+  const baseWithCdr = skill.gcdDuration * (1 - cdrPercent);
+  return Math.max(100, Math.floor(baseWithCdr / (1 + hastePercent)));
 };
 
 export const getEffectiveCastTime = (skill: Skill) => {
@@ -72,7 +80,7 @@ export class InputHandler {
          
          if (isCdDoomed || isGcdDoomed) {
             const pos = usePlayerStore.getState().position;
-            combatState.addFloatingText(pos.x, pos.y, 'On Cooldown', 'text-orange-500');
+            combatState.addFloatingText(pos.x, pos.y, 'On Cooldown', { colorClass: 'text-red-400' });
             return; // Drop doomed action
          }
       }
@@ -134,7 +142,6 @@ export class InputHandler {
         }
       }
       if (bestEnemy) {
-        tId = bestEnemy.id;
         tPos = { ...bestEnemy.position };
       }
     }
@@ -147,14 +154,14 @@ export class InputHandler {
     // Prevent casting Ground/Directional/Area spells directly on solid obstacles
     if (tPos && !target && skill.targeting !== 'Self') {
       if (skill.targeting === 'Single') {
-        combatState.addFloatingText(position.x, position.y, 'No Target', 'text-orange-500');
+        combatState.addFloatingText(position.x, position.y, 'No Target', { colorClass: 'text-yellow-400' });
         addLog(`You need a target for ${skill.name}.`, 'system');
         combatState.setTargetingSkill(null);
         return;
       }
       const isObstacle = worldState.grid.obstacles.some(o => o.x === tPos!.x && o.y === tPos!.y);
       if (isObstacle) {
-        combatState.addFloatingText(position.x, position.y, 'Invalid Target', 'text-orange-500');
+        combatState.addFloatingText(position.x, position.y, 'Invalid Target', { colorClass: 'text-yellow-400' });
         addLog(`Cannot target obstacles with ${skill.name}.`, 'system');
         combatState.setTargetingSkill(null);
         return;
@@ -164,7 +171,7 @@ export class InputHandler {
     // Check Mana
     const effectiveMana = getEffectiveManaCost(skill);
     if (currentMana < effectiveMana) {
-      combatState.addFloatingText(position.x, position.y, 'Not Enough Mana', 'text-blue-400');
+      combatState.addFloatingText(position.x, position.y, 'Not Enough Mana', { colorClass: 'text-blue-400' });
       addLog(`Not enough mana for ${skill.name}.`, 'system');
       return;
     }
@@ -185,17 +192,17 @@ export class InputHandler {
     if (target) {
       const dist = getDistance(position, target.position);
       if (dist > effectiveRange) {
-        combatState.addFloatingText(position.x, position.y, 'Out of Range', 'text-yellow-400');
+        combatState.addFloatingText(position.x, position.y, 'Out of Range', { colorClass: 'text-yellow-400' });
         return;
       }
     } else if (tPos) {
       const dist = getDistance(position, tPos);
       if (dist > effectiveRange) {
-        combatState.addFloatingText(position.x, position.y, 'Out of Range', 'text-yellow-400');
+        combatState.addFloatingText(position.x, position.y, 'Out of Range', { colorClass: 'text-yellow-400' });
         return;
       }
     } else if (skill.targeting === 'Single' && !target) {
-      combatState.addFloatingText(position.x, position.y, 'Need Target', 'text-orange-500');
+      combatState.addFloatingText(position.x, position.y, 'Need Target', { colorClass: 'text-yellow-400' });
       addLog(`You need a target for ${skill.name}.`, 'system');
       return;
     }
@@ -208,7 +215,7 @@ export class InputHandler {
         return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
       };
       if (!hasLineOfSight(position, checkPos, isSolid)) {
-        combatState.addFloatingText(position.x, position.y, 'Obstructed', 'text-yellow-400');
+        combatState.addFloatingText(position.x, position.y, 'Obstructed', { colorClass: 'text-yellow-400' });
         addLog(`Line of sight is blocked.`, 'system');
         return;
       }
@@ -216,15 +223,18 @@ export class InputHandler {
 
     // Execute Skill or Start Cast
     const effCastTime = getEffectiveCastTime(skill);
+    
+    // Always trigger GCD and Cooldowns immediately upon initiating cast or execution
+    triggerGcd(getEffectiveGcd(skill));
+    if (skill.cooldownMs) {
+       combatState.triggerSkillCooldown(skill.id, skill.cooldownMs);
+    }
+    combatState.setLastAttackAnimationTime(useAppStore.getState().getGameTime());
+
     if (effCastTime > 0) {
       setCasting(skill.id, effCastTime, tId, tPos);
       addLog(`Casting ${skill.name}...`, 'system');
     } else {
-      triggerGcd(getEffectiveGcd(skill));
-      if (skill.cooldownMs) {
-         combatState.triggerSkillCooldown(skill.id, skill.cooldownMs);
-      }
-      combatState.setLastAttackAnimationTime(useAppStore.getState().getGameTime());
       SkillExecutor.execute(skill, tId, tPos);
     }
 

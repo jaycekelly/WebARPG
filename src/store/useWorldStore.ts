@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { EnemyStats, AIProfile } from '../engine/enemies/types';
 import type { Item } from '../engine/items/types';
 import type { DamageType } from '../engine/stats/types';
+import { useCombatStore } from './useCombatStore';
 
 export interface Enemy {
   id: string;
@@ -99,7 +100,9 @@ export const useWorldStore = create<WorldState>((set, get) => ({
     }]
   })),
 
-  damageEnemy: (id, amount) => set((state) => ({
+  damageEnemy: (id, amount) => {
+    useCombatStore.getState().triggerCombatEvent();
+    set((state) => ({
     enemies: state.enemies.map(enemy => {
       if (enemy.id === id) {
         const newHealth = Math.max(0, enemy.health - amount);
@@ -107,7 +110,8 @@ export const useWorldStore = create<WorldState>((set, get) => ({
       }
       return enemy;
     })
-  })),
+  }));
+  },
 
   updateEnemyAttackTime: (id, time) => set((state) => ({
     enemies: state.enemies.map(enemy => 

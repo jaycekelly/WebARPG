@@ -15,7 +15,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     weaponAttackSpeed: 0.5,
     weaponRange: 1,
     baseCritChance: 5,
-    baseStats: [Stat('Damage', 5)],
+    baseStats: [Stat('WeaponDamage', 5)],
   },
   // 2H Sword (Strike, Melee)
   bronze_greatsword: {
@@ -28,7 +28,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     weaponAttackSpeed: 0.4,
     weaponRange: 1,
     baseCritChance: 5,
-    baseStats: [Stat('Damage', 14)],
+    baseStats: [Stat('WeaponDamage', 14)],
   },
   // #endregion
   // #endregion
@@ -46,7 +46,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     weaponAttackSpeed: 0.6,
     weaponRange: 1,
     baseCritChance: 10,
-    baseStats: [Stat('Damage', 5)],
+    baseStats: [Stat('WeaponDamage', 5)],
   },
   // #endregion
   // #endregion
@@ -64,7 +64,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     weaponAttackSpeed: 0.5,
     weaponRange: 1,
     baseCritChance: 5,
-    baseStats: [Stat('Damage', 7)],
+    baseStats: [Stat('WeaponDamage', 7)],
   },
   // #endregion
   // #endregion
@@ -82,7 +82,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     weaponAttackSpeed: 0.5,
     weaponRange: 2,
     baseCritChance: 5,
-    baseStats: [Stat('Damage', 12), Stat('SpellDamage', 25, 'increased')],
+    baseStats: [Stat('WeaponDamage', 12), Stat('SpellDamage', 25, 'increased')],
   },
   // #endregion
   // #endregion
@@ -100,7 +100,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     weaponAttackSpeed: 0.6,
     weaponRange: 2,
     baseCritChance: 5,
-    baseStats: [Stat('Damage', 6), Stat('SpellDamage', 15, 'increased')],
+    baseStats: [Stat('WeaponDamage', 6), Stat('SpellDamage', 15, 'increased')],
   },
   // #endregion
   // #endregion
@@ -118,7 +118,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     weaponAttackSpeed: 0.5,
     weaponRange: 3,
     baseCritChance: 5,
-    baseStats: [Stat('Damage', 10)],
+    baseStats: [Stat('WeaponDamage', 10)],
   },
   // #endregion
   // #endregion

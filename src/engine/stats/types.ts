@@ -26,9 +26,12 @@ export type StatType =
   | 'ManaRegenPercent'
 
   // Damage
+  | 'WeaponDamage'
+  | 'AttacksPerSecond'
   | 'Damage'
   | 'AttackSpeed'
   | 'CastSpeed'
+  | 'HasteRating'
   | 'StrikeDamage'
   | 'PierceDamage'
   | 'PhysicalDamage'
@@ -43,19 +46,12 @@ export type StatType =
   | 'AreaDamage'
 
   // Penetration (Flat & Percent)
-  | 'StrikePenetrationFlat'
   | 'StrikePenetrationPercent'
-  | 'PiercePenetrationFlat'
   | 'PiercePenetrationPercent'
-  | 'PhysicalPenetrationFlat'
   | 'PhysicalPenetrationPercent'
-  | 'FirePenetrationFlat'
   | 'FirePenetrationPercent'
-  | 'ColdPenetrationFlat'
   | 'ColdPenetrationPercent'
-  | 'LightningPenetrationFlat'
   | 'LightningPenetrationPercent'
-  | 'ElementalPenetrationFlat'
   | 'ElementalPenetrationPercent'
 
   // Critical
@@ -92,13 +88,13 @@ export type StatType =
   | 'AllElementalResist'
 
   // Deflection & Blocking
-  | 'DeflectChance'
+  | 'DeflectRating'
   | 'DeflectEffect'
-  | 'Block'
-  | 'SpellBlock'
+  | 'BlockRating'
+  | 'SpellBlockRating'
   | 'BlockEffect'
-  | 'Parry'
-  | 'SpellParry'
+  | 'ParryRating'
+  | 'SpellParryRating'
   | 'ParryEffect'
 
   // Sustain & Recovery
@@ -114,7 +110,7 @@ export type StatType =
 
   // Misc
   | 'SkillReach'
-  | 'CooldownReduction'
+  | 'CooldownReductionRating'
   | 'MoveSpeed'
   | 'ManaCostReduction'
   | 'Tenacity'

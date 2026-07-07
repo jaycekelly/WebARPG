@@ -5,6 +5,17 @@ export const MISC_AFFIXES: AffixTemplate[] = [
   // Buff Group
   // ----------------------------------------------------
   {
+    id: 'flat_haste',
+    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    minLevel: 1,
+    stat: 'HasteRating',
+    type: 'flat',
+    baseValue: 15,
+    levelMultiplier: 1.5,
+    descriptionTpl: '+{value} Haste Rating',
+    exclusivityGroup: 'Speed'
+  },
+  {
     id: 'inc_buff_effect',
     allowedTypes: ['amulet', 'ring'],
     minLevel: 1,
@@ -96,11 +107,11 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
     allowedArmorCategories: ['Caster'],
     minLevel: 5,
-    stat: 'CooldownReduction',
-    type: 'increased',
-    baseValue: 5,
-    levelMultiplier: 0.1,
-    descriptionTpl: '+{value}% Cooldown Reduction'
+    stat: 'CooldownReductionRating',
+    type: 'flat',
+    baseValue: 15,
+    levelMultiplier: 1.5,
+    descriptionTpl: '+{value} CDR Rating'
   },
   {
     id: 'inc_mana_cost_reduction',

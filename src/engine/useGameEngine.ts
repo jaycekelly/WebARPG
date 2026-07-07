@@ -3,7 +3,7 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
 import { useMessageStore } from '../store/useMessageStore';
-import { InputHandler, getMainHandAttackCooldown, getOffHandAttackCooldown, getEffectiveGcd } from './input/InputHandler';
+import { InputHandler, getMainHandAttackCooldown, getOffHandAttackCooldown } from './input/InputHandler';
 import { useStatsStore } from '../store/useStatsStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import type { SkillTag } from './skills/types';
@@ -55,13 +55,13 @@ export function useGameEngine() {
         if (event.entityId === 'player') {
           usePlayerStore.getState().takeDamage(event.damage);
           const { position } = usePlayerStore.getState();
-          combatState.addFloatingText(position.x, position.y, event.damage.toFixed(0), 'text-zinc-100');
+          combatState.addFloatingText(position.x, position.y, event.damage.toFixed(0), { colorClass: 'text-zinc-100' });
           // Optional: combat log for player taking dot damage
         } else {
           const enemy = worldState.enemies.find(e => e.id === event.entityId);
           worldState.damageEnemy(event.entityId, event.damage);
           if (enemy) {
-             combatState.addFloatingText(enemy.position.x, enemy.position.y, event.damage.toFixed(0), 'text-purple-400');
+             combatState.addFloatingText(enemy.position.x, enemy.position.y, event.damage.toFixed(0), { colorClass: 'text-purple-400' });
           }
           if (enemy?.isDead && !enemy.rewardsGranted) {
              combatState.addLog(`${enemy.name} died to ${event.damageType} damage over time.`, 'system');
@@ -91,7 +91,7 @@ export function useGameEngine() {
       const hpRegenFlat = statsState.getStat('HealthRegeneration');
       const hpRegenPercent = statsState.getStat('HealthRegenPercent');
       
-      const baseHpRegen = (maxHp * 0.0025) + hpRegenFlat;
+      const baseHpRegen = hpRegenFlat;
       const totalHpRegen = baseHpRegen * (1 + (hpRegenPercent / 100));
       accumulatedHpRegen += totalHpRegen * dtSec;
       
@@ -99,7 +99,7 @@ export function useGameEngine() {
       const manaRegenFlat = statsState.getStat('ManaRegeneration');
       const manaRegenPercent = statsState.getStat('ManaRegenPercent');
       
-      const baseManaRegen = (maxMana * 0.015) + manaRegenFlat;
+      const baseManaRegen = manaRegenFlat;
       const totalManaRegen = baseManaRegen * (1 + (manaRegenPercent / 100));
       accumulatedManaRegen += totalManaRegen * dtSec;
 
@@ -124,14 +124,14 @@ export function useGameEngine() {
           // Player on zone
           if (position.x === zone.position.x && position.y === zone.position.y) {
              usePlayerStore.getState().takeDamage(tickDamage);
-             combatState.addFloatingText(position.x, position.y, tickDamage.toFixed(0), 'text-zinc-100');
+             combatState.addFloatingText(position.x, position.y, tickDamage.toFixed(0), { colorClass: 'text-zinc-100' });
           }
           
           // Enemy on zone
           const enemy = worldState.getEnemyAt(zone.position.x, zone.position.y);
           if (enemy && !enemy.isDead) {
              worldState.damageEnemy(enemy.id, tickDamage);
-             combatState.addFloatingText(enemy.position.x, enemy.position.y, tickDamage.toFixed(0), 'text-orange-500');
+             combatState.addFloatingText(enemy.position.x, enemy.position.y, tickDamage.toFixed(0), { colorClass: 'text-orange-500' });
              const updated = useWorldStore.getState().enemies.find(e => e.id === enemy.id);
              if (updated?.isDead && !updated.rewardsGranted) {
                combatState.addLog(`${enemy.name} died to ${zone.hazardId}.`, 'system');
@@ -176,10 +176,6 @@ export function useGameEngine() {
             }
           }
           SkillExecutor.execute(skill, combatState.castTargetId, execTargetPos);
-          combatState.triggerGcd(getEffectiveGcd(skill));
-          if (skill.cooldownMs) {
-             combatState.triggerSkillCooldown(skill.id, skill.cooldownMs);
-          }
         }
         setCasting(null);
       }
@@ -297,6 +293,7 @@ export function useGameEngine() {
                 damageType,
                 false,
                 playerState.level,
+                target.level,
                 statsState.getAllStats(),
                 enemyDefenderStats,
                 weapon?.baseCritChance || 5,
@@ -317,10 +314,11 @@ export function useGameEngine() {
                 
                  worldState.damageEnemy(target.id, finalDamage);
                  
-                 let dmgColor = 'text-zinc-100';
-                 if (damageType === 'Fire') dmgColor = 'text-orange-500';
-                 else if (damageType === 'Cold') dmgColor = 'text-blue-400';
-                 else if (damageType === 'Lightning') dmgColor = 'text-yellow-400';
+                 let dmgColor = 'text-zinc-200';
+                 if (damageType === 'Pierce') dmgColor = 'text-stone-300';
+                 else if (damageType === 'Fire') dmgColor = 'text-orange-500';
+                 else if (damageType === 'Cold') dmgColor = 'text-blue-300';
+                 else if (damageType === 'Lightning') dmgColor = 'text-purple-500';
                  
                  let vfxColor = 0xd4d4d8;
                  if (damageType === 'Fire') vfxColor = 0xf97316;
@@ -329,7 +327,7 @@ export function useGameEngine() {
                  else if (damageType === 'Strike') vfxColor = 0xd4d4d8;
                  else if (damageType === 'Pierce') vfxColor = 0x94a3b8;
                  
-                 combatState.addFloatingText(target.position.x, target.position.y, finalDamage.toFixed(0), dmgColor);
+                 combatState.addFloatingText(target.position.x, target.position.y, finalDamage.toFixed(0), { colorClass: dmgColor, isCrit: result === 'crit' });
                  combatState.addHitEffect(target.id, position.x, position.y, vfxColor, damageType);
                  
                  combatState.addLog(`You hit ${target.name} for ${finalDamage.toFixed(0)} damage with ${handName}.${resultText}`, 'player-attack');
@@ -515,6 +513,7 @@ export function useGameEngine() {
               'Strike',
               false, // isSpell
               enemy.level,
+              playerState.level,
               {}, // Enemies have no pen stats yet
               statsState.getAllStats(), // Player's defenses
               0, // baseCritChance
@@ -527,7 +526,7 @@ export function useGameEngine() {
                combatState.addLog(`${enemy.name}'s attack was deflected!`, 'player-attack');
              } else {
                 usePlayerStore.getState().takeDamage(finalDamage);
-                combatState.addFloatingText(position.x, position.y, finalDamage.toFixed(0), 'text-zinc-100');
+                combatState.addFloatingText(position.x, position.y, finalDamage.toFixed(0), { colorClass: 'text-zinc-100', isCrit: result === 'crit' });
                 combatState.addHitEffect('player', enemy.position.x, enemy.position.y, 0xd4d4d8, 'Strike');
                 let resultText = '';
                if (result === 'block') resultText = ' (Blocked)';
@@ -632,15 +631,6 @@ export function useGameEngine() {
              usePlayerStore.getState().setTarget(null);
            }
            
-           // Flask Charges
-           let chargesGained = 0;
-           if (enemy.rarity === 'Normal') chargesGained = 1 / 3;
-           else if (enemy.rarity === 'Magic') chargesGained = 0.5;
-           else if (enemy.rarity === 'Rare' || enemy.rarity === 'Boss') chargesGained = 2;
-           if (chargesGained > 0) {
-             usePlayerStore.getState().addFlaskCharges(chargesGained);
-             usePlayerStore.getState().addManaFlaskCharges(chargesGained);
-           }
            
            // Drop Loot
            let dropChance = 0;

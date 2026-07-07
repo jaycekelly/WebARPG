@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type ScreenMessageType = 'above' | 'below';
+export type ScreenMessageType = 'above' | 'below' | 'top';
 
 export interface ScreenMessage {
   id: string;

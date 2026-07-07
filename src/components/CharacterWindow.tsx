@@ -47,7 +47,7 @@ export function CharacterWindow() {
           >
             Inv
             {attributePoints > 0 && (
-               <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse mb-0.5" />
+               <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse mt-1" />
             )}
           </button>
           
@@ -60,7 +60,7 @@ export function CharacterWindow() {
           >
             Skills
             {skillPoints > 0 && (
-               <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse mb-0.5" />
+               <span className="w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse mt-1" />
             )}
           </button>
         </div>

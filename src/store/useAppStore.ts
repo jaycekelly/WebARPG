@@ -48,10 +48,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   setPaused: (isPaused) => set((state) => {
     if (isPaused === state.isPaused) return {};
     if (isPaused) {
-      useMessageStore.getState().addScreenMessage('below', 'TACTICAL PAUSE', 0);
+      useMessageStore.getState().addScreenMessage('top', 'TACTICAL PAUSE', 0);
       return { isPaused, pauseStartTime: Date.now() };
     } else {
-      useMessageStore.getState().removeMessageByType('below');
+      useMessageStore.getState().removeMessageByType('top');
       const now = Date.now();
       const elapsed = state.pauseStartTime ? now - state.pauseStartTime : 0;
       return { isPaused, pauseStartTime: null, pauseTimeOffset: state.pauseTimeOffset + elapsed };
@@ -60,10 +60,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   togglePause: () => set((state) => {
     const nextPaused = !state.isPaused;
     if (nextPaused) {
-      useMessageStore.getState().addScreenMessage('below', 'TACTICAL PAUSE', 0);
+      useMessageStore.getState().addScreenMessage('top', 'TACTICAL PAUSE', 0);
       return { isPaused: nextPaused, pauseStartTime: Date.now() };
     } else {
-      useMessageStore.getState().removeMessageByType('below');
+      useMessageStore.getState().removeMessageByType('top');
       const now = Date.now();
       const elapsed = state.pauseStartTime ? now - state.pauseStartTime : 0;
       return { isPaused: nextPaused, pauseStartTime: null, pauseTimeOffset: state.pauseTimeOffset + elapsed };

@@ -39,5 +39,18 @@ export const ATTRIBUTE_AFFIXES: AffixTemplate[] = [
 	weight: 150,
     descriptionTpl: '+{value} Intelligence',
     exclusivityGroup: 'Attribute'
+  },
+  {
+    id: 'flat_vitality',
+    allowedTypes: ['helm', 'chest', 'gloves', 'legs', 'boots', 'shield', 'tome', 'amulet', 'ring'],
+    allowedArmorCategories: ['Heavy', 'Light', 'Caster'],
+    minLevel: 1,
+    stat: 'Vitality',
+    type: 'flat',
+    baseValue: 2,
+    levelMultiplier: 0.5,
+	weight: 150,
+    descriptionTpl: '+{value} Vitality',
+    exclusivityGroup: 'Attribute'
   }
 ];

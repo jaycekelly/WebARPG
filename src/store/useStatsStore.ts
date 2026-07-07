@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { StatModifier, StatType } from '../engine/stats/types';
 import { StatCalculator } from '../engine/stats/StatCalculator';
 import { useBuffStore } from './useBuffStore';
+import { usePlayerStore } from './usePlayerStore';
 
 interface StatsState {
   modifiers: StatModifier[];
@@ -19,10 +20,12 @@ interface StatsState {
 
 export const useStatsStore = create<StatsState>((set, get) => ({
   modifiers: [
-    { id: 'base_health', sourceId: 'base_character', stat: 'Health', type: 'flat', value: 70 },
-    { id: 'base_mana', sourceId: 'base_character', stat: 'Mana', type: 'flat', value: 50 },
-    { id: 'base_damage', sourceId: 'base_character', stat: 'Damage', type: 'flat', value: 10 },
+    { id: 'base_health', sourceId: 'base_character', stat: 'Health', type: 'flat', value: 80 },
+    { id: 'base_mana', sourceId: 'base_character', stat: 'Mana', type: 'flat', value: 30 },
+    { id: 'base_damage', sourceId: 'base_character', stat: 'WeaponDamage', type: 'flat', value: 10 },
     { id: 'base_move', sourceId: 'base_character', stat: 'MoveSpeed', type: 'flat', value: 1.33 },
+    { id: 'base_hp_regen', sourceId: 'base_character', stat: 'HealthRegeneration', type: 'flat', value: 0.5 },
+    { id: 'base_mana_regen', sourceId: 'base_character', stat: 'ManaRegeneration', type: 'flat', value: 0.4 },
     
     // Base Attributes
     { id: 'base_strength', sourceId: 'base_character', stat: 'Strength', type: 'flat', value: 5 },
@@ -49,6 +52,15 @@ export const useStatsStore = create<StatsState>((set, get) => ({
 
   getStat: (stat) => {
     let mods = get().modifiers.filter(m => m.stat === stat);
+    
+    // Unarmed Weapon Damage fallback
+    if (stat === 'WeaponDamage') {
+      const externalWeaponMods = mods.filter(m => m.sourceId !== 'base_character');
+      if (externalWeaponMods.length > 0) {
+        // If a weapon provides WeaponDamage, ignore the base character unarmed damage
+        mods = mods.filter(m => !(m.sourceId === 'base_character'));
+      }
+    }
     
     // Add active buffs
     const playerBuffs = useBuffStore.getState().entityBuffs['player'] || [];
@@ -111,7 +123,82 @@ export const useStatsStore = create<StatsState>((set, get) => ({
            sourceId: 'base_attributes',
            stat: 'Health',
            type: 'flat',
-           value: vit * 2
+           value: vit * 4
+         });
+       }
+    }
+
+    if (stat === 'Mana') {
+       const int = get().getStat('Intelligence');
+       if (int > 0) {
+         mods.push({
+           id: 'int_mana_bonus',
+           sourceId: 'base_attributes',
+           stat: 'Mana',
+           type: 'flat',
+           value: int * 2
+         });
+       }
+       const level = usePlayerStore.getState().level;
+       if (level > 1) {
+         mods.push({
+           id: 'level_mana_bonus',
+           sourceId: 'base_attributes',
+           stat: 'Mana',
+           type: 'flat',
+           value: (level - 1) * 4
+         });
+       }
+    }
+
+    if (stat === 'HealthRegeneration') {
+       const level = usePlayerStore.getState().level;
+       if (level > 1) {
+         mods.push({
+           id: 'level_hp_regen_bonus',
+           sourceId: 'base_attributes',
+           stat: 'HealthRegeneration',
+           type: 'flat',
+           value: (level - 1) * 0.05
+         });
+       }
+    }
+
+    if (stat === 'ManaRegeneration') {
+       const level = usePlayerStore.getState().level;
+       if (level > 1) {
+         mods.push({
+           id: 'level_mana_regen_bonus',
+           sourceId: 'base_attributes',
+           stat: 'ManaRegeneration',
+           type: 'flat',
+           value: (level - 1) * 0.04
+         });
+       }
+    }
+
+    if (stat === 'Armor') {
+       const str = get().getStat('Strength');
+       if (str > 0) {
+         mods.push({
+           id: 'str_armor_bonus',
+           sourceId: 'base_attributes',
+           stat: 'Armor',
+           type: 'flat',
+           value: str
+         });
+       }
+    }
+
+    if (stat === 'HasteRating') {
+       const dex = get().getStat('Dexterity');
+       if (dex > 0) {
+         mods.push({
+           id: 'dex_haste_bonus',
+           sourceId: 'base_attributes',
+           stat: 'HasteRating',
+           type: 'flat',
+           value: dex
          });
        }
     }
@@ -120,7 +207,13 @@ export const useStatsStore = create<StatsState>((set, get) => ({
   },
 
   getAllStats: () => {
-    const mods = [...get().modifiers];
+    let mods = [...get().modifiers];
+    
+    // Unarmed Weapon Damage fallback
+    const externalWeaponMods = mods.filter(m => m.stat === 'WeaponDamage' && m.sourceId !== 'base_character');
+    if (externalWeaponMods.length > 0) {
+      mods = mods.filter(m => !(m.stat === 'WeaponDamage' && m.sourceId === 'base_character'));
+    }
     
     // Add active buffs
     const playerBuffs = useBuffStore.getState().entityBuffs['player'] || [];
@@ -154,7 +247,22 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     
     const vit = stats['Vitality'] || 0;
     if (vit > 0) {
-      stats['Health'] = (stats['Health'] || 0) + (vit * 2);
+      stats['Health'] = (stats['Health'] || 0) + (vit * 4);
+    }
+
+    const intStat = stats['Intelligence'] || 0;
+    if (intStat > 0) {
+      stats['Mana'] = (stats['Mana'] || 0) + (intStat * 2);
+    }
+
+    const str = stats['Strength'] || 0;
+    if (str > 0) {
+      stats['Armor'] = (stats['Armor'] || 0) + str;
+    }
+
+    const dex = stats['Dexterity'] || 0;
+    if (dex > 0) {
+      stats['HasteRating'] = (stats['HasteRating'] || 0) + dex;
     }
 
     return stats;

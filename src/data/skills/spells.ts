@@ -7,10 +7,10 @@ export const SPELL_SKILLS: Record<string, Skill> = {
     description: 'Hurl a fiery projectile that explodes on impact.',
     icon: 'Flame',
     tags: ['Spell', 'Fire', 'Area'],
-    manaCost: 15,
+    manaCost: 10,
     range: 5,
     cooldownMs: 10000,
-    gcdDuration: 1500,
+    gcdDuration: 1300,
     castTime: 1000,
     targeting: 'Area',
     aoeParams: {

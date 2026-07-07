@@ -16,9 +16,12 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'ManaRegenPercent': '% Mana Regen',
 
   // Damage
+  'WeaponDamage': 'Weapon Damage',
+  'AttacksPerSecond': 'Attacks Per Second',
   'Damage': 'Damage',
   'AttackSpeed': '% Attack Speed',
   'CastSpeed': '% Cast Speed',
+  'HasteRating': 'Haste Rating',
   'StrikeDamage': '% Strike Damage',
   'PierceDamage': '% Pierce Damage',
   'PhysicalDamage': '% Physical Damage',
@@ -33,19 +36,12 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'AreaDamage': '% Area Damage',
 
   // Penetration
-  'StrikePenetrationFlat': 'Strike Penetration',
   'StrikePenetrationPercent': '% Strike Penetration',
-  'PiercePenetrationFlat': 'Pierce Penetration',
   'PiercePenetrationPercent': '% Pierce Penetration',
-  'PhysicalPenetrationFlat': 'Physical Penetration',
   'PhysicalPenetrationPercent': '% Physical Penetration',
-  'FirePenetrationFlat': 'Fire Penetration',
   'FirePenetrationPercent': '% Fire Penetration',
-  'ColdPenetrationFlat': 'Cold Penetration',
   'ColdPenetrationPercent': '% Cold Penetration',
-  'LightningPenetrationFlat': 'Lightning Penetration',
   'LightningPenetrationPercent': '% Lightning Penetration',
-  'ElementalPenetrationFlat': 'Elemental Penetration',
   'ElementalPenetrationPercent': '% Elemental Penetration',
 
   // Critical
@@ -82,13 +78,13 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'AllElementalResist': 'All Ele Resistance',
 
   // Avoidance
-  'DeflectChance': '% Deflect Chance',
+  'DeflectRating': 'Deflect Rating',
   'DeflectEffect': '% Deflect Effect',
-  'Block': '% Block Chance',
-  'SpellBlock': '% Spell Block Chance',
+  'BlockRating': 'Block Rating',
+  'SpellBlockRating': 'Spell Block Rating',
   'BlockEffect': '% Block Effect',
-  'Parry': '% Parry Chance',
-  'SpellParry': '% Spell Parry Chance',
+  'ParryRating': 'Parry Rating',
+  'SpellParryRating': 'Spell Parry Rating',
   'ParryEffect': '% Parry Effect',
 
   // Leech / Sustain
@@ -104,7 +100,7 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
 
   // Misc
   'SkillReach': 'Skill Reach',
-  'CooldownReduction': '% Cooldown Reduction',
+  'CooldownReductionRating': 'Cooldown Reduction Rating',
   'MoveSpeed': '% Move Speed',
   'ManaCostReduction': '% Mana Cost Reduction',
   'Tenacity': '% Tenacity',

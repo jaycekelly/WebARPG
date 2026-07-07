@@ -16,9 +16,9 @@ const SHADOW_HEIGHT = 65; // ~62% of width = oval
 
 const ENTITY_Z = {
   obstacle: 0,
-  loot: 1,
-  enemy: 2,
-  player: 3,
+  loot: -20, // Push flat floor items backwards into the screen so they never obscure standing actors
+  enemy: 1,
+  player: 2,
 } as const;
 
 // Radial VFX texture removed in favor of exact SVG path shadows
@@ -42,7 +42,7 @@ interface TrackedSprite {
   flashSprite: Sprite;
   glowIcon?: Sprite | null;
   key: string;
-  kind: keyof typeof ENTITY_Z;
+  category: keyof typeof ENTITY_Z;
   currentX?: number;
   currentY?: number;
   isDashing?: boolean;
@@ -169,6 +169,11 @@ export function createEntityRenderer(): EntityRenderer {
     flashSprite.visible = false;
     c.addChild(flashSprite);
 
+    const categoryStr = key.split(':')[0];
+    const category = (categoryStr === 'player' ? 'player' :
+                      categoryStr === 'enemy' ? 'enemy' :
+                      categoryStr === 'loot' ? 'loot' : 'obstacle') as keyof typeof ENTITY_Z;
+
     const entry: TrackedSprite = {
       container: c,
       icon,
@@ -178,7 +183,7 @@ export function createEntityRenderer(): EntityRenderer {
       flashSprite,
       glowIcon,
       key,
-      kind: kind as keyof typeof ENTITY_Z,
+      category,
     };
 
     container.addChild(c);
@@ -221,9 +226,9 @@ export function createEntityRenderer(): EntityRenderer {
     const sy = projected.screenY;
     entry.container.position.set(sx, sy);
     entry.container.scale.set(projected.scale * activeBaseScale);
-    // Apply a fractional offset based on entity type so things on the exact same tile 
-    // strictly sort themselves (Loot renders behind enemies, enemies behind player)
-    entry.container.zIndex = projected.zDepth + (ENTITY_Z[entry.kind] * 0.1);
+    // Apply physical pixel offsets based on entity category to ensure flat items 
+    // sort behind standing actors on the same tile
+    entry.container.zIndex = projected.zDepth + (ENTITY_Z[entry.category] ?? 0);
     
     // Lighting tint
     const intensity = getTileLightIntensity(wx, wy, playerPos, lootDrops, visibleTiles);

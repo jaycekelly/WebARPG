@@ -5,7 +5,7 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { useAppStore } from '../store/useAppStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import type { EquipmentSlot, Rarity } from '../engine/items/types';
-import { Sword, HelpCircle, Plus, ChevronLeft } from 'lucide-react';
+import { Sword, HelpCircle, Plus, ChevronLeft, ArrowRightLeft } from 'lucide-react';
 // Removed Tabler imports
 import { ItemTooltip } from './ItemTooltip';
 import { ICONS } from './IconLibrary';
@@ -37,7 +37,7 @@ const RARITY_COLORS: Record<Rarity, string> = {
 const SLOT_CLASS = 'flex items-center justify-center border rounded transition-all relative bg-surface-base hover:bg-surface-raised z-10';
 
 export function InventoryPanel() {
-  const { inventory, equipment, equip, unequip, sellItem } = useInventoryStore();
+  const { inventory, equipment, equip, unequip, sellItem, activeWeaponSet, swapWeaponSet } = useInventoryStore();
   const { getStat } = useStatsStore();
   const { attributePoints, allocateAttribute, level } = usePlayerStore();
   const { location, vendorOpen, statsPopoutOpen, setStatsPopoutOpen } = useAppStore();
@@ -73,7 +73,7 @@ export function InventoryPanel() {
         onClick={() => item && unequip(slot)}
         onMouseEnter={() => setHoveredEqSlot(slot)}
         onMouseLeave={() => setHoveredEqSlot(null)}
-        className={`flex items-center gap-2 py-1 px-1.5 pr-2 rounded transition-all bg-surface-deep/30 hover:bg-surface-raised w-full text-left shrink-0`}
+        className={`flex items-center gap-2 py-1 px-1.5 pr-2 rounded transition-all bg-surface-deep/30 hover:bg-surface-raised w-full text-left shrink-0 ${!item ? 'opacity-40 hover:opacity-80' : ''}`}
       >
         <div className={`w-9 h-9 shrink-0 flex items-center justify-center rounded border ${iconClasses}`}>
           <Icon className={`w-5 h-5 ${item ? 'text-text-primary' : ''}`} />
@@ -154,8 +154,23 @@ export function InventoryPanel() {
               {renderEquipmentRow('amulet', 'Amulet')}
               {renderEquipmentRow('ring1', 'Ring 1')}
               {renderEquipmentRow('ring2', 'Ring 2')}
-              {renderEquipmentRow('weapon2', 'Off Hand')}
-              {renderEquipmentRow('weapon1', 'Main Hand')}
+              
+              <div className="relative flex flex-col gap-0.5">
+                {renderEquipmentRow('weapon1', `Main Hand (${activeWeaponSet === 1 ? 'I' : 'II'})`)}
+                
+                {/* Weapon Swap Button */}
+                <div className="absolute right-[-9px] top-1/2 -translate-y-1/2 bg-surface-deep rounded z-20">
+                  <button
+                    onClick={() => swapWeaponSet()}
+                    className="w-[1.4rem] h-[1.4rem] bg-accent/10 hover:bg-accent/20 border border-accent/50 rounded flex items-center justify-center transition-all group shadow-[0_0_8px_rgba(56,189,248,0.2)] hover:shadow-[0_0_12px_rgba(56,189,248,0.4)]"
+                    title="Swap Weapon Set (W)"
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5 text-accent transition-transform group-hover:scale-110" />
+                  </button>
+                </div>
+                
+                {renderEquipmentRow('weapon2', `Off Hand (${activeWeaponSet === 1 ? 'I' : 'II'})`)}
+              </div>
             </div>
           </div>
         </div>

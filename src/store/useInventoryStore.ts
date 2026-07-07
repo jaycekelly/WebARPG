@@ -11,10 +11,13 @@ interface InventoryState {
   inventory: (Item | null)[];
   equipment: Partial<Record<EquipmentSlot, Item>>;
   
+  activeWeaponSet: 1 | 2;
+  
   lootItem: (item: Item, silent?: boolean) => void;
   equip: (inventoryIndex: number, targetSlot?: EquipmentSlot) => void;
   unequip: (slot: EquipmentSlot, bypassRevalidation?: boolean) => void;
   sellItem: (inventoryIndex: number) => void;
+  swapWeaponSet: () => boolean;
   revalidateEquipment: () => void;
 }
 
@@ -38,6 +41,44 @@ const getDefaultSlot = (type: ItemType): EquipmentSlot | null => {
 export const useInventoryStore = create<InventoryState>((set, get) => ({
   inventory: [],
   equipment: {},
+  activeWeaponSet: 1,
+
+  swapWeaponSet: () => {
+    let swapped = false;
+    set((state) => {
+      // Don't swap if the alt set is completely empty
+      if (!state.equipment['weapon1_alt'] && !state.equipment['weapon2_alt']) {
+        return state;
+      }
+      
+      swapped = true;
+      const newEquipment = { ...state.equipment };
+      
+      const tempWep1 = newEquipment['weapon1'];
+      newEquipment['weapon1'] = newEquipment['weapon1_alt'];
+      newEquipment['weapon1_alt'] = tempWep1;
+
+      const tempWep2 = newEquipment['weapon2'];
+      newEquipment['weapon2'] = newEquipment['weapon2_alt'];
+      newEquipment['weapon2_alt'] = tempWep2;
+
+      // Clean up undefined/null keys to keep equipment clean
+      if (!newEquipment['weapon1']) delete newEquipment['weapon1'];
+      if (!newEquipment['weapon1_alt']) delete newEquipment['weapon1_alt'];
+      if (!newEquipment['weapon2']) delete newEquipment['weapon2'];
+      if (!newEquipment['weapon2_alt']) delete newEquipment['weapon2_alt'];
+
+      return {
+        activeWeaponSet: state.activeWeaponSet === 1 ? 2 : 1,
+        equipment: newEquipment
+      };
+    });
+    
+    if (swapped) {
+      get().revalidateEquipment();
+    }
+    return swapped;
+  },
 
   lootItem: (item, silent = false) => {
     set((state) => {
@@ -89,14 +130,11 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
        }
     }
 
-    // Combat Lockout Check
-    if (item.itemType === 'weapon-1h' || item.itemType === 'weapon-2h' || item.itemType === 'shield') {
-      const combatState = useCombatStore.getState();
-      const lastAttack = Math.max(combatState.lastMainHandAttackTime, combatState.lastOffHandAttackTime);
-      if (useAppStore.getState().getGameTime() - lastAttack < 4000) {
-        useMessageStore.getState().addScreenMessage('above', 'Cannot change equipment in combat');
-        return;
-      }
+    // Global Combat Lockout Check
+    const combatState = useCombatStore.getState();
+    if (useAppStore.getState().getGameTime() - combatState.lastCombatEventTime < 5000) {
+      useMessageStore.getState().addScreenMessage('above', 'Cannot change equipment in combat', 4000);
+      return;
     }
 
     // Determine target slot
@@ -176,14 +214,11 @@ export const useInventoryStore = create<InventoryState>((set, get) => ({
     const item = state.equipment[slot];
     if (!item) return;
 
-    // Combat Lockout Check
-    if (slot === 'weapon1' || slot === 'weapon2') {
-      const combatState = useCombatStore.getState();
-      const lastAttack = Math.max(combatState.lastMainHandAttackTime, combatState.lastOffHandAttackTime);
-      if (useAppStore.getState().getGameTime() - lastAttack < 4000) {
-        useMessageStore.getState().addScreenMessage('above', 'Cannot change equipment in combat');
-        return;
-      }
+    // Global Combat Lockout Check
+    const combatState = useCombatStore.getState();
+    if (useAppStore.getState().getGameTime() - combatState.lastCombatEventTime < 5000) {
+      useMessageStore.getState().addScreenMessage('above', 'Cannot change equipment in combat', 4000);
+      return;
     }
 
     // Remove Stats

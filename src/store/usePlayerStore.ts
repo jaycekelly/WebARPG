@@ -21,11 +21,7 @@ interface PlayerState {
   normalPityCount: number;
   magicPityCount: number;
   boundSkills: (string | null)[];
-  flaskCharges: number;
-  maxFlaskCharges: number;
   lastFlaskTime: number;
-  manaFlaskCharges: number;
-  maxManaFlaskCharges: number;
   lastManaFlaskTime: number;
   
   move: (dx: number, dy: number) => void;
@@ -42,9 +38,7 @@ interface PlayerState {
   incrementPity: (rarity: 'Normal' | 'Magic') => void;
   resetPity: (rarity: 'Normal' | 'Magic') => void;
   bindSkill: (slotIndex: number, skillId: string | null) => void;
-  addFlaskCharges: (amount: number) => void;
   useFlask: () => boolean;
-  addManaFlaskCharges: (amount: number) => void;
   useManaFlask: () => boolean;
 
 }
@@ -53,8 +47,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   playerClass: 'Fighter',
   secondaryClass: 'Mage',
   position: { x: 5, y: 5 },
-  currentHealth: 80,
-  currentMana: 50,
+  currentHealth: 100,
+  currentMana: 40,
   activeTargetId: null,
   ignoredTargetId: null,
   level: 1,
@@ -65,11 +59,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   normalPityCount: 0,
   magicPityCount: 0,
   boundSkills: ['heavy_strike', 'charge_attack', 'fireball', null, null, null, null, null],
-  flaskCharges: 4,
-  maxFlaskCharges: 4,
   lastFlaskTime: 0,
-  manaFlaskCharges: 4,
-  maxManaFlaskCharges: 4,
   lastManaFlaskTime: 0,
   move: (dx, dy) => {
     let moved = false;
@@ -117,6 +107,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   }),
 
   takeDamage: (amount) => set((state) => {
+    useCombatStore.getState().triggerCombatEvent();
     const newHealth = Math.max(0, state.currentHealth - amount);
     return { currentHealth: newHealth };
   }),
@@ -159,7 +150,6 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       newAttrPoints++;
       leveledUp = true;
         
-        // Push the static stat bonuses to the stat engine
         useStatsStore.getState().addModifier({
           id: `lvl_hp_${newLevel}_${Math.random()}`,
           sourceId: 'base_character_leveling',
@@ -173,6 +163,20 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
           stat: 'Mana',
           type: 'flat',
           value: 10
+        });
+        useStatsStore.getState().addModifier({
+          id: `lvl_hpregen_${newLevel}_${Math.random()}`,
+          sourceId: 'base_character_leveling',
+          stat: 'HealthRegeneration',
+          type: 'flat',
+          value: 0.025
+        });
+        useStatsStore.getState().addModifier({
+          id: `lvl_manaregen_${newLevel}_${Math.random()}`,
+          sourceId: 'base_character_leveling',
+          stat: 'ManaRegeneration',
+          type: 'flat',
+          value: 0.1
         });
     }
 
@@ -232,42 +236,28 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     return { boundSkills: newBound };
   }),
 
-  addFlaskCharges: (amount) => set((state) => {
-    return { flaskCharges: Math.min(state.maxFlaskCharges, state.flaskCharges + amount) };
-  }),
-
   useFlask: () => {
-    const { flaskCharges, lastFlaskTime } = get();
+    const { lastFlaskTime } = get();
     const now = useAppStore.getState().getGameTime();
     
-    if (now - lastFlaskTime < 500) {
+    if (now - lastFlaskTime < 30000) {
       return false;
     }
     
-    if (flaskCharges >= 1) {
-      set({ flaskCharges: flaskCharges - 1, lastFlaskTime: now });
-      return true;
-    }
-    return false;
+    set({ lastFlaskTime: now });
+    return true;
   },
 
-  addManaFlaskCharges: (amount) => set((state) => {
-    return { manaFlaskCharges: Math.min(state.maxManaFlaskCharges, state.manaFlaskCharges + amount) };
-  }),
-
   useManaFlask: () => {
-    const { manaFlaskCharges, lastManaFlaskTime } = get();
+    const { lastManaFlaskTime } = get();
     const now = useAppStore.getState().getGameTime();
     
-    if (now - lastManaFlaskTime < 500) {
+    if (now - lastManaFlaskTime < 30000) {
       return false;
     }
     
-    if (manaFlaskCharges >= 1) {
-      set({ manaFlaskCharges: manaFlaskCharges - 1, lastManaFlaskTime: now });
-      return true;
-    }
-    return false;
+    set({ lastManaFlaskTime: now });
+    return true;
   },
 
 }));

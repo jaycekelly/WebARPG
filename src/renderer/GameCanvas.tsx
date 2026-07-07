@@ -171,7 +171,7 @@ export function GameCanvas() {
         
         let processedHitIds = new Set<string>();
 
-        app.ticker.add(() => {
+        app.ticker.add((ticker) => {
           const w = useWorldStore.getState();
           const p = usePlayerStore.getState();
           const c = useCombatStore.getState();
@@ -260,6 +260,7 @@ export function GameCanvas() {
             app.renderer.height,
             tileSize,
             totalTileSize,
+            ticker.deltaMS / 1000,
           );
 
           const focusWorldY = (camResult.focusY + 0.5) * tileSize;

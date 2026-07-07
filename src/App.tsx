@@ -4,6 +4,8 @@ import { useGameEngine } from './engine/useGameEngine';
 import { useAppStore } from './store/useAppStore';
 import { useCombatStore } from './store/useCombatStore';
 import { usePlayerStore } from './store/usePlayerStore';
+import { useInventoryStore } from './store/useInventoryStore';
+import { useMessageStore } from './store/useMessageStore';
 import { TownView } from './components/TownView';
 import { DungeonView } from './components/DungeonView';
 import { DataEditorView } from './components/DataEditorView';
@@ -55,7 +57,20 @@ function App() {
           appState.setCharacterWindowOpen(true);
         }
       }
-
+      if (e.key.toLowerCase() === 'x') {
+        // Allow weapon swap even while panels are open
+        const swapped = useInventoryStore.getState().swapWeaponSet();
+        if (swapped) {
+          useCombatStore.getState().addFloatingText(
+            usePlayerStore.getState().position.x,
+            usePlayerStore.getState().position.y,
+            'Weapon Swapped',
+            { colorClass: 'text-zinc-400 text-sm' }
+          );
+        } else {
+          useMessageStore.getState().addScreenMessage('above', 'Cannot swap to empty hands', 4000);
+        }
+      }
 
 
       if (e.key.toLowerCase() === 'k') {

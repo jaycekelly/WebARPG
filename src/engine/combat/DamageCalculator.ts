@@ -1,4 +1,5 @@
 import type { DamageType } from '../stats/types';
+import { RatingCalculator } from '../stats/RatingCalculator';
 
 export class DamageCalculator {
   static readonly A_CAP = 0.85;
@@ -11,6 +12,7 @@ export class DamageCalculator {
     damageType: DamageType | undefined,
     isSpell: boolean,
     attackerLevel: number,
+    defenderLevel: number,
     attackerStats: Record<string, number>,
     defenderStats: Record<string, number>,
     baseCritChance: number = 0,
@@ -49,8 +51,10 @@ export class DamageCalculator {
 
     // 2. Deflection (Evasion)
     let deflectMitigation = 0;
-    const deflectChance = defenderStats['DeflectChance'] || 0;
-    if (Math.random() < deflectChance / 100) {
+    const deflectRating = defenderStats['DeflectRating'] || 0;
+    const deflectChance = RatingCalculator.getDeflectChance(deflectRating, defenderLevel);
+    
+    if (Math.random() < deflectChance) {
       const baseDeflectEffect = 40;
       const addedDeflectEffect = defenderStats['DeflectEffect'] || 0;
       deflectMitigation = (baseDeflectEffect + addedDeflectEffect) / 100;
@@ -61,15 +65,21 @@ export class DamageCalculator {
     let parryMitigation = 0;
     
     if (defenderHasShield) {
-      const blockChance = defenderBaseBlockChance + (isSpell ? (defenderStats['SpellBlock'] || 0) : (defenderStats['Block'] || 0));
-      if (Math.random() < blockChance / 100) {
+      const shieldBlockChance = defenderBaseBlockChance / 100; // E.g., 5% base from shield itself
+      const blockRating = isSpell ? (defenderStats['SpellBlockRating'] || 0) : (defenderStats['BlockRating'] || 0);
+      const ratingBlockChance = RatingCalculator.getBlockChance(blockRating, defenderLevel);
+      const totalBlockChance = shieldBlockChance + ratingBlockChance;
+
+      if (Math.random() < totalBlockChance) {
          const baseBlockEffect = isSpell ? 0 : 75;
          const addedBlockEffect = defenderStats['BlockEffect'] || 0;
          blockMitigation = (baseBlockEffect + addedBlockEffect) / 100;
       }
     } else if (defenderHasWeapon) {
-      const parryChance = isSpell ? (defenderStats['SpellParry'] || 0) : (defenderStats['Parry'] || 0);
-      if (Math.random() < parryChance / 100) {
+      const parryRating = isSpell ? (defenderStats['SpellParryRating'] || 0) : (defenderStats['ParryRating'] || 0);
+      const parryChance = RatingCalculator.getParryChance(parryRating, defenderLevel);
+      
+      if (Math.random() < parryChance) {
          const baseParryEffect = isSpell ? 0 : 50;
          const addedParryEffect = defenderStats['ParryEffect'] || 0;
          parryMitigation = (baseParryEffect + addedParryEffect) / 100;
@@ -93,14 +103,12 @@ export class DamageCalculator {
     const baseArmorDR = Math.min(this.A_CAP, baseEffectiveArmor / (baseEffectiveArmor + 100));
     
     if (isPhysical) {
-      let flatPen = (attackerStats['PhysicalPenetrationFlat'] || 0) + innatePenetration;
+      let flatPen = innatePenetration;
       let percentPen = attackerStats['PhysicalPenetrationPercent'] || 0;
       
       if (damageType === 'Strike') {
-        flatPen += attackerStats['StrikePenetrationFlat'] || 0;
         percentPen += attackerStats['StrikePenetrationPercent'] || 0;
       } else if (damageType === 'Pierce') {
-        flatPen += attackerStats['PiercePenetrationFlat'] || 0;
         percentPen += attackerStats['PiercePenetrationPercent'] || 0;
       }
       
@@ -114,25 +122,21 @@ export class DamageCalculator {
       return { damage: finalDamage, result: finalResult };
     } else {
       let resistance = 0;
-      let flatPen = attackerStats['ElementalPenetrationFlat'] || 0;
       let percentPen = attackerStats['ElementalPenetrationPercent'] || 0;
       
       if (damageType === 'Fire') {
         resistance = defenderStats['FireResist'] || 0;
-        flatPen += attackerStats['FirePenetrationFlat'] || 0;
         percentPen += attackerStats['FirePenetrationPercent'] || 0;
       } else if (damageType === 'Cold') {
         resistance = defenderStats['ColdResist'] || 0;
-        flatPen += attackerStats['ColdPenetrationFlat'] || 0;
         percentPen += attackerStats['ColdPenetrationPercent'] || 0;
       } else if (damageType === 'Lightning') {
         resistance = defenderStats['LightningResist'] || 0;
-        flatPen += attackerStats['LightningPenetrationFlat'] || 0;
         percentPen += attackerStats['LightningPenetrationPercent'] || 0;
       }
       
-      // Add innate level-based penetration to the elemental penetration
-      const effectiveResistance = (resistance - (flatPen + innatePenetration)) * (1 - percentPen / 100);
+      // Decouple Innate Penetration from Resistances:
+      const effectiveResistance = resistance * (1 - percentPen / 100);
       
       // Mathematical Safety: We use Math.abs(effectiveResistance) in the denominator 
       // to prevent asymptote zero-division crashes when negative resists cross the constant

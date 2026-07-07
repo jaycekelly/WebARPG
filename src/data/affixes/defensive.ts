@@ -3,18 +3,6 @@ import type { AffixTemplate } from '../../engine/items/types';
 export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
   // Health
   {
-    id: 'flat_health',
-    allowedTypes: ['helm', 'chest', 'gloves', 'legs', 'boots', 'shield', 'amulet', 'ring'],
-    allowedArmorCategories: ['Heavy', 'Light'],
-    minLevel: 1,
-    stat: 'Health',
-    type: 'flat',
-    baseValue: 6,
-    levelMultiplier: 0.05,
-    descriptionTpl: '+{value} Max Health',
-    exclusivityGroup: 'MaxHealth'
-  },
-  {
     id: 'inc_health',
     allowedTypes: ['helm', 'chest', 'gloves', 'legs', 'boots', 'shield', 'amulet', 'ring'],
     allowedArmorCategories: ['Heavy', 'Light'],
@@ -174,11 +162,11 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     allowedTypes: ['helm', 'chest', 'gloves', 'legs', 'boots', 'shield', 'amulet'],
     allowedArmorCategories: ['Light'],
     minLevel: 1,
-    stat: 'DeflectChance',
+    stat: 'DeflectRating',
     type: 'flat',
-    baseValue: 2,
-    levelMultiplier: 0.05,
-    descriptionTpl: '+{value}% Deflect Chance',
+    baseValue: 15,
+    levelMultiplier: 1.5,
+    descriptionTpl: '+{value} Deflect Rating',
     exclusivityGroup: 'Deflect'
   },
   {
@@ -201,22 +189,22 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     id: 'block_chance',
     allowedTypes: ['shield', 'amulet'],
     minLevel: 1,
-    stat: 'Block',
+    stat: 'BlockRating',
     type: 'flat',
-    baseValue: 3,
-    levelMultiplier: 0.05,
-    descriptionTpl: '+{value}% Block Chance',
+    baseValue: 20,
+    levelMultiplier: 2.0,
+    descriptionTpl: '+{value} Block Rating',
     exclusivityGroup: 'Block'
   },
   {
     id: 'spell_block_chance',
     allowedTypes: ['shield', 'amulet'],
     minLevel: 1,
-    stat: 'SpellBlock',
+    stat: 'SpellBlockRating',
     type: 'flat',
-    baseValue: 2,
-    levelMultiplier: 0.05,
-    descriptionTpl: '+{value}% Spell Block Chance',
+    baseValue: 15,
+    levelMultiplier: 1.5,
+    descriptionTpl: '+{value} Spell Block Rating',
     exclusivityGroup: 'Block'
   },
 
@@ -227,22 +215,22 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     id: 'parry_chance',
     allowedTypes: ['weapon-1h', 'weapon-2h', 'amulet'],
     minLevel: 1,
-    stat: 'Parry',
+    stat: 'ParryRating',
     type: 'flat',
-    baseValue: 2,
-    levelMultiplier: 0.05,
-    descriptionTpl: '+{value}% Parry Chance',
+    baseValue: 15,
+    levelMultiplier: 1.5,
+    descriptionTpl: '+{value} Parry Rating',
     exclusivityGroup: 'Parry'
   },
   {
     id: 'spell_parry_chance',
     allowedTypes: ['weapon-1h', 'weapon-2h', 'amulet'],
     minLevel: 1,
-    stat: 'SpellParry',
+    stat: 'SpellParryRating',
     type: 'flat',
-    baseValue: 1,
-    levelMultiplier: 0.05,
-    descriptionTpl: '+{value}% Spell Parry Chance',
+    baseValue: 10,
+    levelMultiplier: 1.0,
+    descriptionTpl: '+{value} Spell Parry Rating',
     exclusivityGroup: 'Parry'
   }
 ];

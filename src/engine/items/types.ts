@@ -8,6 +8,8 @@ export type EquipmentSlot =
   | 'boots' 
   | 'weapon1' 
   | 'weapon2' 
+  | 'weapon1_alt'
+  | 'weapon2_alt'
   | 'shield'
   | 'amulet' 
   | 'ring1' 

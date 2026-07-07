@@ -5,6 +5,7 @@ import { useCombatStore } from '../../store/useCombatStore';
 import { useInventoryStore } from '../../store/useInventoryStore';
 import { useAppStore } from '../../store/useAppStore';
 import { InputHandler } from '../../engine/input/InputHandler';
+import { SKILLS } from '../../data/skills';
 
 // ---- Types -------------------------------------------------------------------
 
@@ -129,8 +130,11 @@ function handleTileClick(target: ClickTarget) {
 
   // ---- Targeting mode: skill target selection ----
   if (combat.targetingSkillId) {
-    // Clicking an enemy while targeting: target that enemy specifically
-    if (target.enemyId && dist <= 99) {
+    const skill = SKILLS[combat.targetingSkillId];
+    const isStrictTargeting = skill && skill.targeting === 'Single';
+
+    // Clicking an enemy while targeting: target that enemy specifically ONLY if it's a Single-target spell
+    if (target.enemyId && dist <= 99 && isStrictTargeting) {
       // Range check is handled inside executeAction
       InputHandler.requestAction({
         type: 'skill',
@@ -141,7 +145,7 @@ function handleTileClick(target: ClickTarget) {
       combat.setTargetingSkill(null);
       return;
     }
-    // Clicking any tile: use as ground target
+    // Clicking any tile (or an enemy with a ground/area spell): use as static ground target
     InputHandler.requestAction({
       type: 'skill',
       skillId: combat.targetingSkillId,

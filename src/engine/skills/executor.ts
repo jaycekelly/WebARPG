@@ -48,24 +48,20 @@ export class SkillExecutor {
        applicableStats.push('ElementalDamage');
     }
 
-    // Gather all matching modifiers
+    // Gather all matching modifiers. 
+    // Damage is now purely percentage, so we just add its flat sum (since all percent modifiers are now type: 'flat')
+    const globalDamage = useStatsStore.getState().getStat('Damage') / 100;
+    increasedSum += globalDamage;
+
     for (const mod of modifiers) {
       if (applicableStats.includes(mod.stat)) {
-        if (mod.type === 'increased') {
-          increasedSum += (mod.value / 100);
-        } else if (mod.type === 'more') {
+        if (mod.type === 'more') {
           moreMultiplier *= (1 + (mod.value / 100));
         }
       }
     }
 
     // Also add global BuffEffect/Duration to damage if they are DOTs? No, Damage is separate.
-    // Add Attribute Scaling
-    const str = useStatsStore.getState().getStat('Strength');
-    const dex = useStatsStore.getState().getStat('Dexterity');
-    const int = useStatsStore.getState().getStat('Intelligence');
-    const totalOffensiveAttr = str + dex + int;
-    increasedSum += (totalOffensiveAttr * 0.5) / 100;
 
     return Math.max(0, 1 + increasedSum) * moreMultiplier;
   }
@@ -88,6 +84,8 @@ export class SkillExecutor {
     const worldState = useWorldStore.getState();
     const playerState = usePlayerStore.getState();
     const inventoryState = useInventoryStore.getState();
+    
+    useCombatStore.getState().triggerCombatEvent();
     
     if (cascadeDepth === 0) {
       const reduction = statsState.getStat('ManaCostReduction');
@@ -387,7 +385,7 @@ export class SkillExecutor {
              
              let base = effect.baseValue || 0;
              if (isAttackSkill) {
-                base += statsState.getStat('Damage'); // Add weapon base damage
+                base += statsState.getStat('WeaponDamage'); // Add weapon base damage
              
                 if (effect.damageMultiplier) {
                     base *= effect.damageMultiplier;
@@ -484,6 +482,7 @@ export class SkillExecutor {
                 finalElement as DamageType,
                 !isAttackSkill, // isSpell flag
                 playerState.level,
+                enemy.id === 'player' ? playerState.level : (worldState.enemies.find(e => e.id === enemy.id)?.level || 1),
                 statsState.getAllStats(),
                 enemyDefenderStats,
                 baseCrit,
@@ -517,18 +516,19 @@ export class SkillExecutor {
                  
                  if (enemy.id === 'player') {
                     playerState.takeDamage(actualDamage);
-                    useCombatStore.getState().addFloatingText(playerState.position.x, playerState.position.y, actualDamage.toFixed(0), 'text-zinc-100');
+                    useCombatStore.getState().addFloatingText(playerState.position.x, playerState.position.y, actualDamage.toFixed(0), { colorClass: 'text-zinc-100', isCrit: result === 'crit' });
                     useCombatStore.getState().addHitEffect('player', playerState.position.x, playerState.position.y, vfxColor, finalElement);
                     addLog(`You hit yourself for ${actualDamage.toFixed(0)} damage!${resultText}`, 'enemy-attack');
                  } else {
                     worldState.damageEnemy(enemy.id, actualDamage);
                     
-                    let dmgColor = 'text-zinc-100';
-                    if (finalElement === 'Fire') dmgColor = 'text-orange-500';
-                    else if (finalElement === 'Cold') dmgColor = 'text-blue-400';
-                    else if (finalElement === 'Lightning') dmgColor = 'text-yellow-400';
+                    let dmgColor = 'text-zinc-200';
+                    if (finalElement === 'Pierce') dmgColor = 'text-stone-300';
+                    else if (finalElement === 'Fire') dmgColor = 'text-orange-500';
+                    else if (finalElement === 'Cold') dmgColor = 'text-blue-300';
+                    else if (finalElement === 'Lightning') dmgColor = 'text-purple-500';
                     
-                    useCombatStore.getState().addFloatingText(enemy.position.x, enemy.position.y, actualDamage.toFixed(0), dmgColor);
+                    useCombatStore.getState().addFloatingText(enemy.position.x, enemy.position.y, actualDamage.toFixed(0), { colorClass: dmgColor, isCrit: result === 'crit' });
                     
                     // For AoE skills, source is the center of the cast. Otherwise, it's the player.
                     const srcX = (skill.targeting === 'Area' || skill.targeting === 'Ground') && finalTargetPos ? finalTargetPos.x : playerState.position.x;

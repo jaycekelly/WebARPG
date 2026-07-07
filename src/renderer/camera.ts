@@ -6,7 +6,7 @@ export interface CameraResult {
 }
 
 export interface CameraInstance {
-  update: (playerPos: { x: number; y: number }, viewportW: number, viewportH: number, tileSize: number, totalTileSize: number) => CameraResult;
+  update: (playerPos: { x: number; y: number }, viewportW: number, viewportH: number, tileSize: number, totalTileSize: number, dt: number) => CameraResult;
 }
 
 export function createCamera(): CameraInstance {
@@ -19,6 +19,7 @@ export function createCamera(): CameraInstance {
     viewportH: number,
     tileSize: number,
     totalTileSize: number,
+    dt: number,
   ): CameraResult {
     const targetFocusX = playerPos.x;
     const targetFocusY = playerPos.y;
@@ -27,8 +28,19 @@ export function createCamera(): CameraInstance {
       currentFocusX = targetFocusX;
       currentFocusY = targetFocusY;
     } else {
-      currentFocusX += (targetFocusX - currentFocusX) * 0.025;
-      currentFocusY += (targetFocusY - currentFocusY) * 0.025;
+      // Exponential decay lerp for framerate-independent, professional smoothing
+      const decay = 6.0; // Lowered from 12.0 for a softer, slower follow
+      const lerpFactor = 1 - Math.exp(-decay * dt);
+
+      currentFocusX += (targetFocusX - currentFocusX) * lerpFactor;
+      currentFocusY += (targetFocusY - currentFocusY) * lerpFactor;
+
+      // Snap to target if very close to prevent sub-pixel creeping
+      const distSq = (targetFocusX - currentFocusX)**2 + (targetFocusY - currentFocusY)**2;
+      if (distSq < 0.00001) {
+        currentFocusX = targetFocusX;
+        currentFocusY = targetFocusY;
+      }
     }
 
     const focusPixelX = currentFocusX * totalTileSize + tileSize / 2;

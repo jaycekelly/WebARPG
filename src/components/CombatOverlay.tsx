@@ -22,7 +22,7 @@ const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => 
 };
 
 export function CombatOverlay() {
-  const { activeTargetId, setTarget, position, currentMana, currentHealth, level, currentXp, boundSkills, bindSkill, flaskCharges, maxFlaskCharges, useFlask, manaFlaskCharges, maxManaFlaskCharges, useManaFlask } = usePlayerStore();
+  const { activeTargetId, setTarget, position, currentMana, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, lastManaFlaskTime, useManaFlask } = usePlayerStore();
   const setContent = useTooltipStore(state => state.setContent);
   const { enemies } = useWorldStore();
   const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime } = useCombatStore();
@@ -173,22 +173,21 @@ export function CombatOverlay() {
       if (e.key.toLowerCase() === 'r') {
         const playerState = usePlayerStore.getState();
         const maxHp = useStatsStore.getState().getStat('Health');
-        if (playerState.currentHealth < maxHp && playerState.flaskCharges >= 1) {
-           playerState.useFlask();
+        if (playerState.currentHealth < maxHp && playerState.useFlask()) {
            useBuffStore.getState().addBuff('player', {
              buffId: 'flask_recovery',
              name: 'Flask Recovery',
              type: 'buff',
              stackingBehavior: 'refresh',
-             durationMs: 4000,
-             maxDurationMs: 4000,
+             durationMs: 3000,
+             maxDurationMs: 3000,
              stacks: 1,
              maxStacks: 1,
              icon: 'Droplet',
              statModifiers: [],
              isHoT: true,
              hotTickRateMs: 50,
-             hotHealPerTick: (maxHp * 0.5) / (4000 / 50)
+             hotHealPerTick: (maxHp * 0.5) / (3000 / 50)
            });
            
            useCombatStore.getState().addLog('Used Healing Flask.', 'system');
@@ -199,22 +198,21 @@ export function CombatOverlay() {
       if (e.key.toLowerCase() === 't') {
         const playerState = usePlayerStore.getState();
         const maxMp = useStatsStore.getState().getStat('Mana');
-        if (playerState.currentMana < maxMp && playerState.manaFlaskCharges >= 1) {
-           playerState.useManaFlask();
+        if (playerState.currentMana < maxMp && playerState.useManaFlask()) {
            useBuffStore.getState().addBuff('player', {
              buffId: 'mana_flask_recovery',
              name: 'Mana Flask Recovery',
              type: 'buff',
              stackingBehavior: 'refresh',
-             durationMs: 4000,
-             maxDurationMs: 4000,
+             durationMs: 3000,
+             maxDurationMs: 3000,
              stacks: 1,
              maxStacks: 1,
              icon: 'Zap',
              statModifiers: [],
              isHoT: true,
              hotTickRateMs: 50,
-             hotManaPerTick: (maxMp * 0.5) / (4000 / 50)
+             hotManaPerTick: (maxMp * 0.5) / (3000 / 50)
            });
            
            useCombatStore.getState().addLog('Used Mana Flask.', 'system');
@@ -257,22 +255,33 @@ export function CombatOverlay() {
       </div>
 
       {/* Screen Messages (Type 2 and 3) */}
-      {messages.map(msg => {
+      {messages.map((msg, _, arr) => {
+         const hasTopMessage = arr.some(m => m.type === 'top');
          if (msg.type === 'above') {
            const isLevelUp = msg.text.includes('Level Up');
+           const mtClass = hasTopMessage ? '-mt-[18rem]' : '-mt-[14rem]';
            return (
-             <div key={msg.id} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -mt-[14rem] pointer-events-none z-50 flex flex-col items-center ${isLevelUp ? 'animate-[levelUpFade_3s_ease-in-out_forwards]' : 'animate-in fade-in slide-in-from-bottom-2 duration-500'}`}>
-               <span className={isLevelUp ? "text-accent font-black text-2xl uppercase tracking-[0.2em] drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]" : "text-yellow-400 font-bold text-lg drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
+             <div key={msg.id} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${mtClass} pointer-events-none z-50 flex flex-col items-center ${isLevelUp ? 'animate-[levelUpFade_3s_ease-in-out_forwards]' : 'animate-in fade-in slide-in-from-bottom-2 duration-500'}`}>
+               <span className={isLevelUp ? "text-accent font-black text-2xl uppercase tracking-[0.2em] drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]" : "text-amber-500 font-bold text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
+                 {msg.text}
+               </span>
+             </div>
+           );
+         }
+         if (msg.type === 'top') {
+           const isPause = msg.text === 'TACTICAL PAUSE';
+           return (
+             <div key={msg.id} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -mt-[14rem] pointer-events-none z-50 flex flex-col items-center animate-in slide-in-from-top-2 fade-in duration-300">
+               <span className={isPause ? "text-accent font-black text-base uppercase tracking-widest animate-pulse drop-shadow-lg" : "text-amber-500 font-bold text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
                  {msg.text}
                </span>
              </div>
            );
          }
          if (msg.type === 'below') {
-           const isPause = msg.text === 'TACTICAL PAUSE';
            return (
-             <div key={msg.id} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-[14rem] pointer-events-none z-50 flex flex-col items-center animate-in slide-in-from-top-2 fade-in duration-300">
-               <span className={isPause ? "text-accent font-black text-lg uppercase tracking-widest animate-pulse drop-shadow-lg" : "text-text-primary italic text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
+             <div key={msg.id} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-[11rem] pointer-events-none z-50 flex flex-col items-center animate-in slide-in-from-top-2 fade-in duration-300">
+               <span className="text-text-primary italic text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
                  {msg.text}
                </span>
              </div>
@@ -284,15 +293,15 @@ export function CombatOverlay() {
       {/* HUD & Action Bar (Bottom Center) */}
       <div className="flex flex-col items-center pointer-events-none gap-1.5 relative">
         {/* Dynamic Floating Bars (Cast Bar, Swing Timers) */}
-        <div className="absolute bottom-[calc(100%+0.5rem)] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none" style={{ width: '10rem' }}>
+        <div className="absolute bottom-[calc(100%+5rem)] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none" style={{ width: '10rem' }}>
           
           {/* Cast Bar (Top) */}
           {castingSkillId && castEndTime > 0 && SKILLS[castingSkillId] && (
-            <div className="flex flex-col items-center w-full mb-1">
-              <div className="text-xs text-center text-text-primary mb-0.5 font-bold drop-shadow-[0_1px_3px_rgba(0,0,0,1)] tracking-wide">
+            <div className="flex flex-col items-center w-[6.666rem] mb-1">
+              <div className="text-xs text-center whitespace-nowrap text-text-primary mb-0.5 font-bold drop-shadow-[0_1px_3px_rgba(0,0,0,1)] tracking-wide">
                 {SKILLS[castingSkillId].name}
               </div>
-              <div className="h-2.5 w-full bg-surface-deep rounded-[0.125rem] border border-border-subtle overflow-hidden shadow-inner">
+              <div className="h-3.5 w-full bg-surface-deep rounded-[0.125rem] border border-border-subtle overflow-hidden shadow-inner">
                 <div
                   className="h-full transition-all duration-75 border-r border-[#6b21a8]"
                   style={{ 
@@ -306,7 +315,7 @@ export function CombatOverlay() {
 
           {/* Main Hand Swing Timer (Middle) */}
           {isMainTimerActive && (
-            <div className="h-1.5 w-[6.666rem] bg-surface-deep rounded-[0.125rem] border border-border-subtle overflow-hidden shadow-inner">
+            <div className="h-1.5 w-full bg-surface-deep rounded-[0.125rem] border border-border-subtle overflow-hidden shadow-inner">
               <div 
                 className="h-full transition-all duration-75 border-r border-amber-950"
                 style={{ 
@@ -319,7 +328,7 @@ export function CombatOverlay() {
 
           {/* Off-Hand Swing Timer (Bottom) */}
           {isOffTimerActive && (
-            <div className="h-1.5 w-[6.666rem] bg-surface-deep rounded-[0.125rem] border border-border-subtle overflow-hidden shadow-inner opacity-80">
+            <div className="h-1.5 w-full bg-surface-deep rounded-[0.125rem] border border-border-subtle overflow-hidden shadow-inner opacity-80">
               <div 
                 className="h-full transition-all duration-75 border-r border-amber-950"
                 style={{ 
@@ -382,26 +391,25 @@ export function CombatOverlay() {
             {/* Flask Button (Moved to absolute left of Health Bar) */}
             <div className="absolute -top-[0.1875rem] -left-10 z-30">
                <button 
-                 className={`relative w-8 h-8 rounded-full border flex items-center justify-center transition-all focus:outline-none focus:ring-0
-                   ${flaskCharges >= 1 ? 'bg-surface-deep border-border-subtle hover:border-accent' : 'bg-surface-deep border-border-subtle cursor-not-allowed'}
+                 className={`relative w-8 h-8 rounded-full border flex items-center justify-center overflow-hidden transition-all focus:outline-none focus:ring-0
+                   ${now - lastFlaskTime >= 30000 ? 'bg-surface-deep border-border-subtle hover:border-accent' : 'bg-surface-deep border-border-subtle cursor-not-allowed opacity-80'}
                  `}
                  onClick={() => {
-                   if (currentHealth < maxHealth && flaskCharges >= 1) {
-                      useFlask();
+                   if (currentHealth < maxHealth && useFlask()) {
                       useBuffStore.getState().addBuff('player', {
                         buffId: 'flask_recovery',
                         name: 'Flask Recovery',
                         type: 'buff',
                         stackingBehavior: 'refresh',
-                        durationMs: 4000,
-                        maxDurationMs: 4000,
+                        durationMs: 3000,
+                        maxDurationMs: 3000,
                         stacks: 1,
                         maxStacks: 1,
                         icon: 'FlaskConical',
                         statModifiers: [],
                         isHoT: true,
                         hotTickRateMs: 50,
-                        hotHealPerTick: (maxHealth * 0.5) / (4000 / 50)
+                        hotHealPerTick: (maxHealth * 0.5) / (3000 / 50)
                       });
                       
                       useCombatStore.getState().addLog('Used Healing Flask.', 'system');
@@ -413,47 +421,52 @@ export function CombatOverlay() {
                       Healing Flask
                     </div>
                     <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-border-subtle uppercase tracking-widest">
-                      {Math.floor(flaskCharges)} / {maxFlaskCharges} charges
+                      30.0 CD
                     </div>
                     <div className="text-xs text-text-primary leading-snug mb-1">
-                      Restores <span className="text-red-400 font-bold">50%</span> of your maximum health over <span className="text-text-primary font-bold">4 seconds</span>.
-                    </div>
-                    <div className="text-[0.625rem] text-text-secondary leading-snug mt-1 pt-1 border-t border-border-subtle">
-                      Recharges by killing monsters.
+                      Restores <span className="text-red-400 font-bold">50%</span> of your maximum health over <span className="text-text-primary font-bold">3 seconds</span>.
                     </div>
                   </div>
                 )}
                 onMouseLeave={() => setContent(null)}
                >
                   <FlaskConical className="w-4 h-4 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] z-10" />
-                  <span className="absolute -top-1.5 -right-0.5 text-[0.6875rem] font-black text-text-primary z-10 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{Math.floor(flaskCharges)}</span>
-                  <span className="absolute -bottom-1 -left-1 text-[0.6875rem] font-bold text-white z-10 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{`R`}</span>
+                  {now - lastFlaskTime < 30000 && (
+                     <div 
+                       className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
+                       style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.7) 0)` }}
+                     >
+                       <span className="text-white font-bold text-[0.625rem] z-30 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+                         {((30000 - (now - lastFlaskTime)) / 1000).toFixed(1)}
+                       </span>
+                     </div>
+                  )}
                </button>
+               <span className="absolute -bottom-1 left-0 text-[0.6875rem] font-bold text-white z-30 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{`R`}</span>
             </div>
             
             {/* Mana Flask Button (Moved to absolute right of Action Bar) */}
             <div className="absolute -top-[0.1875rem] -right-10 z-30">
                <button 
-                 className={`relative w-8 h-8 rounded-full border flex items-center justify-center transition-all focus:outline-none focus:ring-0
-                   ${manaFlaskCharges >= 1 ? 'bg-surface-deep border-border-subtle hover:border-accent' : 'bg-surface-deep border-border-subtle cursor-not-allowed'}
+                 className={`relative w-8 h-8 rounded-full border flex items-center justify-center overflow-hidden transition-all focus:outline-none focus:ring-0
+                   ${now - lastManaFlaskTime >= 30000 ? 'bg-surface-deep border-border-subtle hover:border-accent' : 'bg-surface-deep border-border-subtle cursor-not-allowed opacity-80'}
                  `}
                  onClick={() => {
-                   if (currentMana < maxMana && manaFlaskCharges >= 1) {
-                      useManaFlask();
+                   if (currentMana < maxMana && useManaFlask()) {
                       useBuffStore.getState().addBuff('player', {
                         buffId: 'mana_flask_recovery',
                         name: 'Mana Flask Recovery',
                         type: 'buff',
                         stackingBehavior: 'refresh',
-                        durationMs: 4000,
-                        maxDurationMs: 4000,
+                        durationMs: 3000,
+                        maxDurationMs: 3000,
                         stacks: 1,
                         maxStacks: 1,
                         icon: 'Zap',
                         statModifiers: [],
                         isHoT: true,
                         hotTickRateMs: 50,
-                        hotManaPerTick: (maxMana * 0.5) / (4000 / 50)
+                        hotManaPerTick: (maxMana * 0.5) / (3000 / 50)
                       });
                       
                       useCombatStore.getState().addLog('Used Mana Flask.', 'system');
@@ -465,22 +478,28 @@ export function CombatOverlay() {
                       Mana Flask
                     </div>
                     <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-border-subtle uppercase tracking-widest">
-                      {Math.floor(manaFlaskCharges)} / {maxManaFlaskCharges} charges
+                      30.0 CD
                     </div>
                     <div className="text-xs text-text-primary leading-snug mb-1">
-                      Restores <span className="text-blue-400 font-bold">50%</span> of your maximum mana over <span className="text-text-primary font-bold">4 seconds</span>.
-                    </div>
-                    <div className="text-[0.625rem] text-text-secondary leading-snug mt-1 pt-1 border-t border-border-subtle">
-                      Recharges by killing monsters.
+                      Restores <span className="text-blue-400 font-bold">50%</span> of your maximum mana over <span className="text-text-primary font-bold">3 seconds</span>.
                     </div>
                   </div>
                 )}
                 onMouseLeave={() => setContent(null)}
                >
                   <FlaskConical className="w-4 h-4 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)] z-10" />
-                  <span className="absolute -top-1.5 -right-0.5 text-[0.6875rem] font-black text-text-primary z-10 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{Math.floor(manaFlaskCharges)}</span>
-                  <span className="absolute -bottom-1 -left-1 text-[0.6875rem] font-bold text-white z-10 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{`T`}</span>
+                  {now - lastManaFlaskTime < 30000 && (
+                     <div 
+                       className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
+                       style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastManaFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.7) 0)` }}
+                     >
+                       <span className="text-white font-bold text-[0.625rem] z-30 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+                         {((30000 - (now - lastManaFlaskTime)) / 1000).toFixed(1)}
+                       </span>
+                     </div>
+                  )}
                </button>
+               <span className="absolute -bottom-1 left-0 text-[0.6875rem] font-bold text-white z-30 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{`T`}</span>
             </div>
             
             {/* Health & Mana Bars */}
@@ -773,20 +792,16 @@ export function CombatOverlay() {
       {/* Control Hints (Bottom Left) */}
       <div className="absolute bottom-3 left-3 pointer-events-none z-50 flex flex-col gap-1 items-start opacity-75">
          <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
-           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">W A S D</span>
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Move</span>
-         </div>
-         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
            <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">Q E Z C</span>
            <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Move Diagonal</span>
          </div>
          <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
-           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">1 - 8</span>
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Skills</span>
-         </div>
-         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
            <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">R, T</span>
            <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Flasks</span>
+         </div>
+         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
+           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">TAB</span>
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Cycle Targets</span>
          </div>
          <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
            <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">SPACE</span>

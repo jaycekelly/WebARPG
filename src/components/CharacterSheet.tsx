@@ -1,4 +1,7 @@
 import { useStatsStore } from '../store/useStatsStore';
+import { useInventoryStore } from '../store/useInventoryStore';
+import { usePlayerStore } from '../store/usePlayerStore';
+import { RatingCalculator } from '../engine/stats/RatingCalculator';
 import { Sword, Shield, Zap, Heart, Book, Crosshair, Wrench, Flame, ShieldOff, Activity } from 'lucide-react';
 import type { StatType } from '../engine/stats/types';
 
@@ -34,9 +37,10 @@ const STAT_CATEGORIES: StatCategory[] = [
     title: 'Damage',
     icon: Sword,
     stats: [
-      { id: 'Damage', label: 'Damage', suffix: '%', fractionDigits: 0 },
-      { id: 'AttackSpeed', label: 'Attack Speed', fractionDigits: 2 },
-      { id: 'CastSpeed', label: 'Cast Speed', fractionDigits: 2 },
+      { id: 'WeaponDamage', label: 'Weapon Damage', fractionDigits: 0 },
+      { id: 'AttacksPerSecond', label: 'Attack Speed', fractionDigits: 2 },
+
+      { id: 'HasteRating', label: 'Haste Rating', fractionDigits: 0 },
       { id: 'StrikeDamage', label: 'Strike Damage', suffix: '%', fractionDigits: 0 },
       { id: 'PierceDamage', label: 'Pierce Damage', suffix: '%', fractionDigits: 0 },
       { id: 'PhysicalDamage', label: 'Physical Damage', suffix: '%', fractionDigits: 0 },
@@ -55,20 +59,13 @@ const STAT_CATEGORIES: StatCategory[] = [
     title: 'Penetration',
     icon: Zap,
     stats: [
-      { id: 'StrikePenetrationFlat', label: 'Strike Pen (Flat)', fractionDigits: 0 },
-      { id: 'StrikePenetrationPercent', label: 'Strike Pen (%)', suffix: '%', fractionDigits: 0 },
-      { id: 'PiercePenetrationFlat', label: 'Pierce Pen (Flat)', fractionDigits: 0 },
-      { id: 'PiercePenetrationPercent', label: 'Pierce Pen (%)', suffix: '%', fractionDigits: 0 },
-      { id: 'PhysicalPenetrationFlat', label: 'Physical Pen (Flat)', fractionDigits: 0 },
-      { id: 'PhysicalPenetrationPercent', label: 'Physical Pen (%)', suffix: '%', fractionDigits: 0 },
-      { id: 'FirePenetrationFlat', label: 'Fire Pen (Flat)', fractionDigits: 0 },
-      { id: 'FirePenetrationPercent', label: 'Fire Pen (%)', suffix: '%', fractionDigits: 0 },
-      { id: 'ColdPenetrationFlat', label: 'Cold Pen (Flat)', fractionDigits: 0 },
-      { id: 'ColdPenetrationPercent', label: 'Cold Pen (%)', suffix: '%', fractionDigits: 0 },
-      { id: 'LightningPenetrationFlat', label: 'Lightning Pen (Flat)', fractionDigits: 0 },
-      { id: 'LightningPenetrationPercent', label: 'Lightning Pen (%)', suffix: '%', fractionDigits: 0 },
-      { id: 'ElementalPenetrationFlat', label: 'Elemental Pen (Flat)', fractionDigits: 0 },
-      { id: 'ElementalPenetrationPercent', label: 'Elemental Pen (%)', suffix: '%', fractionDigits: 0 },
+      { id: 'StrikePenetrationPercent', label: 'Strike Pen', suffix: '%', fractionDigits: 0 },
+      { id: 'PiercePenetrationPercent', label: 'Pierce Pen', suffix: '%', fractionDigits: 0 },
+      { id: 'PhysicalPenetrationPercent', label: 'Physical Pen', suffix: '%', fractionDigits: 0 },
+      { id: 'FirePenetrationPercent', label: 'Fire Pen', suffix: '%', fractionDigits: 0 },
+      { id: 'ColdPenetrationPercent', label: 'Cold Pen', suffix: '%', fractionDigits: 0 },
+      { id: 'LightningPenetrationPercent', label: 'Lightning Pen', suffix: '%', fractionDigits: 0 },
+      { id: 'ElementalPenetrationPercent', label: 'Elemental Pen', suffix: '%', fractionDigits: 0 },
     ]
   },
   {
@@ -124,13 +121,13 @@ const STAT_CATEGORIES: StatCategory[] = [
     title: 'Deflection & Blocking',
     icon: ShieldOff,
     stats: [
-      { id: 'DeflectChance', label: 'Deflect Chance', suffix: '%', fractionDigits: 0 },
+      { id: 'DeflectRating', label: 'Deflect Rating', fractionDigits: 0 },
       { id: 'DeflectEffect', label: 'Deflect Amount', suffix: '%', fractionDigits: 0 },
-      { id: 'Block', label: 'Block Chance', suffix: '%', fractionDigits: 0 },
-      { id: 'SpellBlock', label: 'Spell Block', suffix: '%', fractionDigits: 0 },
+      { id: 'BlockRating', label: 'Block Rating', fractionDigits: 0 },
+      { id: 'SpellBlockRating', label: 'Spell Block Rating', fractionDigits: 0 },
       { id: 'BlockEffect', label: 'Block Effect', suffix: '%', fractionDigits: 0 },
-      { id: 'Parry', label: 'Parry Chance', suffix: '%', fractionDigits: 0 },
-      { id: 'SpellParry', label: 'Spell Parry', suffix: '%', fractionDigits: 0 },
+      { id: 'ParryRating', label: 'Parry Rating', fractionDigits: 0 },
+      { id: 'SpellParryRating', label: 'Spell Parry Rating', fractionDigits: 0 },
       { id: 'ParryEffect', label: 'Parry Effect', suffix: '%', fractionDigits: 0 },
     ]
   },
@@ -154,7 +151,7 @@ const STAT_CATEGORIES: StatCategory[] = [
     icon: Book,
     stats: [
       { id: 'SkillReach', label: 'Skill Reach', fractionDigits: 0 },
-      { id: 'CooldownReduction', label: 'Cooldown Reduction', suffix: '%', fractionDigits: 0 },
+      { id: 'CooldownReductionRating', label: 'CDR Rating', fractionDigits: 0 },
       { id: 'MoveSpeed', label: 'Move Speed', fractionDigits: 0 },
       { id: 'ManaCostReduction', label: 'Mana Cost Reduction', suffix: '%', fractionDigits: 0 },
       { id: 'BuffEffect', label: 'Buff Effect', suffix: '%', fractionDigits: 0 },
@@ -168,22 +165,21 @@ const STAT_CATEGORIES: StatCategory[] = [
 
 function computeTotalRegen(getStat: (stat: StatType) => number, statId: StatType): number {
   if (statId === 'HealthRegeneration') {
-    const maxHp = getStat('Health');
     const flatRegen = getStat('HealthRegeneration');
     const pctRegen = getStat('HealthRegenPercent');
-    return ((maxHp * 0.0025) + flatRegen) * (1 + pctRegen / 100);
+    return flatRegen * (1 + pctRegen / 100);
   }
   if (statId === 'ManaRegeneration') {
-    const maxMana = getStat('Mana');
     const flatRegen = getStat('ManaRegeneration');
     const pctRegen = getStat('ManaRegenPercent');
-    return ((maxMana * 0.015) + flatRegen) * (1 + pctRegen / 100);
+    return flatRegen * (1 + pctRegen / 100);
   }
   return getStat(statId);
 }
 
 export function CharacterSheet() {
   const { getStat } = useStatsStore();
+  const level = usePlayerStore(state => state.level);
 
   return (
     <div className="p-4 flex flex-col gap-3 h-full overflow-y-auto custom-scrollbar">
@@ -197,17 +193,57 @@ export function CharacterSheet() {
             <div className="bg-surface-base rounded-xl border border-border-subtle overflow-hidden shadow-inner py-0.5">
               {category.stats.map((statDef, index) => {
                 const isRegen = statDef.id === 'HealthRegeneration' || statDef.id === 'ManaRegeneration';
-                const rawVal = isRegen ? computeTotalRegen(getStat, statDef.id) : getStat(statDef.id);
+                let rawVal = isRegen ? computeTotalRegen(getStat, statDef.id) : getStat(statDef.id);
 
                 let displayVal: string;
                 let hasStat: boolean;
 
-                if (statDef.id === 'MoveSpeed') {
-                  // MoveSpeed base is 1.33 flat — show the % increase from items above base
+                if (statDef.id === 'WeaponDamage') {
+                   const baseWeapon = getStat('WeaponDamage');
+                   const globalDmg = getStat('Damage') / 100;
+                   const weapon1 = useInventoryStore.getState().equipment['weapon1'];
+                   const dmgType = weapon1?.damageType || 'Strike';
+                   let tagDmg = 0;
+                   if (dmgType === 'Strike') {
+                      tagDmg += getStat('StrikeDamage') / 100;
+                      tagDmg += getStat('PhysicalDamage') / 100;
+                      tagDmg += getStat('MeleeDamage') / 100;
+                   } else if (dmgType === 'Pierce') {
+                      tagDmg += getStat('PierceDamage') / 100;
+                      tagDmg += getStat('PhysicalDamage') / 100;
+                      tagDmg += getStat('RangedDamage') / 100;
+                   }
+                   rawVal = baseWeapon * (1 + globalDmg) * (1 + tagDmg);
+                   hasStat = rawVal > 0;
+                   const minVal = Math.floor(rawVal * 0.75);
+                   const maxVal = Math.ceil(rawVal * 1.25);
+                   displayVal = hasStat ? `${minVal}-${maxVal}` : '--';
+                } else if (statDef.id === 'AttacksPerSecond') {
+                   const weapon1 = useInventoryStore.getState().equipment['weapon1'];
+                   const baseAPS = weapon1?.weaponAttackSpeed || 0.5;
+                   const attackSpeedBonus = getStat('AttackSpeed') / 100;
+                   rawVal = baseAPS * (1 + attackSpeedBonus);
+                   hasStat = rawVal > 0;
+                   displayVal = hasStat ? `${rawVal.toFixed(statDef.fractionDigits ?? 0)}` : '--';
+                } else if (statDef.id === 'MoveSpeed') {
                   const BASE_MOVE_SPEED = 1.33;
                   const pctIncrease = ((rawVal / BASE_MOVE_SPEED) - 1) * 100;
                   hasStat = Math.abs(pctIncrease) > 0.001;
                   displayVal = hasStat ? `${pctIncrease.toFixed(0)}%` : '--';
+                } else if (statDef.id.endsWith('Rating')) {
+                  hasStat = rawVal > 0;
+                  if (hasStat) {
+                     let pct = 0;
+                     if (statDef.id === 'DeflectRating') pct = RatingCalculator.getDeflectChance(rawVal, level) * 100;
+                     else if (statDef.id === 'BlockRating' || statDef.id === 'SpellBlockRating') pct = RatingCalculator.getBlockChance(rawVal, level) * 100;
+                     else if (statDef.id === 'ParryRating' || statDef.id === 'SpellParryRating') pct = RatingCalculator.getParryChance(rawVal, level) * 100;
+                     else if (statDef.id === 'CooldownReductionRating') pct = RatingCalculator.getCooldownReduction(rawVal, level) * 100;
+                     else if (statDef.id === 'HasteRating') pct = RatingCalculator.getHasteReduction(rawVal, level) * 100;
+                     
+                     displayVal = `${rawVal.toFixed(0)} (${pct.toFixed(1)}%)`;
+                  } else {
+                     displayVal = '--';
+                  }
                 } else {
                   hasStat = rawVal !== 0;
                   displayVal = hasStat ? `${rawVal.toFixed(statDef.fractionDigits ?? 0)}${statDef.suffix || ''}` : '--';

@@ -15,6 +15,8 @@ export interface FloatingText {
   text: string;
   color: string;
   expiresAt: number;
+  isCrit?: boolean;
+  lane?: 'middle' | 'left' | 'right';
 }
 
 export interface TileEffect {
@@ -53,12 +55,15 @@ interface CombatState {
   tileEffects: TileEffect[];
   isAutoAttacking: boolean;
   
+  lastSideLanes: Record<string, 'left' | 'right'>;
+  
   // Timers for the real-time engine
   gcdEndTime: number;
   lastMoveTime: number;
   lastMainHandAttackTime: number;
   lastOffHandAttackTime: number;
   lastAttackAnimationTime: number;
+  lastCombatEventTime: number;
   
   // Cast Bar State
   castingSkillId: string | null;
@@ -77,7 +82,7 @@ interface CombatState {
   queuedAction: QueuedAction | null;
 
   addLog: (message: string, type: CombatLogEntry['type']) => void;
-  addFloatingText: (x: number, y: number, text: string, color: string) => void;
+  addFloatingText: (x: number, y: number, text: string, options?: { colorClass?: string, isCrit?: boolean }) => void;
   addHitEffect: (targetId: string, sourceX: number, sourceY: number, color: number, damageType?: string) => void;
   addTileEffect: (x: number, y: number, type: string, color: number) => void;
   clearExpiredFloatingTexts: (now: number) => void;
@@ -89,6 +94,7 @@ interface CombatState {
   setLastMainHandAttackTime: (time: number) => void;
   setLastOffHandAttackTime: (time: number) => void;
   setLastAttackAnimationTime: (time: number) => void;
+  triggerCombatEvent: () => void;
   setCasting: (skillId: string | null, durationMs?: number, targetId?: string, targetPos?: {x: number, y: number}) => void;
   
   // Targeting setters
@@ -109,11 +115,13 @@ export const useCombatStore = create<CombatState>((set) => ({
   hitEffects: [],
   tileEffects: [],
   isAutoAttacking: false,
+  lastSideLanes: {},
   gcdEndTime: 0,
   lastMoveTime: 0,
   lastMainHandAttackTime: 0,
   lastOffHandAttackTime: 0,
   lastAttackAnimationTime: 0,
+  lastCombatEventTime: 0,
   castingSkillId: null,
   castEndTime: 0,
   targetingSkillId: null,
@@ -125,25 +133,53 @@ export const useCombatStore = create<CombatState>((set) => ({
     // Combat log disabled per user request
   },
   
-  addFloatingText: (x, y, text, color) => {
+  addFloatingText: (x, y, text, options) => {
     const now = useAppStore.getState().getGameTime();
-    const expiresAt = now + 800; // Live for 800ms
+    const expiresAt = now + 1300; // Live for 1300ms
+    const color = options?.colorClass || 'text-zinc-100';
+    const isCrit = options?.isCrit || false;
     
     set((state) => {
       // Throttle exact same error messages (only allow 1 every 250ms globally)
       const isCombatText = text === 'Miss' || text === 'Dodge' || text === 'Block' || text.includes('Crit') || !isNaN(Number(text));
       if (!isCombatText) {
           const existing = state.floatingTexts.find(f => f.text === text);
-          if (existing && existing.expiresAt - now > 550) { // 800 - 550 = 250ms cooldown
+          if (existing && existing.expiresAt - now > 1050) { // 1300 - 1050 = 250ms cooldown
             return state;
           }
       }
       
       const id = Math.random().toString();
+      
+      // Lane assignment logic
+      // Find active texts at this exact coordinate spawned in the last 500ms
+      const recentAtCoord = state.floatingTexts.filter(
+        f => f.x === x && f.y === y && now - (f.expiresAt - 1300) < 500
+      );
+      
+      const occupiedLanes = new Set(recentAtCoord.map(f => f.lane));
+      let assignedLane: 'middle' | 'left' | 'right' = 'middle';
+      
+      if (isCombatText && occupiedLanes.has('middle')) {
+        const leftFree = !occupiedLanes.has('left');
+        const rightFree = !occupiedLanes.has('right');
+        
+        if (leftFree && rightFree) {
+          // Both free: choose randomly
+          assignedLane = Math.random() > 0.5 ? 'left' : 'right';
+        } else if (leftFree) {
+          assignedLane = 'left';
+        } else if (rightFree) {
+          assignedLane = 'right';
+        }
+      }
+      
+
+      
       return {
         floatingTexts: [
           ...state.floatingTexts,
-          { id, x, y, text, color, expiresAt }
+          { id, x, y, text, color, expiresAt, isCrit, lane: assignedLane }
         ]
       };
     });
@@ -197,6 +233,7 @@ export const useCombatStore = create<CombatState>((set) => ({
   setLastMainHandAttackTime: (time) => set({ lastMainHandAttackTime: time }),
   setLastOffHandAttackTime: (time) => set({ lastOffHandAttackTime: time }),
   setLastAttackAnimationTime: (time) => set({ lastAttackAnimationTime: time }),
+  triggerCombatEvent: () => set({ lastCombatEventTime: useAppStore.getState().getGameTime() }),
   
   setCasting: (skillId, durationMs = 0, targetId, targetPos) => set({ 
     castingSkillId: skillId, 
