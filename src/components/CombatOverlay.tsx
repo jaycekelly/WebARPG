@@ -12,8 +12,10 @@ import { useTooltipStore } from '../store/useTooltipStore';
 import { useVisionStore } from '../store/useVisionStore';
 import { useMessageStore } from '../store/useMessageStore';
 import { FlaskConical, X, Flame, ArrowUpCircle, Backpack, BookOpen } from 'lucide-react';
+import { IconWhirl } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { SKILLS } from '../data/skills';
+import { clearVolatileSaves } from '../store/storage';
 
 import { ICONS } from './IconLibrary';
 
@@ -97,8 +99,27 @@ export function CombatOverlay() {
           setBindingSlotIndex(null);
           return;
         }
+        const playerState = usePlayerStore.getState();
+        // 4. Clear Target
+        if (playerState.activeTargetId) {
+          playerState.setTarget(null, true);
+          return;
+        }
         // If no bind slot open, let App.tsx handle Esc (cast cancel, targeting, windows, etc.)
         return;
+      }
+
+      // Handle Town Portal
+      if (e.key.toLowerCase() === 'b') {
+        const appState = useAppStore.getState();
+        if (appState.location === 'dungeon') {
+          const combatState = useCombatStore.getState();
+          if (appState.getGameTime() - combatState.lastCombatEventTime < 5000) {
+            useMessageStore.getState().addScreenMessage('above', 'Cannot portal in combat', 4000);
+            return;
+          }
+          combatState.setCasting('portal_skill', 4000);
+        }
       }
 
       // Handle Tab targeting
@@ -246,7 +267,7 @@ export function CombatOverlay() {
                   }}
                 />
                 <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)] leading-none z-30 font-mono tracking-widest pt-[0.0625rem]">
-                  {Math.floor(target.health)}/{target.stats.maxHealth}
+                  {target.health > 0 ? Math.max(1, Math.floor(target.health)) : 0}/{target.stats.maxHealth}
                 </div>
               </div>
             </div>
@@ -255,14 +276,51 @@ export function CombatOverlay() {
       </div>
 
       {/* Screen Messages (Type 2 and 3) */}
+      {(() => {
+        const location = useAppStore.getState().location;
+        const dungeonSelectOpen = useAppStore.getState().dungeonSelectOpen;
+        
+        let showInteract = false;
+        let interactText = 'Interact';
+        if (location === 'town' && !dungeonSelectOpen) {
+           const grid = useWorldStore.getState().grid;
+           const entrance = grid.obstacles.find(o => o.type === 'dungeon_entrance');
+           if (entrance) {
+              const dist = Math.max(Math.abs(position.x - entrance.x), Math.abs(position.y - entrance.y));
+              if (dist <= 1) {
+                showInteract = true;
+                interactText = 'Enter';
+              }
+           }
+           
+           const npc = grid.obstacles.find(o => o.type === 'npc_guide');
+           if (npc) {
+              const dist = Math.max(Math.abs(position.x - npc.x), Math.abs(position.y - npc.y));
+              if (dist <= 1) {
+                showInteract = true;
+                interactText = 'Talk';
+              }
+           }
+        }
+        
+        return (
+          <>
+          {showInteract && (
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-[11rem] pointer-events-none z-50 flex flex-col items-center animate-in fade-in duration-300">
+               <div className="bg-surface-deep/80 border border-border-subtle rounded-md pl-2 pr-2.5 py-1.5 backdrop-blur-sm flex items-center gap-2.5 shadow-md">
+                  <span className="text-[0.65rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded w-5 h-5 flex items-center justify-center shadow-sm leading-none font-mono">F</span>
+                  <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">{interactText}</span>
+               </div>
+            </div>
+          )}
       {messages.map((msg, _, arr) => {
          const hasTopMessage = arr.some(m => m.type === 'top');
          if (msg.type === 'above') {
            const isLevelUp = msg.text.includes('Level Up');
-           const mtClass = hasTopMessage ? '-mt-[18rem]' : '-mt-[14rem]';
+           const mtClass = hasTopMessage ? '-mt-[15.5rem]' : '-mt-[14rem]';
            return (
              <div key={msg.id} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${mtClass} pointer-events-none z-50 flex flex-col items-center ${isLevelUp ? 'animate-[levelUpFade_3s_ease-in-out_forwards]' : 'animate-in fade-in slide-in-from-bottom-2 duration-500'}`}>
-               <span className={isLevelUp ? "text-accent font-black text-2xl uppercase tracking-[0.2em] drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]" : "text-amber-500 font-bold text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
+               <span className={isLevelUp ? "font-sans text-accent font-black text-2xl uppercase tracking-[0.2em] drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]" : "font-sans text-amber-500 font-bold text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
                  {msg.text}
                </span>
              </div>
@@ -272,16 +330,17 @@ export function CombatOverlay() {
            const isPause = msg.text === 'TACTICAL PAUSE';
            return (
              <div key={msg.id} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -mt-[14rem] pointer-events-none z-50 flex flex-col items-center animate-in slide-in-from-top-2 fade-in duration-300">
-               <span className={isPause ? "text-accent font-black text-base uppercase tracking-widest animate-pulse drop-shadow-lg" : "text-amber-500 font-bold text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
+               <span className={isPause ? "font-sans text-accent font-black text-base uppercase tracking-widest animate-pulse drop-shadow-lg" : "font-sans text-amber-500 font-bold text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
                  {msg.text}
                </span>
              </div>
            );
          }
          if (msg.type === 'below') {
+           const mtClass = showInteract ? 'mt-[9.5rem]' : 'mt-[11rem]';
            return (
-             <div key={msg.id} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-[11rem] pointer-events-none z-50 flex flex-col items-center animate-in slide-in-from-top-2 fade-in duration-300">
-               <span className="text-text-primary italic text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]">
+             <div key={msg.id} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${mtClass} pointer-events-none z-50 flex flex-col items-center animate-in slide-in-from-top-2 fade-in duration-300 transition-all`}>
+               <span className="font-sans text-text-primary italic text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)] font-normal">
                  {msg.text}
                </span>
              </div>
@@ -289,6 +348,9 @@ export function CombatOverlay() {
          }
          return null;
       })}
+      </>
+      );
+      })()}
 
       {/* HUD & Action Bar (Bottom Center) */}
       <div className="flex flex-col items-center pointer-events-none gap-1.5 relative">
@@ -296,16 +358,16 @@ export function CombatOverlay() {
         <div className="absolute bottom-[calc(100%+5rem)] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none" style={{ width: '10rem' }}>
           
           {/* Cast Bar (Top) */}
-          {castingSkillId && castEndTime > 0 && SKILLS[castingSkillId] && (
+          {castingSkillId && castEndTime > 0 && (SKILLS[castingSkillId] || castingSkillId === 'portal_skill') && (
             <div className="flex flex-col items-center w-[6.666rem] mb-1">
               <div className="text-xs text-center whitespace-nowrap text-text-primary mb-0.5 font-bold drop-shadow-[0_1px_3px_rgba(0,0,0,1)] tracking-wide">
-                {SKILLS[castingSkillId].name}
+                {castingSkillId === 'portal_skill' ? 'Forfeiting Dungeon' : SKILLS[castingSkillId].name}
               </div>
               <div className="h-3.5 w-full bg-surface-deep rounded-[0.125rem] border border-border-subtle overflow-hidden shadow-inner">
                 <div
                   className="h-full transition-all duration-75 border-r border-[#6b21a8]"
                   style={{ 
-                    width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%`,
+                    width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, castingSkillId === 'portal_skill' ? 4000 : getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%`,
                     background: 'linear-gradient(to bottom, #a855f7 0%, #a855f7 50%, #9333ea 50%, #9333ea 100%)'
                   }}
                 />
@@ -381,18 +443,20 @@ export function CombatOverlay() {
         )}
 
         {/* HUD Assembly (Flat Minimalist) */}
-        <div className="flex flex-col items-center justify-end pointer-events-auto z-40 translate-y-2.5 gap-2.5">
+        <div className="flex flex-col items-center justify-end pointer-events-auto z-40 gap-2.5">
           
 
 
           {/* Center Console (XP + Action Bar + Hotkeys) */}
-          <div className="flex flex-col mx-auto z-30 w-fit gap-1.5 relative bg-surface-deep p-1.5 rounded-lg shadow-2xl">
+          <div className="flex flex-col mx-auto z-30 w-fit gap-[0.4375rem] relative bg-surface-deep p-1.5 rounded-lg shadow-2xl">
 
             {/* Flask Button (Moved to absolute left of Health Bar) */}
             <div className="absolute -top-[0.1875rem] -left-10 z-30">
                <button 
                  className={`relative w-8 h-8 rounded-full border flex items-center justify-center overflow-hidden transition-all focus:outline-none focus:ring-0
-                   ${now - lastFlaskTime >= 30000 ? 'bg-surface-deep border-border-subtle hover:border-accent' : 'bg-surface-deep border-border-subtle cursor-not-allowed opacity-80'}
+                   ${now - lastFlaskTime >= 30000 
+                      ? 'bg-surface-deep border-border-subtle hover:border-accent'
+                      : 'bg-surface-deep border-border-subtle cursor-not-allowed opacity-80'}
                  `}
                  onClick={() => {
                    if (currentHealth < maxHealth && useFlask()) {
@@ -437,7 +501,7 @@ export function CombatOverlay() {
                        style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.7) 0)` }}
                      >
                        <span className="text-white font-bold text-[0.625rem] z-30 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
-                         {((30000 - (now - lastFlaskTime)) / 1000).toFixed(1)}
+                         {Math.ceil((30000 - (now - lastFlaskTime)) / 1000)}
                        </span>
                      </div>
                   )}
@@ -449,7 +513,9 @@ export function CombatOverlay() {
             <div className="absolute -top-[0.1875rem] -right-10 z-30">
                <button 
                  className={`relative w-8 h-8 rounded-full border flex items-center justify-center overflow-hidden transition-all focus:outline-none focus:ring-0
-                   ${now - lastManaFlaskTime >= 30000 ? 'bg-surface-deep border-border-subtle hover:border-accent' : 'bg-surface-deep border-border-subtle cursor-not-allowed opacity-80'}
+                   ${now - lastManaFlaskTime >= 30000 
+                      ? 'bg-surface-deep border-border-subtle hover:border-accent'
+                      : 'bg-surface-deep border-border-subtle cursor-not-allowed opacity-80'}
                  `}
                  onClick={() => {
                    if (currentMana < maxMana && useManaFlask()) {
@@ -494,7 +560,7 @@ export function CombatOverlay() {
                        style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastManaFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.7) 0)` }}
                      >
                        <span className="text-white font-bold text-[0.625rem] z-30 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
-                         {((30000 - (now - lastManaFlaskTime)) / 1000).toFixed(1)}
+                         {Math.ceil((30000 - (now - lastManaFlaskTime)) / 1000)}
                        </span>
                      </div>
                   )}
@@ -503,7 +569,7 @@ export function CombatOverlay() {
             </div>
             
             {/* Health & Mana Bars */}
-            <div className="flex w-full gap-1 relative z-20 mb-0.5">
+            <div className="flex w-full gap-1 relative z-20 mb-0">
                {/* Health Bar (slots 1-4) */}
                <div className="relative flex-1 h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
                   {expectedHealAmount > 0 && (
@@ -520,7 +586,7 @@ export function CombatOverlay() {
                     }}
                   />
                   <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
-                    {Math.floor(currentHealth)}/{maxHealth}
+                    {currentHealth > 0 ? Math.max(1, Math.floor(currentHealth)) : 0}/{maxHealth}
                   </div>
                </div>
                {/* Mana Bar (slots 5-8) */}
@@ -544,6 +610,23 @@ export function CombatOverlay() {
                </div>
             </div>
 
+            {/* XP Bar (Integrated) */}
+            <div className="flex items-center w-full relative z-20 mb-[1px]">
+               <div className="absolute right-full flex items-center justify-center bg-surface-deep px-1 py-[0.1875rem] rounded top-1/2 -translate-y-1/2 min-w-[1rem]">
+                 <span className="text-[0.65rem] text-white font-bold font-mono drop-shadow-[0_1px_2px_rgba(0,0,0,1)] leading-none mt-[1px]">
+                   {level}
+                 </span>
+               </div>
+               <div className="relative flex-1 h-[0.375rem] bg-surface-deep overflow-hidden border border-border-subtle rounded-[0.125rem] w-full shadow-inner opacity-90">
+                  <div 
+                    className={`absolute top-0 left-0 h-full transition-all duration-300 ${currentXp > 0 ? 'border-r border-[#4c1d95]' : ''}`}
+                    style={{ 
+                      width: `${Math.min(100, (currentXp / xpRequired) * 100)}%`,
+                      background: 'linear-gradient(to bottom, #a78bfa 0%, #a78bfa 50%, #7c3aed 50%, #7c3aed 100%)'
+                    }}
+                  />
+               </div>
+            </div>
 
             {/* Action Bar Container (Only wraps skills) */}
             <div className="flex gap-1.5 relative">
@@ -585,11 +668,14 @@ export function CombatOverlay() {
                    castPercent = Math.min(100, (elapsed / skill.castTime) * 100);
                 }
 
+                const outOfMana = skill ? currentMana < getEffectiveManaCost(skill) : false;
+
                 return (
                   <div key={index} className="relative">
                     <button
                       className={`relative w-12 h-12 flex items-center justify-center rounded-lg border transition-all overflow-hidden bg-surface-base focus:outline-none focus:ring-0
                         ${isBinding ? 'border-accent bg-surface-raised animate-pulse' : 'border-border-subtle hover:border-border-strong hover:bg-surface-raised'}
+                        ${outOfMana && !isBinding ? 'opacity-50 grayscale' : ''}
                       `}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -649,7 +735,7 @@ export function CombatOverlay() {
                               {skill.effects.some(e => e.type === 'damage') && (
                                 <div className="mb-1 pb-1 border-b border-border-subtle space-y-0.5">
                                   {skill.effects.filter(e => e.type === 'damage').map((effect, i) => {
-                                    const weaponDamage = useStatsStore.getState().getStat('Damage');
+                                    const weaponDamage = useStatsStore.getState().getStat('WeaponDamage');
                                     const weaponType = (useInventoryStore.getState().equipment['weapon1'] as any)?.damageType || 'Physical';
                                     const mult = effect.damageMultiplier || 0;
                                     const base = effect.baseValue || 0;
@@ -660,14 +746,14 @@ export function CombatOverlay() {
                                       const min = Math.floor(totalAvg * 0.75);
                                       const max = Math.ceil(totalAvg * 1.25);
                                       return (
-                                        <div key={i} className="text-xs font-bold text-text-secondary">
+                                        <div key={i} className="text-xs text-text-secondary">
                                           {min} - {max} {el} Damage
                                         </div>
                                       );
                                     }
                                     
                                     return (
-                                      <div key={i} className="text-xs font-bold text-text-secondary">
+                                      <div key={i} className="text-xs text-text-secondary">
                                         {Math.floor(totalAvg)} {el} Damage
                                       </div>
                                     );
@@ -675,7 +761,7 @@ export function CombatOverlay() {
                                 </div>
                               )}
 
-                              <div className="text-xs text-text-primary leading-snug">
+                              <div className="text-xs text-text-secondary leading-snug">
                                  {skill.description}
                               </div>
                             </div>
@@ -770,27 +856,28 @@ export function CombatOverlay() {
 
           </div>
 
-          {/* XP Bar (Independent) */}
-          <div className="flex items-center w-[19.875rem] relative z-20 gap-1.5">
-             <span className="text-xs text-white font-bold font-mono drop-shadow-[0_1px_2px_rgba(0,0,0,1)] relative -top-[1px] -mt-[0.0625rem]">
-               {level}
-             </span>
-             <div className="relative flex-1 h-[0.375rem] bg-surface-deep overflow-hidden border border-border-subtle rounded-sm w-full shadow-inner opacity-90">
-                <div 
-                  className={`absolute top-0 left-0 h-full transition-all duration-300 ${currentXp > 0 ? 'border-r border-[#164e63]' : ''}`}
-                  style={{ 
-                    width: `${Math.min(100, (currentXp / xpRequired) * 100)}%`,
-                    background: 'linear-gradient(to bottom, #22d3ee 0%, #22d3ee 50%, #0891b2 50%, #0891b2 100%)'
-                  }}
-                />
-             </div>
-          </div>
-
           {/* MP Globe Removed */}
         </div>
       </div>
       {/* Control Hints (Bottom Left) */}
       <div className="absolute bottom-3 left-3 pointer-events-none z-50 flex flex-col gap-1 items-start opacity-75">
+
+      {/* Death Screen */}
+      {currentHealth <= 0 && (
+        <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-auto animate-in fade-in duration-1000">
+           <h1 className="text-red-600 font-black text-6xl uppercase tracking-[0.5em] drop-shadow-[0_0_20px_rgba(220,38,38,0.8)] mb-8">You Died</h1>
+           <p className="text-text-secondary text-lg mb-8 max-w-md text-center">Your run has ended. All dungeon progress and unbanked items have been lost.</p>
+           <button 
+             onClick={() => {
+               clearVolatileSaves();
+               window.location.reload();
+             }}
+             className="px-8 py-3 bg-surface-deep border border-red-900/50 hover:border-red-500 text-red-500 hover:text-red-400 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] rounded-lg font-bold text-lg transition-all cursor-pointer"
+           >
+             Respawn in Town
+           </button>
+        </div>
+      )}
          <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
            <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">Q E Z C</span>
            <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Move Diagonal</span>
@@ -811,6 +898,30 @@ export function CombatOverlay() {
       
       {/* UI Window Toggles (Bottom Right) */}
       <div className="absolute bottom-3 right-3 pointer-events-auto z-50 flex gap-2">
+        {useAppStore(s => s.location) === 'dungeon' && (
+          <button
+            onClick={() => {
+              const combatState = useCombatStore.getState();
+              if (useAppStore.getState().getGameTime() - combatState.lastCombatEventTime < 5000) {
+                useMessageStore.getState().addScreenMessage('above', 'Cannot portal in combat', 4000);
+                return;
+              }
+              combatState.setCasting('portal_skill', 4000);
+            }}
+            onMouseEnter={() => setContent(
+              <div className="w-52 bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none mb-2">
+                <div className="font-bold text-sm text-text-primary mb-1 tracking-tight">Town Portal</div>
+                <div className="text-xs text-text-secondary leading-relaxed">
+                  Forfeit dungeon and return to town
+                </div>
+              </div>
+            )}
+            onMouseLeave={() => setContent(null)}
+            className="w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group bg-surface-deep border-border-subtle text-text-secondary hover:text-red-400 hover:border-red-400"
+          >
+            <IconWhirl className="w-5 h-5" />
+          </button>
+        )}
         <button
           onClick={() => {
             const appState = useAppStore.getState();
@@ -821,12 +932,19 @@ export function CombatOverlay() {
               appState.setCharacterWindowOpen(true);
             }
           }}
+          onMouseEnter={() => setContent(
+            <div className="w-auto bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1 text-left backdrop-blur-md pointer-events-none mb-2">
+              <div className="text-xs text-text-primary leading-relaxed font-bold">
+                Inventory
+              </div>
+            </div>
+          )}
+          onMouseLeave={() => setContent(null)}
           className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'inventory')
               ? 'text-accent border-accent bg-surface-deep'
               : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
           }`}
-          title="Inventory (I)"
         >
           <Backpack className="w-5 h-5" />
           {usePlayerStore(state => state.attributePoints) > 0 && (
@@ -846,12 +964,19 @@ export function CombatOverlay() {
               appState.setCharacterWindowOpen(true);
             }
           }}
+          onMouseEnter={() => setContent(
+            <div className="w-auto bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1 text-left backdrop-blur-md pointer-events-none mb-2">
+              <div className="text-xs text-text-primary leading-relaxed font-bold">
+                Skills
+              </div>
+            </div>
+          )}
+          onMouseLeave={() => setContent(null)}
           className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'skills')
               ? 'text-accent border-accent bg-surface-deep'
               : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
           }`}
-          title="Skills"
         >
           <BookOpen className="w-5 h-5" />
           {usePlayerStore(state => state.skillPoints) > 0 && (

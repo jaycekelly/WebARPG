@@ -6,6 +6,8 @@ import { useMessageStore } from '../store/useMessageStore';
 import { InputHandler, getMainHandAttackCooldown, getOffHandAttackCooldown } from './input/InputHandler';
 import { useStatsStore } from '../store/useStatsStore';
 import { useInventoryStore } from '../store/useInventoryStore';
+import { useSkillStore } from '../store/useSkillStore';
+import { clearVolatileSaves } from '../store/storage';
 import type { SkillTag } from './skills/types';
 import { SKILLS } from '../data/skills';
 import { SkillExecutor } from './skills/executor';
@@ -28,8 +30,8 @@ export function useGameEngine() {
 
     const loop = (currentTime: number) => {
       const appState = useAppStore.getState();
-      // Only run engine logic if we are in the dungeon and not paused
-      if (appState.location !== 'dungeon' || appState.isPaused) {
+      // Only run engine logic if we are in the dungeon or town, and not paused
+      if ((appState.location !== 'dungeon' && appState.location !== 'town') || appState.isPaused) {
         lastTick = currentTime;
         animationFrameId = requestAnimationFrame(loop);
         return;
@@ -164,6 +166,18 @@ export function useGameEngine() {
 
       // Handle Cast Completions
       if (castingSkillId && castEndTime > 0 && now >= castEndTime) {
+        if (castingSkillId === 'portal_skill') {
+           clearVolatileSaves();
+           useAppStore.getState().setLocation('town');
+           usePlayerStore.getState().setTarget(null, true);
+           // Force stores to save to town immediately
+           usePlayerStore.setState(s => ({ ...s }));
+           useInventoryStore.setState(s => ({ ...s }));
+           useSkillStore.setState(s => ({ ...s }));
+           useWorldStore.setState(s => ({ ...s }));
+           setCasting(null);
+           return;
+        }
         const skill = SKILLS[castingSkillId];
         if (skill) {
           combatState.setLastAttackAnimationTime(now);
@@ -188,13 +202,13 @@ export function useGameEngine() {
          const offHand = inventoryState.equipment['weapon2'];
          const playerWeapon = mainHand || offHand;
          const weaponRange = playerWeapon?.weaponRange || 1;
-         const ignoredTargetId = usePlayerStore.getState().ignoredTargetId;
+         const ignoredTargetIds = usePlayerStore.getState().ignoredTargetIds;
          
          let closestDist = Infinity;
          let bestTargetId: string | null = null;
          
          worldState.enemies.forEach(e => {
-            if (e.isDead || e.id === ignoredTargetId) return;
+            if (e.isDead || ignoredTargetIds.includes(e.id)) return;
             const dist = getChebyshevDistance(position, e.position);
             if (dist <= weaponRange && dist < closestDist) {
                let canHit = false;
@@ -209,7 +223,7 @@ export function useGameEngine() {
          });
          
          if (bestTargetId) {
-            usePlayerStore.getState().setTarget(bestTargetId);
+            usePlayerStore.getState().setTarget(bestTargetId, false, true);
             acquiredTargetId = bestTargetId;
          }
       }
@@ -260,7 +274,7 @@ export function useGameEngine() {
               else if (damageType === 'Cold') attackTags.push('Cold');
               else if (damageType === 'Lightning') attackTags.push('Lightning');
               
-              let baseAttackPower = statsState.getStat('Damage');
+              let baseAttackPower = statsState.getStat('WeaponDamage');
               
               if (damageType === 'Strike') baseAttackPower += statsState.getStat('StrikeDamageToWeapons');
               else if (damageType === 'Pierce') baseAttackPower += statsState.getStat('PierceDamageToWeapons');
@@ -522,17 +536,21 @@ export function useGameEngine() {
               playerBaseBlockChance
             );
 
-            if (result === 'deflect') {
-               combatState.addLog(`${enemy.name}'s attack was deflected!`, 'player-attack');
-             } else {
-                usePlayerStore.getState().takeDamage(finalDamage);
-                combatState.addFloatingText(position.x, position.y, finalDamage.toFixed(0), { colorClass: 'text-zinc-100', isCrit: result === 'crit' });
-                combatState.addHitEffect('player', enemy.position.x, enemy.position.y, 0xd4d4d8, 'Strike');
-                let resultText = '';
-               if (result === 'block') resultText = ' (Blocked)';
-               else if (result === 'parry') resultText = ' (Parried)';
-               combatState.addLog(`${enemy.name} hits you for ${Math.floor(finalDamage)} damage!${resultText}`, 'enemy-attack');
-            }
+            usePlayerStore.getState().takeDamage(finalDamage);
+            
+            let displayString = finalDamage.toFixed(0);
+            if (result === 'block') displayString += ' (Block)';
+            else if (result === 'parry') displayString += ' (Parry)';
+            else if (result === 'deflect') displayString += ' (Deflect)';
+
+            combatState.addFloatingText(position.x, position.y, displayString, { colorClass: 'text-zinc-100', isCrit: result === 'crit' });
+            combatState.addHitEffect('player', enemy.position.x, enemy.position.y, 0xd4d4d8, 'Strike');
+            
+            let resultText = '';
+            if (result === 'block') resultText = ' (Blocked)';
+            else if (result === 'parry') resultText = ' (Parried)';
+            else if (result === 'deflect') resultText = ' (Deflected)';
+            combatState.addLog(`${enemy.name} hits you for ${Math.floor(finalDamage)} damage!${resultText}`, 'enemy-attack');
           }
         } else if (enemy.aiProfile === 'melee_rusher') {
           // AI Movement
@@ -615,11 +633,21 @@ export function useGameEngine() {
            
            // Grant XP and Gold
            const xpGain = Math.max(1, Math.floor(enemy.xpReward * (1 + statsState.getStat('ExperienceGain') / 100)));
-           const randomMultiplier = 0.5 + Math.random();
-           const goldGain = Math.floor(enemy.goldReward * randomMultiplier * (1 + statsState.getStat('GoldFind') / 100));
+           
+           // Gold Math: base 50% to 150%
+           const variation = 0.9 + (Math.random() * 0.2); // +/- 10%
+           const shouldDropGold = enemy.rarity !== 'Normal' || Math.random() < 0.35;
+           const goldGain = shouldDropGold ? Math.floor(enemy.goldReward * variation * (1 + statsState.getStat('GoldFind') / 100)) : 0;
+           
            const { leveledUp } = usePlayerStore.getState().addXp(xpGain);
            usePlayerStore.getState().addGold(goldGain);
-           combatState.addLog(`Gained ${xpGain} XP and ${goldGain} Gold.`, 'system');
+           
+           if (goldGain > 0) {
+               combatState.addLog(`Gained ${xpGain} XP and ${goldGain} Gold.`, 'system');
+               combatState.addFloatingText(enemy.position.x, enemy.position.y - 0.5, `+${goldGain} Gold`, { colorClass: 'text-amber-400', duration: 2500 });
+           } else {
+               combatState.addLog(`Gained ${xpGain} XP.`, 'system');
+           }
            
            if (leveledUp) {
              useMessageStore.getState().addScreenMessage('above', `Level Up`, 3000);

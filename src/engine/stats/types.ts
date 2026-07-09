@@ -67,6 +67,13 @@ export type StatType =
   | 'LightningDamageToWeapons'
   | 'WeaponElementalDamage'
 
+  // Spell Enhancements
+  | 'StrikeDamageToSpells'
+  | 'PierceDamageToSpells'
+  | 'FireDamageToSpells'
+  | 'ColdDamageToSpells'
+  | 'LightningDamageToSpells'
+
   // Damage Over Time (DoT) & Status Effects
   | 'DoTDamage'
   | 'DoTDuration'
@@ -89,13 +96,13 @@ export type StatType =
 
   // Deflection & Blocking
   | 'DeflectRating'
-  | 'DeflectEffect'
+  | 'DeflectAmount'
   | 'BlockRating'
   | 'SpellBlockRating'
-  | 'BlockEffect'
+  | 'BlockAmount'
   | 'ParryRating'
   | 'SpellParryRating'
-  | 'ParryEffect'
+  | 'ParryAmount'
 
   // Sustain & Recovery
   | 'HealingDealt'

@@ -8,7 +8,6 @@ import { usePlayerStore } from '../../store/usePlayerStore';
 
 // ---- Constants ---------------------------------------------------------------
 
-const FLOAT_DURATION_MS = 1300;
 const FLOAT_DISTANCE = 60; // Total upward pixels over lifetime
 const LANE_OFFSET_PX = 32;
 
@@ -26,6 +25,7 @@ const COLOR_MAP: Record<string, string> = {
   'text-purple-500': '#a855f7',
   'text-red-400': '#f87171',
   'text-green-400': '#4ade80',
+  'text-amber-400': '#fbbf24',
 };
 
 function resolveColor(colorClass: string): string {
@@ -40,14 +40,16 @@ const TEXT_RESOLUTION = Math.min(3, Math.max(2, window.devicePixelRatio || 2));
 
 function makeTextStyle(fillColor: string, isNumeric: boolean, isCrit: boolean): TextStyle {
   const baseSize = isNumeric ? 22 : 20;
-  const size = isCrit ? baseSize * 1.55 : baseSize;
+  let size = isCrit ? baseSize * 1.55 : baseSize;
+  const isGold = fillColor === '#fbbf24';
   
   return new TextStyle({
     fontFamily: isNumeric ? 'Rajdhani, sans-serif' : 'Noto Sans, sans-serif',
     fontSize: size,
-    fontWeight: 'bold',
+    fontWeight: isNumeric ? 'normal' : 'bold',
     fill: fillColor,
     padding: 10,
+    dropShadow: isGold ? { alpha: 0.8, color: '#d97706', blur: 6, distance: 0 } : undefined,
   });
 }
 
@@ -142,7 +144,8 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
       const activeBaseScale = baseIconSize / 128;
 
       const elapsed = now - entry.spawnTime;
-      const progress = Math.min(1.0, elapsed / FLOAT_DURATION_MS);
+      const duration = ft.expiresAt - entry.spawnTime;
+      const progress = Math.min(1.0, elapsed / Math.max(1, duration));
       
       // Easing implementation
       let verticalProgress = 0;

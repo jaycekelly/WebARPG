@@ -5,8 +5,19 @@ export const MISC_AFFIXES: AffixTemplate[] = [
   // Buff Group
   // ----------------------------------------------------
   {
-    id: 'flat_haste',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'flat_haste_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    minLevel: 1,
+    stat: 'HasteRating',
+    type: 'flat',
+    baseValue: 22,
+    levelMultiplier: 2.25,
+    descriptionTpl: '+{value} Haste Rating',
+    exclusivityGroup: 'Speed'
+  },
+  {
+    id: 'flat_haste_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 1,
     stat: 'HasteRating',
     type: 'flat',
@@ -90,9 +101,19 @@ export const MISC_AFFIXES: AffixTemplate[] = [
   // Caster Utility (No Exclusivity)
   // ----------------------------------------------------
   {
-    id: 'flat_skill_reach',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'shield', 'tome', 'amulet', 'ring'],
+    id: 'flat_skill_reach_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'SkillReach',
+    type: 'flat',
+    baseValue: 1.5,
+    levelMultiplier: 0.075,
+    descriptionTpl: '+{value} Skill Reach'
+  },
+  {
+    id: 'flat_skill_reach_accessory',
+    allowedTypes: ['shield', 'tome', 'amulet', 'ring'],
     allowedArmorCategories: ['Caster'],
     minLevel: 1,
     stat: 'SkillReach',
@@ -102,9 +123,19 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     descriptionTpl: '+{value} Skill Reach'
   },
   {
-    id: 'inc_cooldown_reduction',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'shield', 'tome', 'amulet', 'ring'],
+    id: 'inc_cooldown_reduction_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 5,
+    stat: 'CooldownReductionRating',
+    type: 'flat',
+    baseValue: 22,
+    levelMultiplier: 2.25,
+    descriptionTpl: '+{value} CDR Rating'
+  },
+  {
+    id: 'inc_cooldown_reduction_accessory',
+    allowedTypes: ['shield', 'tome', 'amulet', 'ring'],
     allowedArmorCategories: ['Caster'],
     minLevel: 5,
     stat: 'CooldownReductionRating',
@@ -114,9 +145,19 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     descriptionTpl: '+{value} CDR Rating'
   },
   {
-    id: 'inc_mana_cost_reduction',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'shield', 'tome', 'amulet', 'ring'],
+    id: 'inc_mana_cost_reduction_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 5,
+    stat: 'ManaCostReduction',
+    type: 'increased',
+    baseValue: 7.5,
+    levelMultiplier: 0.15,
+    descriptionTpl: '-{value}% Mana Costs'
+  },
+  {
+    id: 'inc_mana_cost_reduction_accessory',
+    allowedTypes: ['shield', 'tome', 'amulet', 'ring'],
     allowedArmorCategories: ['Caster'],
     minLevel: 5,
     stat: 'ManaCostReduction',

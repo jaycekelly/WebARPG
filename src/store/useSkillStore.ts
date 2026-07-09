@@ -1,8 +1,10 @@
 import { create } from 'zustand';
 import { SKILL_TREE } from '../data/skillTrees';
 import { usePlayerStore } from './usePlayerStore';
-import { useBuffStore } from './useBuffStore';
+
 import type { ClassType } from '../engine/player/types';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { dualStorage } from './storage';
 
 interface SkillState {
   // node id -> points spent
@@ -13,15 +15,19 @@ interface SkillState {
   getTotalPointsSpent: (classType: ClassType) => number;
 }
 
-export const useSkillStore = create<SkillState>((set, get) => ({
-  allocatedPoints: { 't1_active_heavy_strike': 1 },
-  unlockedActives: ['heavy_strike', 'charge_attack', 'fireball'],
+export const useSkillStore = create<SkillState>()(
+  persist(
+    (set, get) => ({
+      allocatedPoints: {},
+  unlockedActives: [],
 
   getTotalPointsSpent: (classType) => {
     const tree = SKILL_TREE[classType] || [];
     const state = get();
     return tree.reduce((sum: number, node: any) => sum + (state.allocatedPoints[node.id] || 0), 0);
   },
+
+
 
     allocatePoint: (nodeId, classType) => {
     const state = get();
@@ -32,9 +38,12 @@ export const useSkillStore = create<SkillState>((set, get) => ({
 
     if (playerStore.skillPoints <= 0) return false; // No points to spend
 
-    // Check tier unlock requirement (5 points per tier previous)
-    const requiredPoints = (node.tier - 1) * 5;
-    if (state.getTotalPointsSpent(classType) < requiredPoints) return false;
+    // Check tier unlock requirement
+    const TIER_REQS = [0, 0, 4, 10, 18, 28];
+    const requiredPoints = TIER_REQS[node.tier] || 0;
+    const spent = state.getTotalPointsSpent(classType);
+    
+    if (spent < requiredPoints) return false;
 
     const currentPoints = state.allocatedPoints[nodeId] || 0;
     if (currentPoints >= node.maxPoints) return false;
@@ -49,30 +58,7 @@ export const useSkillStore = create<SkillState>((set, get) => ({
       }
     }));
 
-    // If it's a passive, we need to apply its buff to the player.
-    // We can do this by applying a permanent buff with the stat modifiers.
-    if (node.type === 'passive' && node.statModifiers) {
-       // We'll re-apply the passive buff entirely to ensure correct stacks or values.
-       // Because the passive gives X per point, we just multiply the base modifier value by the new points.
-       const newPoints = currentPoints + 1;
-       const scaledModifiers = node.statModifiers.map((mod: any) => ({
-          ...mod,
-          value: mod.value * newPoints // Multiply by points spent!
-       }));
-
-       useBuffStore.getState().addBuff('player', {
-         buffId: `passive_${node.id}`,
-         name: node.name,
-         type: 'buff',
-         stackingBehavior: 'independent',
-         durationMs: null, // permanent
-         maxDurationMs: null,
-         stacks: 1, // We bake the stack math into the modifier value instead
-         maxStacks: 1,
-         icon: node.icon,
-         statModifiers: scaledModifiers
-       });
-    } else if (node.type === 'active' && node.grantedSkillId) {
+    if (node.type === 'active' && node.grantedSkillId) {
        // Track unlocked actives
        const { unlockedActives } = get();
        if (!unlockedActives.includes(node.grantedSkillId)) {
@@ -89,4 +75,10 @@ export const useSkillStore = create<SkillState>((set, get) => ({
 
     return true;
   }
-}));
+    }),
+    {
+      name: 'webarpg-skills',
+      storage: createJSONStorage(() => dualStorage),
+    }
+  )
+);

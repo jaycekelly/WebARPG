@@ -12,7 +12,7 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
     scale: 0.45, // Smaller scaling factor for bats
     stats: {
       maxHealth: 60,
-      attackPower: 10,
+      attackPower: 7,
       damageType: 'Strike',
       attackSpeed: 0.5,
       attackRange: 1,

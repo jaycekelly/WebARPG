@@ -1,6 +1,7 @@
 import { useWorldStore } from '../../store/useWorldStore';
 import type { GridMap, Obstacle } from '../../store/useWorldStore';
 import { usePlayerStore } from '../../store/usePlayerStore';
+import { useVisionStore } from '../../store/useVisionStore';
 import { ENEMY_TEMPLATES } from '../../data/enemies';
 
 export class LevelGenerator {
@@ -15,14 +16,39 @@ export class LevelGenerator {
         const isCenter = x >= width/2 - 2 && x <= width/2 + 2 && y >= height/2 - 2 && y <= height/2 + 2;
         
         if (!isCenter && Math.random() < density) {
-          const type = Math.random() > 0.5 ? 'tree' : 'rock';
+          const type = Math.random() > 0.5 ? 'wall' : 'rock';
           obstacles.push({ x, y, type });
         }
       }
     }
 
-    const grid: GridMap = { width, height, obstacles };
+    const grid: GridMap = { width, height, obstacles, environment: 'dungeon' };
     return grid;
+  }
+
+  static initializeTown() {
+    const worldStore = useWorldStore.getState();
+    const playerStore = usePlayerStore.getState();
+    
+    // Clear old state
+    useWorldStore.setState({ enemies: [], lootDrops: [] });
+    useVisionStore.getState().resetVision();
+
+    // Generate Town Grid (12x12, empty by default)
+    const width = 12;
+    const height = 12;
+    const obstacles: Obstacle[] = [
+      { x: Math.floor(width / 2), y: Math.floor(height / 2) - 2, type: 'npc_guide' },
+      { x: width - 2, y: Math.floor(height / 2), type: 'dungeon_entrance' },
+      { x: 2, y: Math.floor(height / 2), type: 'campfire' }
+    ];
+
+    const grid: GridMap = { width, height, obstacles, environment: 'town' };
+    worldStore.setGrid(grid);
+
+    // Spawn Player in center
+    playerStore.setPosition(Math.floor(width / 2), Math.floor(height / 2));
+    playerStore.setTarget(null);
   }
 
   static getValidSpawnPoint(grid: GridMap, awayFrom?: {x: number, y: number}, minDist: number = 5): {x: number, y: number} {
@@ -72,6 +98,7 @@ export class LevelGenerator {
     
     // Clear old state
     useWorldStore.setState({ enemies: [], lootDrops: [] });
+    useVisionStore.getState().resetVision();
 
     // Generate Grid
     const grid = this.generateScatteredLevel(width, height);

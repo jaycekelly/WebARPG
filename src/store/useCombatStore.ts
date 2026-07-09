@@ -82,7 +82,7 @@ interface CombatState {
   queuedAction: QueuedAction | null;
 
   addLog: (message: string, type: CombatLogEntry['type']) => void;
-  addFloatingText: (x: number, y: number, text: string, options?: { colorClass?: string, isCrit?: boolean }) => void;
+  addFloatingText: (x: number, y: number, text: string, options?: { colorClass?: string, isCrit?: boolean, duration?: number }) => void;
   addHitEffect: (targetId: string, sourceX: number, sourceY: number, color: number, damageType?: string) => void;
   addTileEffect: (x: number, y: number, type: string, color: number) => void;
   clearExpiredFloatingTexts: (now: number) => void;
@@ -135,7 +135,8 @@ export const useCombatStore = create<CombatState>((set) => ({
   
   addFloatingText: (x, y, text, options) => {
     const now = useAppStore.getState().getGameTime();
-    const expiresAt = now + 1300; // Live for 1300ms
+    const duration = options?.duration || 1300;
+    const expiresAt = now + duration;
     const color = options?.colorClass || 'text-zinc-100';
     const isCrit = options?.isCrit || false;
     

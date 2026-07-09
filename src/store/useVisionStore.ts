@@ -26,6 +26,18 @@ export const useVisionStore = create<VisionState>((set, get) => ({
     const { visionRadius, exploredTiles } = get();
     const newVisibleTiles = new Set<string>();
     const newExploredTiles = new Set(exploredTiles);
+    if (grid.environment === 'town') {
+      // In town, everything is visible and explored
+      for (let y = 0; y < grid.height; y++) {
+        for (let x = 0; x < grid.width; x++) {
+          const key = `${x},${y}`;
+          newVisibleTiles.add(key);
+          newExploredTiles.add(key);
+        }
+      }
+      set({ visibleTiles: newVisibleTiles, exploredTiles: newExploredTiles });
+      return;
+    }
 
     const isSolid = (x: number, y: number) => {
       if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) return true;

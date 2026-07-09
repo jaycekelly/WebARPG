@@ -3,6 +3,8 @@ import type { EnemyStats, AIProfile } from '../engine/enemies/types';
 import type { Item } from '../engine/items/types';
 import type { DamageType } from '../engine/stats/types';
 import { useCombatStore } from './useCombatStore';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { dualStorage } from './storage';
 
 export interface Enemy {
   id: string;
@@ -45,13 +47,14 @@ export interface GroundZone {
 export interface Obstacle {
   x: number;
   y: number;
-  type: 'tree' | 'wall' | 'rock';
+  type: 'tree' | 'wall' | 'rock' | 'npc_guide' | 'dungeon_entrance' | 'torch' | 'campfire';
 }
 
 export interface GridMap {
   width: number;
   height: number;
   obstacles: Obstacle[];
+  environment?: 'town' | 'dungeon';
 }
 
 interface WorldState {
@@ -79,8 +82,10 @@ interface WorldState {
   clearExpiredZones: (now: number) => void;
 }
 
-export const useWorldStore = create<WorldState>((set, get) => ({
-  grid: { width: 15, height: 15, obstacles: [] },
+export const useWorldStore = create<WorldState>()(
+  persist(
+    (set, get) => ({
+      grid: { width: 15, height: 15, obstacles: [] },
   enemies: [],
   lootDrops: [],
   zones: [],
@@ -190,4 +195,10 @@ export const useWorldStore = create<WorldState>((set, get) => ({
   clearExpiredZones: (now) => set((state) => ({
     zones: state.zones.filter(z => z.expiresAt > now)
   }))
-}));
+    }),
+    {
+      name: 'webarpg-world',
+      storage: createJSONStorage(() => dualStorage),
+    }
+  )
+);

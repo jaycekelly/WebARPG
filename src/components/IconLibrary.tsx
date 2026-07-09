@@ -2,7 +2,7 @@ import {
   Sword, Shield, HelpCircle, Hexagon, ShieldAlert,
   Zap, Activity, Heart, Wrench, ShieldOff, Plus, ArrowUp, 
   Lock, ArrowUpCircle, FlaskConical, Droplet,
-  Crown, CircleSmall, Diamond
+  Crown, CircleSmall, Diamond, CandyCane
 } from 'lucide-react';
 
 import { 
@@ -21,7 +21,7 @@ import {
 
 import { ICON_PATHS } from '../renderer/assets';
 
-const GameIcon = (name: string) => (props: any) => {
+export const GameIcon = (name: string) => (props: any) => {
   const def = ICON_PATHS[name];
   if (!def) return <HelpCircle {...props} />;
   
@@ -34,8 +34,8 @@ const GameIcon = (name: string) => (props: any) => {
     <svg
       {...props}
       xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
+      width={props.size || "24"}
+      height={props.size || "24"}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -79,7 +79,7 @@ export const ICONS: Record<string, React.ElementType> = {
   boots: GameIcon('boots'),
   ring: GameIcon('ring'),
   leg_armor: GameIcon('leg_armor'),
-  staff: GameIcon('staff'),
+  staff: CandyCane,
   
   Gem: Diamond,
   Disc: CircleSmall,

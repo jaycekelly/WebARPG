@@ -1,24 +1,46 @@
 import { useEffect } from 'react';
+import { clearVolatileSaves, setPreventSaves } from './store/storage';
 import { CharacterWindow } from './components/CharacterWindow';
 import { useGameEngine } from './engine/useGameEngine';
 import { useAppStore } from './store/useAppStore';
 import { useCombatStore } from './store/useCombatStore';
 import { usePlayerStore } from './store/usePlayerStore';
 import { useInventoryStore } from './store/useInventoryStore';
-import { useMessageStore } from './store/useMessageStore';
+import { useWorldStore } from './store/useWorldStore';
+import { useStatsStore } from './store/useStatsStore';
+
 import { TownView } from './components/TownView';
 import { DungeonView } from './components/DungeonView';
 import { DataEditorView } from './components/DataEditorView';
 import { GlobalTooltip } from './components/GlobalTooltip';
 import { useUIScale } from './hooks/useUIScale';
+import { LevelGenerator } from './engine/world/LevelGenerator';
+import { useVisionStore } from './store/useVisionStore';
 
 const GameOverScreen = () => {
   const currentHealth = usePlayerStore(state => state.currentHealth);
+
+  useEffect(() => {
+    if (currentHealth > 0) return;
+    const handleInput = () => {
+       setPreventSaves(true);
+       clearVolatileSaves();
+       sessionStorage.setItem('webarpg-skip-menu-once', 'true');
+       window.location.reload();
+    };
+    window.addEventListener('keydown', handleInput);
+    window.addEventListener('click', handleInput);
+    return () => {
+        window.removeEventListener('keydown', handleInput);
+        window.removeEventListener('click', handleInput);
+    };
+  }, [currentHealth]);
+
   if (currentHealth > 0) return null;
   return (
-    <div className="absolute inset-0 z-[100] bg-zinc-950 flex flex-col items-center justify-center animate-in fade-in duration-1000">
+    <div className="absolute inset-0 z-[9999] bg-black flex flex-col items-center justify-center animate-in fade-in duration-1000">
        <div className="text-red-600 text-6xl font-black uppercase tracking-widest mb-4 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]">You Died</div>
-       <div className="text-text-secondary text-sm font-bold uppercase tracking-widest animate-pulse">Refresh the window to resurrect</div>
+       <div className="text-text-secondary text-sm font-bold uppercase tracking-widest animate-pulse">Press any key to load last save</div>
     </div>
   );
 };
@@ -27,6 +49,26 @@ function App() {
   useGameEngine(); // Mount the 60fps game engine loop
   useUIScale(); // Mount the responsive UI scaler
   const { location, setLocation } = useAppStore();
+
+  useEffect(() => {
+    if (location === 'town') {
+       const { grid } = useWorldStore.getState();
+       if (grid.environment !== 'town') {
+          LevelGenerator.initializeTown();
+       }
+       // Heal upon entering town
+       const maxHp = useStatsStore.getState().getStat('Health');
+       const maxMana = useStatsStore.getState().getStat('Mana');
+       usePlayerStore.getState().heal(maxHp);
+       usePlayerStore.getState().restoreMana(maxMana);
+    }
+  }, [location]);
+
+  // Initial vision update in case we loaded from a persisted save where vision (non-persisted) is empty
+  useEffect(() => {
+    const { position } = usePlayerStore.getState();
+    useVisionStore.getState().updateVision(position);
+  }, []);
 
   useEffect(() => {
     const handleGlobalKeyDown = (e: KeyboardEvent) => {
@@ -40,11 +82,9 @@ function App() {
       // Tactical Pause
       if (e.code === 'Space') {
         const appState = useAppStore.getState();
-        if (appState.location === 'dungeon') {
-          e.preventDefault(); // Prevent scrolling
-          appState.togglePause();
-          return;
-        }
+        e.preventDefault(); // Prevent scrolling
+        appState.togglePause();
+        return;
       }
 
       // Hotkeys for UI Windows
@@ -57,19 +97,43 @@ function App() {
           appState.setCharacterWindowOpen(true);
         }
       }
+
+      if (e.key.toLowerCase() === 'f') {
+        const appState = useAppStore.getState();
+        if (appState.location === 'town') {
+           const { grid } = useWorldStore.getState();
+           const { position } = usePlayerStore.getState();
+           const entrance = grid.obstacles.find(o => o.type === 'dungeon_entrance');
+           if (entrance) {
+              const dist = Math.max(Math.abs(position.x - entrance.x), Math.abs(position.y - entrance.y));
+              if (dist <= 1) {
+                 appState.setDungeonSelectOpen(!appState.dungeonSelectOpen);
+              }
+           }
+           
+           const npc = grid.obstacles.find(o => o.type === 'npc_guide');
+           if (npc) {
+              const dist = Math.max(Math.abs(position.x - npc.x), Math.abs(position.y - npc.y));
+              if (dist <= 1) {
+                  useCombatStore.getState().addFloatingText(
+                      npc.x, npc.y,
+                      "I'm gay",
+                      { colorClass: 'text-zinc-100 text-sm italic' }
+                  );
+              }
+           }
+        }
+      }
+
       if (e.key.toLowerCase() === 'x') {
         // Allow weapon swap even while panels are open
-        const swapped = useInventoryStore.getState().swapWeaponSet();
-        if (swapped) {
-          useCombatStore.getState().addFloatingText(
-            usePlayerStore.getState().position.x,
-            usePlayerStore.getState().position.y,
-            'Weapon Swapped',
-            { colorClass: 'text-zinc-400 text-sm' }
-          );
-        } else {
-          useMessageStore.getState().addScreenMessage('above', 'Cannot swap to empty hands', 4000);
-        }
+        useInventoryStore.getState().swapWeaponSet();
+        useCombatStore.getState().addFloatingText(
+          usePlayerStore.getState().position.x,
+          usePlayerStore.getState().position.y,
+          'Weapon Swapped',
+          { colorClass: 'text-zinc-400 text-sm' }
+        );
       }
 
 
@@ -107,6 +171,10 @@ function App() {
           appState.setVendorOpen(false);
           return;
         }
+        if (appState.dungeonSelectOpen) {
+          appState.setDungeonSelectOpen(false);
+          return;
+        }
         if (appState.characterWindowOpen) {
           appState.setCharacterWindowOpen(false);
           return;
@@ -138,7 +206,7 @@ function App() {
     <div className="flex w-full h-full items-center justify-center bg-black overflow-hidden">
       <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
         
-        {location === 'dungeon' && <DungeonView />}
+        {(location === 'dungeon' || location === 'town') && <DungeonView />}
         {location === 'town' && <TownView />}
 
         <CharacterWindow />

@@ -19,7 +19,7 @@ export const SPELL_SKILLS: Record<string, Skill> = {
       respectWalls: true,
     },
     effects: [
-      { type: 'damage', element: 'Fire', baseValue: 25 },
+      { type: 'damage', element: 'Fire', baseValue: 25, damageEffectiveness: 1.5 },
     ],
   },
 };

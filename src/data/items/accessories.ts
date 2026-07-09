@@ -9,14 +9,14 @@ export const ACCESSORIES: Record<string, ItemTemplate> = {
     name: 'Bronze Ring',
     icon: 'ring',
     itemType: 'ring',
-    baseStats: [Stat('PhysicalResist', 15)],
+    baseStats: [Stat('PhysicalResist', 10)],
   },
   silver_ring: {
     id: 'silver_ring',
     name: 'Silver Ring',
     icon: 'ring',
     itemType: 'ring',
-    baseStats: [Stat('AllElementalResist', 10)],
+    baseStats: [Stat('AllElementalResist', 7)],
   },
   // #endregion
   // #endregion
@@ -35,7 +35,7 @@ export const ACCESSORIES: Record<string, ItemTemplate> = {
     name: 'Sapphire Amulet',
     icon: 'amulet',
     itemType: 'amulet',
-    baseStats: [Stat('Mana', 20)],
+    baseStats: [Stat('Mana', 8)],
   },
   // #endregion
   // #endregion

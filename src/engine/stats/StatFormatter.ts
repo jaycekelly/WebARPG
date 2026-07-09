@@ -56,6 +56,11 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'ColdDamageToWeapons': 'Cold Damage to Attacks',
   'LightningDamageToWeapons': 'Lightning Damage to Attacks',
   'WeaponElementalDamage': '% Attack Elemental Damage',
+  'StrikeDamageToSpells': 'Strike Damage to Spells',
+  'PierceDamageToSpells': 'Pierce Damage to Spells',
+  'FireDamageToSpells': 'Fire Damage to Spells',
+  'ColdDamageToSpells': 'Cold Damage to Spells',
+  'LightningDamageToSpells': 'Lightning Damage to Spells',
 
   // DoT & Status
   'DoTDamage': '% Damage over Time',
@@ -79,13 +84,13 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
 
   // Avoidance
   'DeflectRating': 'Deflect Rating',
-  'DeflectEffect': '% Deflect Effect',
+  'DeflectAmount': '% Deflect Amount',
   'BlockRating': 'Block Rating',
   'SpellBlockRating': 'Spell Block Rating',
-  'BlockEffect': '% Block Effect',
+  'BlockAmount': '% Block Amount',
   'ParryRating': 'Parry Rating',
   'SpellParryRating': 'Spell Parry Rating',
-  'ParryEffect': '% Parry Effect',
+  'ParryAmount': '% Parry Amount',
 
   // Leech / Sustain
   'HealingDealt': '% Healing Dealt',

@@ -9,6 +9,7 @@ const SCALE = DRAW_SIZE / 24; // 24 is the SVG viewBox size
 export type IconPathDef = {
   paths: string[];
   scale?: number;
+  colors?: string[];
 };
 
 // ---- Icon SVG path data (from lucide-react v1.22.0, ISC license) --------------
@@ -97,8 +98,38 @@ export const ICON_PATHS: Record<string, IconPathDef | string[]> = {
     'M13 19v3',
     'M12 19h8.3a1 1 0 0 0 .7-1.7L18 14h.3a1 1 0 0 0 .7-1.7L16 9h.2a1 1 0 0 0 .8-1.7L13 3l-1.4 1.5',
   ],
+  candle: [
+    'M9 21h6v-10a1 1 0 0 0 -1 -1h-4a1 1 0 0 0 -1 1l0 10',
+    'M12 2l1.465 1.638a2 2 0 1 1 -3.015 .099l1.55 -1.737'
+  ],
+  campfire: {
+    paths: [
+      'M12 2c1 3 2.5 3.5 3.5 4.5A5 5 0 0 1 17 10a5 5 0 1 1-10 0c0-.3 0-.6.1-.9a2 2 0 1 0 3.3-2C8 4.5 11 2 12 2Z', // flame
+      'm5 22 14-4', // log
+      'm5 18 14 4'  // log
+    ],
+    colors: ['#ea580c', '#854d0e', '#854d0e'] // orange-600, yellow-800, yellow-800
+  },
   mountain: [
     'm8 3 4 8 5-5 5 15H2L8 3z',
+  ],
+  cave_entrance: [
+    'm8 3 4 8 5-5 5 15H2L8 3z',
+    'M10 21v-4a2 2 0 0 1 4 0v4',
+  ],
+  stone: {
+    paths: [
+      'M11.264 2.205A4 4 0 0 0 6.42 4.211l-4 8a4 4 0 0 0 1.359 5.117l6 4a4 4 0 0 0 4.438 0l6-4a4 4 0 0 0 1.576-4.592l-2-6a4 4 0 0 0-2.53-2.53z',
+      'M11.99 22 14 12l7.822 3.184',
+      'M14 12 8.47 2.302'
+    ]
+  },
+  accessibility: [
+    'M 16 3 a 1 1 0 1 0 0 2 a 1 1 0 1 0 0 -2',
+    'm18 19 1-7-6 1',
+    'm5 8 3-3 5.5 3-2.36 3.5',
+    'M4.24 14.5a5 5 0 0 0 6.88 6',
+    'M13.76 17.5a5 5 0 0 0-6.88-6'
   ],
   // ---- Item icons ------------------------------------------------------
   Sword: [
@@ -191,8 +222,8 @@ interface CacheEntry {
 
 const cache = new Map<string, CacheEntry>();
 
-function makeKey(kind: string, color: string): string {
-  return `${kind}|${color}`;
+function makeKey(kind: string, color: string, fillBackground: boolean = false): string {
+  return `${kind}|${color}|${fillBackground}`;
 }
 
 function createCanvas(): [HTMLCanvasElement, CanvasRenderingContext2D] {
@@ -208,6 +239,7 @@ function drawIcon(
   ctx: CanvasRenderingContext2D,
   kind: string,
   color: string,
+  fillBackground: boolean = false
 ) {
   const def = ICON_PATHS[kind];
   if (!def) {
@@ -236,7 +268,21 @@ function drawIcon(
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  for (const d of paths) {
+  if (fillBackground) {
+    // First pass: fill all paths to give the icon a solid body
+    // This prevents background lights (like loot beams) from shining through hollow line art
+    ctx.fillStyle = '#18181b'; // Dark surface color
+    for (const d of paths) {
+      const p = new Path2D(d);
+      ctx.fill(p);
+    }
+  }
+
+  // Second pass: stroke all paths to draw the icon's colored lines over the filled body
+  for (let i = 0; i < paths.length; i++) {
+    const d = paths[i];
+    const pathColor = (!isArray && def.colors && def.colors[i]) ? def.colors[i] : color;
+    ctx.strokeStyle = pathColor;
     const p = new Path2D(d);
     ctx.stroke(p);
   }
@@ -278,14 +324,14 @@ function drawPlaceholder(
 }
 
 // ---- Public API --------------------------------------------------------------
-export function getEntityTexture(kind: string, color: string): Texture {
-  const key = makeKey(kind, color);
+export function getEntityTexture(kind: string, color: string, fillBackground: boolean = false): Texture {
+  const key = makeKey(kind, color, fillBackground);
 
   const cached = cache.get(key);
   if (cached) return cached.texture;
 
   const [canvas, ctx] = createCanvas();
-  drawIcon(ctx, kind, color);
+  drawIcon(ctx, kind, color, fillBackground);
 
   const texture = Texture.from(canvas);
   const entry: CacheEntry = { texture };
@@ -296,49 +342,62 @@ export function getEntityTexture(kind: string, color: string): Texture {
 
 const glowCache = new Map<string, CacheEntry>();
 
-export function getEntityGlowTexture(kind: string, color: string): Texture {
-  const key = makeKey(kind, color);
-
+export function getLootBaseTexture(): Texture {
+  const key = 'loot_base';
   const cached = glowCache.get(key);
   if (cached) return cached.texture;
 
   const [canvas, ctx] = createCanvas();
-  const def = ICON_PATHS[kind];
-  if (def) {
-    const isArray = Array.isArray(def);
-    const paths = isArray ? def : def.paths;
-    const scaleOpt = isArray ? 1 : (def.scale || 1);
+  const cx = TEXTURE_SIZE / 2;
+  const cy = TEXTURE_SIZE / 2;
+  const radius = TEXTURE_SIZE / 2;
 
-    ctx.save();
-    ctx.translate(PADDING, PADDING);
-    ctx.scale(SCALE, SCALE);
-    if (scaleOpt !== 1) {
-      ctx.translate(12, 12);
-      ctx.scale(scaleOpt, scaleOpt);
-      ctx.translate(-12, -12);
-    }
+  const radGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+  radGrad.addColorStop(0, `rgba(255, 255, 255, 1)`);
+  radGrad.addColorStop(0.2, `rgba(255, 255, 255, 0.6)`);
+  radGrad.addColorStop(0.5, `rgba(255, 255, 255, 0.15)`);
+  radGrad.addColorStop(1, `rgba(255, 255, 255, 0)`);
 
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 4; // Thicker base for glow
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = color;
-
-    for (const d of paths) {
-      const p = new Path2D(d);
-      ctx.stroke(p);
-      ctx.stroke(p); // Stroke twice for intense center core glow!
-    }
-    ctx.restore();
-  } else {
-    drawPlaceholder(ctx, kind, color);
-  }
+  ctx.fillStyle = radGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
 
   const texture = Texture.from(canvas);
-  const entry: CacheEntry = { texture };
-  glowCache.set(key, entry);
+  glowCache.set(key, { texture });
+  return texture;
+}
 
+export function getLootBeamTexture(): Texture {
+  const key = 'loot_beam';
+  const cached = glowCache.get(key);
+  if (cached) return cached.texture;
+
+  const [canvas, ctx] = createCanvas();
+  
+  // Create a perfectly smooth vertical beam using a vertically-stretched radial gradient
+  const cx = TEXTURE_SIZE / 2;
+  const cy = TEXTURE_SIZE; // Anchor at the very bottom
+  
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.scale(0.25, 1); // Squash horizontally to make it a thin pillar
+  
+  // The radius is TEXTURE_SIZE, so it reaches from the bottom to the very top
+  const radGrad = ctx.createRadialGradient(0, 0, 0, 0, 0, TEXTURE_SIZE);
+  radGrad.addColorStop(0, `rgba(255, 255, 255, 1)`);
+  radGrad.addColorStop(0.3, `rgba(255, 255, 255, 0.5)`);
+  radGrad.addColorStop(1, `rgba(255, 255, 255, 0)`);
+  
+  ctx.fillStyle = radGrad;
+  ctx.beginPath();
+  ctx.arc(0, 0, TEXTURE_SIZE, 0, Math.PI * 2);
+  ctx.fill();
+  
+  ctx.restore();
+
+  const texture = Texture.from(canvas);
+  glowCache.set(key, { texture });
   return texture;
 }
 

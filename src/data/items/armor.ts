@@ -50,7 +50,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'Shield',
     itemType: 'shield',
     armorCategory: 'Heavy',
-    baseBlockChance: 25,
+    baseBlockChance: 15,
     baseStats: [Stat('Armor', 10)],
   },
   apprentice_tome: {
@@ -72,7 +72,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'helmet',
     itemType: 'helm',
     armorCategory: 'Light',
-    baseStats: [Stat('Armor', 6), Stat('DeflectRating', 10)],
+    baseStats: [Stat('Armor', 6), Stat('DeflectRating', 2)],
   },
   leather_tunic: {
     id: 'leather_tunic',
@@ -80,7 +80,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'chest_armor',
     itemType: 'chest',
     armorCategory: 'Light',
-    baseStats: [Stat('Armor', 14), Stat('DeflectRating', 30)],
+    baseStats: [Stat('Armor', 14), Stat('DeflectRating', 4)],
   },
   leather_leggings: {
     id: 'leather_leggings',
@@ -88,7 +88,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'leg_armor',
     itemType: 'legs',
     armorCategory: 'Light',
-    baseStats: [Stat('Armor', 8), Stat('DeflectRating', 20)],
+    baseStats: [Stat('Armor', 8), Stat('DeflectRating', 3)],
   },
   leather_gloves: {
     id: 'leather_gloves',
@@ -96,7 +96,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'gloves',
     itemType: 'gloves',
     armorCategory: 'Light',
-    baseStats: [Stat('Armor', 4), Stat('DeflectRating', 10)],
+    baseStats: [Stat('Armor', 4), Stat('DeflectRating', 1)],
   },
   leather_boots: {
     id: 'leather_boots',
@@ -104,7 +104,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'boots',
     itemType: 'boots',
     armorCategory: 'Light',
-    baseStats: [Stat('Armor', 4), Stat('DeflectRating', 10)],
+    baseStats: [Stat('Armor', 4), Stat('DeflectRating', 2)],
   },
   buckler: {
     id: 'buckler',
@@ -112,8 +112,8 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'Shield',
     itemType: 'shield',
     armorCategory: 'Light',
-    baseBlockChance: 15,
-    baseStats: [Stat('Armor', 8), Stat('DeflectRating', 30)],
+    baseBlockChance: 10,
+    baseStats: [Stat('Armor', 8), Stat('DeflectRating', 5)],
   },
   // #endregion
   // #endregion

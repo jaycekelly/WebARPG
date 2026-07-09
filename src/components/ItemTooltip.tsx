@@ -37,6 +37,21 @@ export function ItemTooltip({ item }: Props) {
         <span>iLvl {item.iLvl}</span>
       </div>
 
+      {item.itemType.startsWith('weapon-') && (
+        <div className="flex justify-between items-center text-[0.625rem] text-text-secondary border-b border-border-subtle pb-1 mb-1 uppercase tracking-widest">
+           <span>{item.damageType || 'Physical'}</span>
+           <span>{item.weaponRange !== undefined ? `Range ${item.weaponRange}` : 'Melee'}</span>
+        </div>
+      )}
+
+      {item.baseBlockChance !== undefined && item.itemType === 'shield' && (
+        <div className="mb-1">
+          <div className="text-xs text-text-secondary">
+            {item.baseBlockChance}% Block Chance
+          </div>
+        </div>
+      )}
+
       {item.baseStats.length > 0 && (
         <div className="space-y-0.5 mb-1">
           {item.baseStats.map((stat, i) => {
@@ -55,7 +70,7 @@ export function ItemTooltip({ item }: Props) {
 
             let suffix = stat.type === 'increased' ? '%' : '';
             
-            if (stat.stat === 'Damage') {
+            if (stat.stat === 'WeaponDamage') {
               const min = Math.floor(finalValue * 0.75);
               const max = Math.ceil(finalValue * 1.25);
               return (

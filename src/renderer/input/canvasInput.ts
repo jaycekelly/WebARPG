@@ -1,4 +1,4 @@
-import type { ProjectionParams } from '../../engine/world/screenProjection';
+import { type ProjectionParams } from '../../engine/world/screenProjection';
 import { useWorldStore } from '../../store/useWorldStore';
 import { usePlayerStore } from '../../store/usePlayerStore';
 import { useCombatStore } from '../../store/useCombatStore';
@@ -12,6 +12,8 @@ import { SKILLS } from '../../data/skills';
 export interface WorldPoint {
   gx: number;
   gy: number;
+  sx?: number;
+  sy?: number;
 }
 
 export interface ClickTarget {
@@ -100,16 +102,49 @@ export function unprojectScreenToWorld(
 
 // ---- Hit testing -------------------------------------------------------------
 
-export function getClickTarget(gx: number, gy: number): ClickTarget {
+export const EntityHitboxes = new Map<string, { x: number, y: number, scale: number, zDepth: number, templateId: string }>();
+
+export function getClickTarget(gx: number, gy: number, sx?: number, sy?: number, params?: ProjectionParams): ClickTarget {
   const world = useWorldStore.getState();
 
-  const enemy = world.enemies.find(e => e.position.x === gx && e.position.y === gy && !e.isDead);
+  let enemyId: string | null = null;
+
+  if (sx !== undefined && sy !== undefined && params !== undefined) {
+    let bestZ = -Infinity;
+    
+    world.enemies.forEach(e => {
+      if (e.isDead) return;
+      
+      const data = EntityHitboxes.get(`enemy:${e.id}`);
+      if (data) {
+         // The base texture is 128x128, but icons only occupy the center ~70%.
+         // Anchor is at (0.5, 0.85). Lower the center to encompass the shadow.
+         let hitBoxHalfWidth = 35 * data.scale;
+         let hitBoxHalfHeight = 35 * data.scale;
+         let visualCenterY = data.y - (35 * data.scale);
+         
+         const dx = Math.abs(sx - data.x);
+         const dy = Math.abs(sy - visualCenterY);
+         
+         if (dx <= hitBoxHalfWidth + 20 && dy <= hitBoxHalfHeight + 20) {
+            if (data.zDepth > bestZ) {
+               bestZ = data.zDepth;
+               enemyId = e.id;
+            }
+         }
+      }
+    });
+  } else {
+    const enemy = world.enemies.find(e => e.position.x === gx && e.position.y === gy && !e.isDead);
+    if (enemy) enemyId = enemy.id;
+  }
+
   const loot = world.lootDrops.find(d => d.position.x === gx && d.position.y === gy);
   const obstacle = world.grid.obstacles.find(o => o.x === gx && o.y === gy);
 
   return {
     tile: { gx, gy },
-    enemyId: enemy?.id ?? null,
+    enemyId: enemyId,
     lootId: loot?.id ?? null,
     isObstacle: !!obstacle,
   };
@@ -159,9 +194,6 @@ function handleTileClick(target: ClickTarget) {
   if (target.enemyId) {
     if (player.activeTargetId !== target.enemyId) {
       player.setTarget(target.enemyId);
-    } else {
-      // Clicking already-targeted enemy: untarget
-      player.setTarget(null, true);
     }
     return;
   }
@@ -184,7 +216,8 @@ function handleTileClick(target: ClickTarget) {
     return;
   }
 
-  // ---- Obstacle click or empty tile: ignore ----
+  // ---- Obstacle click or empty tile: clear target ----
+  player.setTarget(null, true);
 }
 
 // ---- Canvas event binding ----------------------------------------------------
@@ -218,22 +251,25 @@ export function setupCanvasInput(
 ): () => void {
   let pointerDown = false;
   let pointerMoved = false;
-  let lastPointerX = 0;
-  let lastPointerY = 0;
 
   const getWorldPos = (e: PointerEvent): WorldPoint | null => {
     const rect = canvas.getBoundingClientRect();
     // Convert page coords to canvas pixel coords (accounting for devicePixelRatio)
     const sx = ((e.clientX - rect.left) / rect.width) * canvas.width;
     const sy = ((e.clientY - rect.top) / rect.height) * canvas.height;
-    return unprojectScreenToWorld(sx, sy, getProjectionParams());
+    const pos = unprojectScreenToWorld(sx, sy, getProjectionParams());
+    if (!pos) return null;
+    return { gx: pos.gx, gy: pos.gy, sx, sy };
   };
+
+  let pointerDownStartX = 0;
+  let pointerDownStartY = 0;
 
   const onPointerDown = (e: PointerEvent) => {
     pointerDown = true;
     pointerMoved = false;
-    lastPointerX = e.clientX;
-    lastPointerY = e.clientY;
+    pointerDownStartX = e.clientX;
+    pointerDownStartY = e.clientY;
   };
 
   const onPointerMove = (e: PointerEvent) => {
@@ -241,11 +277,9 @@ export function setupCanvasInput(
     currentClientY = e.clientY;
 
     if (pointerDown) {
-      const dx = e.clientX - lastPointerX;
-      const dy = e.clientY - lastPointerY;
-      lastPointerX = e.clientX;
-      lastPointerY = e.clientY;
-      if (Math.abs(dx) > 1 || Math.abs(dy) > 1) {
+      const dx = e.clientX - pointerDownStartX;
+      const dy = e.clientY - pointerDownStartY;
+      if (Math.abs(dx) > 15 || Math.abs(dy) > 15) {
         pointerMoved = true;
       }
     }
@@ -256,7 +290,7 @@ export function setupCanvasInput(
     if (pos && combat.targetingSkillId) {
       canvas.style.cursor = '';
     } else if (pos) {
-      const target = getClickTarget(pos.gx, pos.gy);
+      const target = getClickTarget(pos.gx, pos.gy, pos.sx, pos.sy, getProjectionParams());
       canvas.style.cursor = target.enemyId || target.lootId ? 'pointer' : '';
     } else {
       canvas.style.cursor = '';
@@ -268,7 +302,7 @@ export function setupCanvasInput(
 
     // Tooltip: show when hovering over loot
     if (pos) {
-      const target = getClickTarget(pos.gx, pos.gy);
+      const target = getClickTarget(pos.gx, pos.gy, pos.sx, pos.sy, getProjectionParams());
       if (target.lootId && callbacks?.onHoverLoot) {
         callbacks.onHoverLoot(pos, target.lootId);
       } else if (callbacks?.onHoverLootEnd) {
@@ -289,7 +323,7 @@ export function setupCanvasInput(
     const pos = getWorldPos(e);
     if (!pos) return;
 
-    const target = getClickTarget(pos.gx, pos.gy);
+    const target = getClickTarget(pos.gx, pos.gy, pos.sx, pos.sy, getProjectionParams());
     if (callbacks?.onClick) {
       callbacks.onClick(target);
     } else {

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { useMessageStore } from './useMessageStore';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { dualStorage } from './storage';
 
 export type AppLocation = 'town' | 'dungeon' | 'editor';
 
@@ -10,6 +12,7 @@ interface AppState {
   characterWindowTab: 'inventory' | 'skills';
   statsPopoutOpen: boolean;
   isPaused: boolean;
+  dungeonSelectOpen: boolean;
   pauseTimeOffset: number;
   pauseStartTime: number | null;
   pixiFloorVisible: boolean;
@@ -19,6 +22,7 @@ interface AppState {
   setCharacterWindowOpen: (isOpen: boolean) => void;
   setCharacterWindowTab: (tab: 'inventory' | 'skills') => void;
   setStatsPopoutOpen: (isOpen: boolean) => void;
+  setDungeonSelectOpen: (isOpen: boolean) => void;
   setPaused: (paused: boolean) => void;
   togglePause: () => void;
   togglePixiFloor: () => void;
@@ -26,12 +30,15 @@ interface AppState {
   getGameTime: () => number;
 }
 
-export const useAppStore = create<AppState>((set, get) => ({
-  location: 'town', // Start in town!
+export const useAppStore = create<AppState>()(
+  persist(
+    (set, get) => ({
+      location: 'town', // Start in town!
   vendorOpen: false,
   characterWindowOpen: false,
   characterWindowTab: 'inventory',
   statsPopoutOpen: false,
+  dungeonSelectOpen: false,
   isPaused: false,
   pauseTimeOffset: 0,
   pauseStartTime: null,
@@ -45,6 +52,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   })),
   setCharacterWindowTab: (characterWindowTab) => set({ characterWindowTab }),
   setStatsPopoutOpen: (statsPopoutOpen) => set({ statsPopoutOpen }),
+  setDungeonSelectOpen: (dungeonSelectOpen) => set({ dungeonSelectOpen }),
   setPaused: (isPaused) => set((state) => {
     if (isPaused === state.isPaused) return {};
     if (isPaused) {
@@ -79,4 +87,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
     return now - state.pauseTimeOffset;
   }
-}));
+    }),
+    {
+      name: 'webarpg-app',
+      storage: createJSONStorage(() => dualStorage),
+    }
+  )
+);

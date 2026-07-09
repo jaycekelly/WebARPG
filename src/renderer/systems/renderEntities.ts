@@ -1,10 +1,13 @@
 import { Container, Sprite, Graphics } from 'pixi.js';
-import { getEntityTexture, getEntityGlowTexture } from '../assets';
+import { getEntityTexture, getLootBaseTexture, getLootBeamTexture } from '../assets';
 import { projectTileToScreen } from '../../engine/world/screenProjection';
+import { getTileLighting, extractLights, type PointLight } from '../utils/lighting';
+import { EntityHitboxes } from '../input/canvasInput';
 import type { ProjectionParams, ProjectedPoint } from '../../engine/world/screenProjection';
 import type { Enemy, LootDrop, Obstacle } from '../../store/useWorldStore';
 import type { HitEffect } from '../../store/useCombatStore';
-import { getTileLightIntensity, getEntityTint } from '../utils/lighting';
+import { useWorldStore } from '../../store/useWorldStore';
+import { useLightingStore } from '../../store/useLightingStore';
 
 // ---- Constants ---------------------------------------------------------------
 const HEALTH_BAR_WIDTH = 90;
@@ -40,8 +43,10 @@ interface TrackedSprite {
   healthBar: Graphics | null;
   selectRing: Graphics;
   flashSprite: Sprite;
-  glowIcon?: Sprite | null;
+  glowBase?: Sprite | null;
+  glowBeam?: Sprite | null;
   key: string;
+  kind: string;
   category: keyof typeof ENTITY_Z;
   currentX?: number;
   currentY?: number;
@@ -63,6 +68,7 @@ export interface EntityRenderer {
     hitEffects: HitEffect[],
     hoveredEnemyId?: string | null,
     visibleTiles?: Set<string>,
+    exploredTiles?: Set<string>,
   ) => void;
 }
 
@@ -116,7 +122,7 @@ export function createEntityRenderer(): EntityRenderer {
     const c = new Container();
     c.zIndex = zIdx;
 
-    const isObstacle = kind === 'trees' || kind === 'mountain';
+    const isObstacle = kind === 'trees' || kind === 'mountain' || kind === 'cave_entrance';
 
     // Shadow first (bottom of container)
     const shadow = makeShadow();
@@ -127,16 +133,21 @@ export function createEntityRenderer(): EntityRenderer {
     }
     c.addChild(shadow);
     
-    const texture = getEntityTexture(kind, color);
+    const isLoot = key.startsWith('loot:');
+    const texture = getEntityTexture(kind, color, isLoot);
 
-    // Native Canvas blurred path glow behind loot
-    let glowIcon: Sprite | null = null;
+    let glowBase: Sprite | null = null;
+    let glowBeam: Sprite | null = null;
     if (key.startsWith('loot:')) {
-      glowIcon = new Sprite(getEntityGlowTexture(kind, color));
-      glowIcon.anchor.set(0.5, 0.85); // Matches icon anchor perfectly
-      glowIcon.scale.set(iconScale, iconScale); // Matches icon scale perfectly
-      glowIcon.blendMode = 'add';
-      c.addChild(glowIcon);
+      glowBase = new Sprite(getLootBaseTexture());
+      glowBase.anchor.set(0.5, 0.5); // Center on ground
+      glowBase.blendMode = 'add';
+      c.addChildAt(glowBase, 1); // Above shadow
+
+      glowBeam = new Sprite(getLootBeamTexture());
+      glowBeam.anchor.set(0.5, 1); // Anchor at bottom center
+      glowBeam.blendMode = 'add';
+      c.addChildAt(glowBeam, 2); // Above base
     }
     
     // Icon above shadow and glow
@@ -159,8 +170,8 @@ export function createEntityRenderer(): EntityRenderer {
     const selectRing = makeSelectRing();
     uiContainer.addChild(selectRing);
 
-    // Flash sprite (same texture, white color)
-    const flashTexture = getEntityTexture(kind, '#ffffff');
+    // Flash sprite (same texture, white color, preserve fill if it's loot)
+    const flashTexture = getEntityTexture(kind, '#ffffff', isLoot);
     const flashSprite = new Sprite(flashTexture);
     flashSprite.anchor.set(0.5, 0.85);
     if (!isObstacle) {
@@ -181,8 +192,10 @@ export function createEntityRenderer(): EntityRenderer {
       healthBar,
       selectRing,
       flashSprite,
-      glowIcon,
+      glowBase,
+      glowBeam,
       key,
+      kind,
       category,
     };
 
@@ -219,8 +232,9 @@ export function createEntityRenderer(): EntityRenderer {
     wx: number,
     wy: number,
     playerPos: { x: number; y: number },
-    lootDrops: LootDrop[],
-    visibleTiles: Set<string>
+    pointLights: PointLight[],
+    visibleTiles: Set<string>,
+    exploredTiles: Set<string>
   ) {
     const sx = projected.screenX;
     const sy = projected.screenY;
@@ -231,9 +245,19 @@ export function createEntityRenderer(): EntityRenderer {
     entry.container.zIndex = projected.zDepth + (ENTITY_Z[entry.category] ?? 0);
     
     // Lighting tint
-    const intensity = getTileLightIntensity(wx, wy, playerPos, lootDrops, visibleTiles);
-    entry.icon.tint = getEntityTint(intensity);
-    entry.flashSprite.tint = getEntityTint(intensity);
+    let lighting = getTileLighting(wx, wy, playerPos, pointLights);
+    
+    // If in memory fog (explored but not visible), it receives no direct light
+    if (!visibleTiles.has(`${wx},${wy}`) && exploredTiles.has(`${wx},${wy}`)) {
+       const minB = Math.floor(useLightingStore.getState().minBrightness * 255);
+       const darkTint = (minB << 16) | (minB << 8) | minB;
+       lighting = { intensity: 0.0, entityTint: darkTint };
+    }
+    
+    const tint = lighting.entityTint;
+    
+    entry.icon.tint = tint;
+    entry.flashSprite.tint = tint;
     
     entry.icon.skew.x = 0;
     entry.flashSprite.skew.x = 0;
@@ -250,6 +274,17 @@ export function createEntityRenderer(): EntityRenderer {
     }
     entry.selectRing.position.set(sx, sy);
     entry.selectRing.scale.set(projected.scale * activeBaseScale);
+
+    // Store precise on-screen hitbox for pixel-perfect targeting
+    if (entry.category === 'enemy') {
+      EntityHitboxes.set(entry.key, {
+        x: sx,
+        y: sy - hopOffset,
+        scale: projected.scale * activeBaseScale,
+        zDepth: projected.zDepth,
+        templateId: entry.kind
+      });
+    }
   }
 
   function showEntry(entry: TrackedSprite) {
@@ -260,6 +295,7 @@ export function createEntityRenderer(): EntityRenderer {
     entry.container.visible = false;
     if (entry.healthBar) entry.healthBar.visible = false;
     entry.selectRing.visible = false;
+    EntityHitboxes.delete(entry.key);
   }
 
   function sortByDepth() {
@@ -280,10 +316,13 @@ export function createEntityRenderer(): EntityRenderer {
     hitEffects: HitEffect[],
     hoveredEnemyId?: string | null,
     visibleTiles?: Set<string>,
+    exploredTiles?: Set<string>,
   ) {
     activeBaseScale = baseScale;
     const activeKeys = new Set<string>();
     const visibleTilesSet = visibleTiles ?? new Set<string>();
+    const exploredTilesSet = exploredTiles ?? new Set<string>();
+    const pointLights = extractLights(useWorldStore.getState().grid);
     
     const hitsMap = new Map<string, HitEffect>();
     for (const h of hitEffects) hitsMap.set(h.targetId, h);
@@ -306,7 +345,11 @@ export function createEntityRenderer(): EntityRenderer {
       
       const targetDistPlayer = Math.max(Math.abs(playerPos.x - playerEntry.currentX), Math.abs(playerPos.y - playerEntry.currentY));
       
-      if (targetDistPlayer > 1.2) {
+      if (targetDistPlayer > 10) {
+        playerEntry.currentX = playerPos.x;
+        playerEntry.currentY = playerPos.y;
+        playerEntry.isDashing = false;
+      } else if (targetDistPlayer > 1.2) {
         playerEntry.isDashing = true;
       } else if (targetDistPlayer < 0.1) {
         playerEntry.isDashing = false;
@@ -359,12 +402,7 @@ export function createEntityRenderer(): EntityRenderer {
     
     playerEntry.container.zIndex = projPlayer.zDepth;
 
-    setPosition(playerEntry, projPlayer, hopPlayer, playerEntry.currentX, playerEntry.currentY, playerPos, lootDrops, visibleTilesSet);
-    if (pHit) {
-      playerEntry.icon.tint = pHit.color; // use the hit's color (e.g. fire/lightning)
-    } else {
-      playerEntry.icon.tint = 0xe4e4e7;
-    }
+    setPosition(playerEntry, projPlayer, hopPlayer, playerEntry.currentX, playerEntry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
     updateFlash(playerEntry, playerKey, playerHit);
     }
 
@@ -393,7 +431,11 @@ export function createEntityRenderer(): EntityRenderer {
       
       const targetDistEnemy = Math.max(Math.abs(enemy.position.x - entry.currentX), Math.abs(enemy.position.y - entry.currentY));
       
-      if (targetDistEnemy > 1.2) {
+      if (targetDistEnemy > 10) {
+        entry.currentX = enemy.position.x;
+        entry.currentY = enemy.position.y;
+        entry.isDashing = false;
+      } else if (targetDistEnemy > 1.2) {
         entry.isDashing = true;
       } else if (targetDistEnemy < 0.1) {
         entry.isDashing = false;
@@ -439,10 +481,8 @@ export function createEntityRenderer(): EntityRenderer {
          projEnemy.screenY = jitterProj.screenY;
       }
       
-      setPosition(entry, projEnemy, hopEnemy, entry.currentX, entry.currentY, playerPos, lootDrops, visibleTilesSet);
+      setPosition(entry, projEnemy, hopEnemy, entry.currentX, entry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
       
-      const intensity = getTileLightIntensity(entry.currentX, entry.currentY, playerPos, lootDrops, visibleTilesSet);
-      entry.icon.tint = getEntityTint(intensity);
       if (eHit) {
         entry.icon.tint = eHit.color;
       }
@@ -575,49 +615,65 @@ export function createEntityRenderer(): EntityRenderer {
       showEntry(entry);
       {
         const projLoot = projectTileToScreen(drop.position.x, drop.position.y, params);
-        setPosition(entry, projLoot, 0, drop.position.x, drop.position.y, playerPos, lootDrops, visibleTilesSet);
+        setPosition(entry, projLoot, 0, drop.position.x, drop.position.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
 
         const time = Date.now();
         const floatY = Math.sin(time / 400 + drop.position.x) * 4;
         entry.icon.y = floatY; // Bob the item sprite up and down
         
-        if (entry.glowIcon) {
-          entry.glowIcon.y = floatY; // Bob perfectly with icon
-          
+        if (entry.glowBase && entry.glowBeam) {
           const hexColor = parseInt(color.replace('#', '0x'), 16);
-          entry.glowIcon.tint = hexColor;
-          
-          const pulseNorm = (Math.sin(time / 400) + 1) / 2; // 0 to 1
           const rarityVal = rv[bestRarity] ?? 0;
           
-          // Glow outline gets slightly thicker based on rarity
-          const scaleMultiplier = 1.05 + (rarityVal * 0.04); 
+          entry.glowBase.tint = hexColor;
+          entry.glowBeam.tint = hexColor;
+          
+          const pulseNorm = (Math.sin(time / 400) + 1) / 2; // 0 to 1
+          
+          // Base scales up based on rarity
+          const scaleMultiplier = 1.0 + (rarityVal * 0.1); 
           const baseScale = entry.icon.scale.x; 
           
-          entry.glowIcon.scale.set(baseScale * scaleMultiplier);
-          entry.glowIcon.alpha = 0.2 + (pulseNorm * 0.4); // Breathe opacity softly
+          const glowScaleX = baseScale * scaleMultiplier;
+          // Base sits flat on ground
+          entry.glowBase.scale.set(glowScaleX, glowScaleX * 0.5);
+          entry.glowBase.alpha = 0.4 + (pulseNorm * 0.2); 
+          
+          // Beam stands upright
+          // Base height for Common is 1.2. Adds +0.15 height per rarity level.
+          const heightMultiplier = 1.2 + (rarityVal * 0.15) + (pulseNorm * 0.15);
+          entry.glowBeam.scale.set(glowScaleX * 0.75, baseScale * heightMultiplier);
+          entry.glowBeam.alpha = 0.7 + (pulseNorm * 0.3);
         }
       }
     }
 
     // --- Obstacles ---
     for (const obs of obstacles) {
-      const key = `obstacle:${obs.x},${obs.y}`;
+      const key = `obstacle:${obs.type}:${obs.x},${obs.y}`;
       activeKeys.add(key);
       let entry = tracked.get(key);
       if (!entry) {
-        const kind = obs.type === 'tree' ? 'trees' : obs.type === 'rock' ? 'mountain' : 'mountain';
-        const color = '#71717a';
-        entry = makeEntitySprite(kind, color, key, ENTITY_Z.obstacle, false);
+        let kind = 'mountain';
+        let color = '#71717a';
+        let scale = 0.85;
+        if (obs.type === 'tree') kind = 'trees';
+        else if (obs.type === 'rock') { kind = 'stone'; scale = 0.65; }
+        else if (obs.type === 'npc_guide') { kind = 'accessibility'; color = '#3b82f6'; }
+        else if (obs.type === 'dungeon_entrance') { kind = 'cave_entrance'; color = '#71717a'; }
+        else if (obs.type === 'torch') { kind = 'candle'; color = '#fbbf24'; scale = 0.55; }
+        else if (obs.type === 'campfire') { kind = 'campfire'; color = '#ffffff'; scale = 0.8; }
+        
+        entry = makeEntitySprite(kind, color, key, ENTITY_Z.obstacle, false, scale);
       }
-      if (visibleTiles && !visibleTiles.has(`${obs.x},${obs.y}`)) {
+      if (exploredTilesSet && !exploredTilesSet.has(`${obs.x},${obs.y}`)) {
         hideEntry(entry);
         continue;
       }
       showEntry(entry);
       {
         const projObs = projectTileToScreen(obs.x, obs.y, params);
-        setPosition(entry, projObs, 0, obs.x, obs.y, playerPos, lootDrops, visibleTilesSet);
+        setPosition(entry, projObs, 0, obs.x, obs.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
       }
     }
 

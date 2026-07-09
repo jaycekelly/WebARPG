@@ -56,6 +56,7 @@ export interface SkillEffect {
   
   baseValue?: number; // Optional now, since buffs don't use it
   damageMultiplier?: number; // e.g. 1.5 for 150% weapon damage
+  damageEffectiveness?: number; // e.g. 1.5 scales flat spell damage by 150%
   // If damage, what element is it?
   element?: DamageType;
   // If status, what is it?

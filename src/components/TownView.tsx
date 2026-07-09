@@ -1,33 +1,51 @@
 import { useAppStore } from '../store/useAppStore';
-import { Map, ArrowRight } from 'lucide-react';
+import { Map, ArrowRight, X } from 'lucide-react';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { LevelGenerator } from '../engine/world/LevelGenerator';
 
 export function TownView() {
-  const { setLocation } = useAppStore();
+  const { setLocation, dungeonSelectOpen, setDungeonSelectOpen } = useAppStore();
 
   const handleEnterDungeon = () => {
     LevelGenerator.initializeDungeon(40, 40, usePlayerStore.getState().level);
+    setDungeonSelectOpen(false);
     setLocation('dungeon');
   };
 
+  if (!dungeonSelectOpen) {
+    return null;
+  }
+
   return (
-    <main className="absolute inset-0 flex items-center justify-center bg-zinc-950 z-0">
-       <button 
-         onClick={handleEnterDungeon}
-         className="flex items-center gap-4 p-8 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-2xl transition-colors group"
-       >
-         <div className="flex flex-col text-left">
-           <div className="flex items-center gap-2 text-red-500 font-black text-3xl mb-1 uppercase tracking-widest">
-             <Map className="w-8 h-8" />
-             Enter Dungeon
-           </div>
-           <div className="text-red-500/60 font-bold uppercase tracking-widest">
-             Fight monsters and find loot.
-           </div>
-         </div>
-         <ArrowRight className="w-10 h-10 text-red-500 group-hover:translate-x-2 transition-transform" />
-       </button>
-    </main>
+    <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
+       <div className="bg-surface-deep border border-border-strong rounded-xl shadow-2xl w-96 relative flex flex-col overflow-hidden">
+          <div className="h-10 border-b border-border-subtle flex items-center px-4 justify-between bg-surface-base">
+             <div className="text-text-primary font-bold tracking-widest text-sm uppercase">Dungeon Select</div>
+             <button onClick={() => setDungeonSelectOpen(false)} className="text-text-muted hover:text-text-primary transition-colors">
+                <X className="w-5 h-5" />
+             </button>
+          </div>
+          
+          <div className="p-4 flex flex-col">
+             <button 
+               onClick={handleEnterDungeon}
+               className="flex items-center gap-4 p-4 bg-surface-base hover:bg-surface-raised border border-border-strong rounded-lg transition-colors group text-left"
+             >
+               <div className="bg-red-500/20 p-3 rounded-lg border border-red-500/30 group-hover:border-red-500/50 transition-colors">
+                  <Map className="w-6 h-6 text-red-500" />
+               </div>
+               <div className="flex flex-col flex-1">
+                 <div className="text-text-primary font-bold uppercase tracking-wider text-sm">
+                   Cave
+                 </div>
+                 <div className="text-text-muted text-xs uppercase tracking-widest">
+                   Level {usePlayerStore.getState().level} Area
+                 </div>
+               </div>
+               <ArrowRight className="w-5 h-5 text-text-muted group-hover:text-accent group-hover:translate-x-1 transition-all" />
+             </button>
+          </div>
+       </div>
+    </div>
   );
 }

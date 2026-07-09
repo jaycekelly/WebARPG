@@ -3,6 +3,45 @@ import type { StatModifier, StatType } from '../engine/stats/types';
 import { StatCalculator } from '../engine/stats/StatCalculator';
 import { useBuffStore } from './useBuffStore';
 import { usePlayerStore } from './usePlayerStore';
+import { useSkillStore } from './useSkillStore';
+import { SKILL_TREE } from '../data/skillTrees';
+import type { ClassType } from '../engine/player/types';
+
+const getTreeModifiers = (): StatModifier[] => {
+    const treeMods: StatModifier[] = [];
+    // Only safe to call inside the function body so we don't trigger errors before stores are init
+    const skillState = useSkillStore.getState();
+    const { playerClass, secondaryClass } = usePlayerStore.getState();
+
+    const processClass = (cls: ClassType) => {
+       const mPts = skillState.getTotalPointsSpent(cls);
+       if (mPts > 0) {
+          if (cls === 'Fighter') treeMods.push({ id: `mastery_${cls}_str`, sourceId: `mastery_${cls}`, stat: 'Strength', type: 'flat', value: mPts * 2 });
+          else if (cls === 'Rogue') treeMods.push({ id: `mastery_${cls}_dex`, sourceId: `mastery_${cls}`, stat: 'Dexterity', type: 'flat', value: mPts * 2 });
+          else if (cls === 'Mage') treeMods.push({ id: `mastery_${cls}_int`, sourceId: `mastery_${cls}`, stat: 'Intelligence', type: 'flat', value: mPts * 2 });
+       }
+       
+       const tree = SKILL_TREE[cls] || [];
+       for (const node of tree) {
+          const pts = skillState.allocatedPoints[node.id] || 0;
+          if (pts > 0 && node.type === 'passive' && node.statModifiers) {
+             for (const mod of node.statModifiers) {
+                treeMods.push({
+                   ...mod,
+                   id: `${node.id}_${mod.stat}`,
+                   sourceId: `passive_${node.id}`,
+                   value: mod.value * pts
+                });
+             }
+          }
+       }
+    };
+    
+    if (playerClass) processClass(playerClass);
+    if (secondaryClass) processClass(secondaryClass);
+
+    return treeMods;
+};
 
 interface StatsState {
   modifiers: StatModifier[];
@@ -26,6 +65,9 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     { id: 'base_move', sourceId: 'base_character', stat: 'MoveSpeed', type: 'flat', value: 1.33 },
     { id: 'base_hp_regen', sourceId: 'base_character', stat: 'HealthRegeneration', type: 'flat', value: 0.5 },
     { id: 'base_mana_regen', sourceId: 'base_character', stat: 'ManaRegeneration', type: 'flat', value: 0.4 },
+    { id: 'base_deflect_amount', sourceId: 'base_character', stat: 'DeflectAmount', type: 'flat', value: 40 },
+    { id: 'base_block_amount', sourceId: 'base_character', stat: 'BlockAmount', type: 'flat', value: 75 },
+    { id: 'base_parry_amount', sourceId: 'base_character', stat: 'ParryAmount', type: 'flat', value: 50 },
     
     // Base Attributes
     { id: 'base_strength', sourceId: 'base_character', stat: 'Strength', type: 'flat', value: 5 },
@@ -52,6 +94,10 @@ export const useStatsStore = create<StatsState>((set, get) => ({
 
   getStat: (stat) => {
     let mods = get().modifiers.filter(m => m.stat === stat);
+    
+    // Add tree modifiers
+    const treeMods = getTreeModifiers().filter(m => m.stat === stat);
+    mods = mods.concat(treeMods);
     
     // Unarmed Weapon Damage fallback
     if (stat === 'WeaponDamage') {
@@ -207,7 +253,7 @@ export const useStatsStore = create<StatsState>((set, get) => ({
   },
 
   getAllStats: () => {
-    let mods = [...get().modifiers];
+    let mods = [...get().modifiers, ...getTreeModifiers()];
     
     // Unarmed Weapon Damage fallback
     const externalWeaponMods = mods.filter(m => m.stat === 'WeaponDamage' && m.sourceId !== 'base_character');

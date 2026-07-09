@@ -1,6 +1,7 @@
 import { useStatsStore } from '../store/useStatsStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { usePlayerStore } from '../store/usePlayerStore';
+import { useTooltipStore } from '../store/useTooltipStore';
 import { RatingCalculator } from '../engine/stats/RatingCalculator';
 import { Sword, Shield, Zap, Heart, Book, Crosshair, Wrench, Flame, ShieldOff, Activity } from 'lucide-react';
 import type { StatType } from '../engine/stats/types';
@@ -22,13 +23,24 @@ interface StatCategory {
 // ThreatMultiplier and Tenacity are skipped (unimplemented)
 const STAT_CATEGORIES: StatCategory[] = [
   {
+    title: 'Core Stats',
+    icon: Activity,
+    stats: [
+      { id: 'Health', label: 'Max Health', fractionDigits: 0 },
+      { id: 'Mana', label: 'Max Mana', fractionDigits: 0 },
+      { id: 'Armor', label: 'Armor', fractionDigits: 0 },
+      { id: 'DeflectRating', label: 'Deflect Rating', fractionDigits: 0 },
+      { id: 'WeaponDamage', label: 'Weapon Damage', fractionDigits: 0 },
+      { id: 'AttacksPerSecond', label: 'Attack Speed', fractionDigits: 2 },
+      { id: 'HasteRating', label: 'Haste Rating', fractionDigits: 0 },
+    ]
+  },
+  {
     title: 'Health & Mana',
     icon: Heart,
     stats: [
-      { id: 'Health', label: 'Max Health', fractionDigits: 0 },
       { id: 'HealthRegeneration', label: 'Health/sec', fractionDigits: 2 },
       { id: 'HealthRegenPercent', label: 'Health Regen', suffix: '%', fractionDigits: 1 },
-      { id: 'Mana', label: 'Max Mana', fractionDigits: 0 },
       { id: 'ManaRegeneration', label: 'Mana/sec', fractionDigits: 2 },
       { id: 'ManaRegenPercent', label: 'Mana Regen', suffix: '%', fractionDigits: 1 },
     ]
@@ -37,10 +49,7 @@ const STAT_CATEGORIES: StatCategory[] = [
     title: 'Damage',
     icon: Sword,
     stats: [
-      { id: 'WeaponDamage', label: 'Weapon Damage', fractionDigits: 0 },
-      { id: 'AttacksPerSecond', label: 'Attack Speed', fractionDigits: 2 },
-
-      { id: 'HasteRating', label: 'Haste Rating', fractionDigits: 0 },
+      { id: 'Damage', label: 'Global Damage', suffix: '%', fractionDigits: 0 },
       { id: 'StrikeDamage', label: 'Strike Damage', suffix: '%', fractionDigits: 0 },
       { id: 'PierceDamage', label: 'Pierce Damage', suffix: '%', fractionDigits: 0 },
       { id: 'PhysicalDamage', label: 'Physical Damage', suffix: '%', fractionDigits: 0 },
@@ -106,7 +115,6 @@ const STAT_CATEGORIES: StatCategory[] = [
     title: 'Armor & Resistances',
     icon: Shield,
     stats: [
-      { id: 'Armor', label: 'Armor', fractionDigits: 0 },
       { id: 'DamageReduction', label: 'Damage Reduction', suffix: '%', fractionDigits: 0 },
       { id: 'StrikeResist', label: 'Strike Resist', suffix: '%', fractionDigits: 0 },
       { id: 'PierceResist', label: 'Pierce Resist', suffix: '%', fractionDigits: 0 },
@@ -121,14 +129,13 @@ const STAT_CATEGORIES: StatCategory[] = [
     title: 'Deflection & Blocking',
     icon: ShieldOff,
     stats: [
-      { id: 'DeflectRating', label: 'Deflect Rating', fractionDigits: 0 },
-      { id: 'DeflectEffect', label: 'Deflect Amount', suffix: '%', fractionDigits: 0 },
+      { id: 'DeflectAmount', label: 'Deflect Amount', suffix: '%', fractionDigits: 0 },
       { id: 'BlockRating', label: 'Block Rating', fractionDigits: 0 },
       { id: 'SpellBlockRating', label: 'Spell Block Rating', fractionDigits: 0 },
-      { id: 'BlockEffect', label: 'Block Effect', suffix: '%', fractionDigits: 0 },
+      { id: 'BlockAmount', label: 'Block Amount', suffix: '%', fractionDigits: 0 },
       { id: 'ParryRating', label: 'Parry Rating', fractionDigits: 0 },
       { id: 'SpellParryRating', label: 'Spell Parry Rating', fractionDigits: 0 },
-      { id: 'ParryEffect', label: 'Parry Effect', suffix: '%', fractionDigits: 0 },
+      { id: 'ParryAmount', label: 'Parry Amount', suffix: '%', fractionDigits: 0 },
     ]
   },
   {
@@ -179,7 +186,8 @@ function computeTotalRegen(getStat: (stat: StatType) => number, statId: StatType
 
 export function CharacterSheet() {
   const { getStat } = useStatsStore();
-  const level = usePlayerStore(state => state.level);
+  const { level } = usePlayerStore();
+  const { setContent } = useTooltipStore();
 
   return (
     <div className="p-4 flex flex-col gap-3 h-full overflow-y-auto custom-scrollbar">
@@ -187,7 +195,6 @@ export function CharacterSheet() {
         {STAT_CATEGORIES.map((category) => (
           <div key={category.title} className="flex flex-col gap-2">
             <h3 className="text-[15px] font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 mb-1">
-              <category.icon className="w-4 h-4 opacity-70" />
               {category.title}
             </h3>
             <div className="bg-surface-base rounded-xl border border-border-subtle overflow-hidden shadow-inner py-0.5">
@@ -249,18 +256,42 @@ export function CharacterSheet() {
                   displayVal = hasStat ? `${rawVal.toFixed(statDef.fractionDigits ?? 0)}${statDef.suffix || ''}` : '--';
                 }
 
-                return (
-                  <div
-                    key={statDef.id}
-                    className={`flex justify-between items-center px-4 py-1 text-xs transition-colors
-                      ${index !== category.stats.length - 1 ? 'border-b border-border-subtle' : ''}
-                      ${hasStat ? 'hover:bg-surface-raised' : 'opacity-40'}
-                    `}
-                  >
-                    <span className="text-text-secondary">{statDef.label}</span>
-                    <span className={`font-mono font-medium ${hasStat ? 'text-text-primary' : 'text-text-muted'}`}>
-                      {displayVal}
-                    </span>
+                 return (
+                   <div 
+                     key={index} 
+                     className="flex justify-between items-center py-1.5 px-3 hover:bg-surface-raised transition-colors group cursor-default"
+                     onMouseEnter={() => {
+                        let desc = '';
+                        if (statDef.id === 'Armor') {
+                           const armor = getStat('Armor');
+                           const innatePen = (level * 1.5) + (Math.pow(level, 2) / 10);
+                           const effectiveArmor = Math.max(0, armor - innatePen);
+                           const dr = Math.min(0.85, effectiveArmor / (effectiveArmor + 100));
+                           desc = `Expected -${(dr * 100).toFixed(0)}% damage from an enemy your level`;
+                        } else if (statDef.id === 'HasteRating') {
+                           desc = "Lowers your Global Cooldown (GCD), allowing you to cast skills faster";
+                        } else if (statDef.id === 'DeflectRating') {
+                           desc = "Chance to reduce incoming damage by your Deflect Amount (40% base)";
+                        }
+                        
+                        if (desc) {
+                           setContent(
+                             <div className="w-60 bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none">
+                               <div className="text-xs text-text-secondary leading-relaxed">
+                                 {desc}
+                               </div>
+                             </div>
+                           );
+                        }
+                     }}
+                     onMouseLeave={() => setContent(null)}
+                   >
+                     <span className={`text-[0.6875rem] font-semibold tracking-wide uppercase ${hasStat ? 'text-text-secondary group-hover:text-text-primary' : 'text-text-muted group-hover:text-text-secondary'} transition-colors`}>
+                       {statDef.label}
+                     </span>
+                     <span className={`font-mono font-medium text-xs ${hasStat ? 'text-text-primary' : 'text-text-muted'}`}>
+                       {displayVal}
+                     </span>
                   </div>
                 );
               })}

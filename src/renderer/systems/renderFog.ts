@@ -1,8 +1,9 @@
 import { Container, Graphics, BlurFilter } from 'pixi.js';
 import { projectTileToScreen } from '../../engine/world/screenProjection';
 import type { ProjectionParams } from '../../engine/world/screenProjection';
-import type { GridMap, LootDrop } from '../../store/useWorldStore';
-import { getTileLightIntensity, AMBIENT_DARKNESS } from '../utils/lighting';
+import type { GridMap } from '../../store/useWorldStore';
+import { useLightingStore } from '../../store/useLightingStore';
+import { getTileLighting, type PointLight } from '../utils/lighting';
 
 const FLOOR_PERSPECTIVE_PX = 2500;
 const FLOOR_TILT_DEG = 52;
@@ -21,7 +22,7 @@ export interface FogRenderer {
     exploredTiles: Set<string>,
     visibleTiles: Set<string>,
     playerPos: { x: number, y: number },
-    lootDrops: LootDrop[]
+    pointLights: PointLight[]
   ) => void;
 }
 
@@ -49,7 +50,7 @@ export function createFogRenderer(): FogRenderer {
     exploredTiles: Set<string>,
     visibleTiles: Set<string>,
     playerPos: { x: number, y: number },
-    lootDrops: LootDrop[]
+    pointLights: PointLight[]
   ) {
     const panKey = `${panX},${panY},${viewportW},${viewportH},${tileSize},${exploredTiles.size},${visibleTiles.size},${playerPos.x},${playerPos.y}`;
     if (panKey === lastPanKey) return;
@@ -73,9 +74,8 @@ export function createFogRenderer(): FogRenderer {
     // Expand bounds by 2 to prevent blur filter from leaking at the grid edges
     for (let y = -2; y < grid.height + 2; y++) {
       for (let x = -2; x < grid.width + 2; x++) {
-        // Draw opaque pitch-black fog for out-of-bounds tiles
         if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) {
-          drawTileFog(x, y, params, 0x000000, 1.0);
+          drawTilePolygon(fogGraphics, x, y, params, 0x000000, 1.0);
           continue;
         }
 
@@ -85,42 +85,43 @@ export function createFogRenderer(): FogRenderer {
 
         // If completely unexplored, draw opaque black
         if (!isVisible && !isExplored) {
-          drawTileFog(x, y, params, 0x000000, 1.0);
+          drawTilePolygon(fogGraphics, x, y, params, 0x000000, 1.0);
           continue;
         }
 
-        // If explored but not currently visible (Memory)
+        const { ambientDarkness, memoryFogOpacity } = useLightingStore.getState();
+
         if (!isVisible && isExplored) {
-          drawTileFog(x, y, params, 0x000000, 1.0);
+          drawTilePolygon(fogGraphics, x, y, params, 0x000000, memoryFogOpacity);
           continue;
         }
 
-        // If visible, calculate grid-based lighting intensity
-        const lightIntensity = getTileLightIntensity(x, y, playerPos, lootDrops, visibleTiles);
+        // If visible, calculate grid-based lighting intensity and color
+        const lighting = getTileLighting(x, y, playerPos, pointLights);
 
         // Map intensity 1.0 -> alpha 0.0 (fully lit)
-        // Map intensity 0.0 -> alpha AMBIENT_DARKNESS
-        const fogAlpha = AMBIENT_DARKNESS * (1.0 - lightIntensity);
+        // Map intensity 0.0 -> alpha ambientDarkness
+        const fogAlpha = ambientDarkness * (1.0 - lighting.intensity);
 
         if (fogAlpha > 0.05) { // Skip drawing nearly-invisible fog
-          drawTileFog(x, y, params, 0x000000, fogAlpha);
+          drawTilePolygon(fogGraphics, x, y, params, 0x000000, fogAlpha);
         }
       }
     }
   }
 
-  function drawTileFog(x: number, y: number, params: ProjectionParams, color: number, alpha: number) {
+  function drawTilePolygon(graphics: Graphics, x: number, y: number, params: ProjectionParams, color: number, alpha: number) {
     const tl = projectTileToScreen(x - 0.5, y - 0.5, params);
     const tr = projectTileToScreen(x + 0.5, y - 0.5, params);
     const br = projectTileToScreen(x + 0.5, y + 0.5, params);
     const bl = projectTileToScreen(x - 0.5, y + 0.5, params);
 
-    fogGraphics.moveTo(tl.screenX, tl.screenY);
-    fogGraphics.lineTo(tr.screenX, tr.screenY);
-    fogGraphics.lineTo(br.screenX, br.screenY);
-    fogGraphics.lineTo(bl.screenX, bl.screenY);
-    fogGraphics.lineTo(tl.screenX, tl.screenY);
-    fogGraphics.fill({ color, alpha });
+    graphics.moveTo(tl.screenX, tl.screenY);
+    graphics.lineTo(tr.screenX, tr.screenY);
+    graphics.lineTo(br.screenX, br.screenY);
+    graphics.lineTo(bl.screenX, bl.screenY);
+    graphics.lineTo(tl.screenX, tl.screenY);
+    graphics.fill({ color, alpha });
   }
 
   return { container, rebuild, update };

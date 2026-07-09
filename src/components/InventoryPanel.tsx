@@ -45,13 +45,16 @@ export function InventoryPanel() {
 
   const [hoveredInvIndex, setHoveredInvIndex] = useState<number | null>(null);
   const [hoveredEqSlot, setHoveredEqSlot] = useState<EquipmentSlot | null>(null);
+  const [hoveredCustom, setHoveredCustom] = useState<React.ReactNode | null>(null);
 
   useEffect(() => {
     return () => setContent(null);
   }, [setContent]);
 
   useEffect(() => {
-    if (hoveredInvIndex !== null) {
+    if (hoveredCustom) {
+      setContent(hoveredCustom);
+    } else if (hoveredInvIndex !== null) {
       const item = inventory[hoveredInvIndex];
       setContent(item ? <ItemTooltip item={item} /> : null);
     } else if (hoveredEqSlot !== null) {
@@ -60,7 +63,7 @@ export function InventoryPanel() {
     } else {
       setContent(null);
     }
-  }, [inventory, equipment, hoveredInvIndex, hoveredEqSlot, setContent]);
+  }, [inventory, equipment, hoveredInvIndex, hoveredEqSlot, hoveredCustom, setContent]);
 
   const renderEquipmentRow = (slot: EquipmentSlot, label: string) => {
     const item = equipment[slot];
@@ -105,9 +108,27 @@ export function InventoryPanel() {
               </div>
               <div className="flex-1 h-px bg-gradient-to-l from-transparent to-border-subtle/50" />
             </div>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 w-full flex-1 justify-center mt-1">
               {(['Strength', 'Dexterity', 'Intelligence', 'Vitality'] as const).map(attr => (
-                <div key={attr} className="bg-surface-deep/60 rounded-lg border border-border-subtle overflow-hidden flex items-center justify-between px-1.5 h-8 w-full">
+                <div 
+                  key={attr} 
+                  className="bg-surface-deep/60 rounded-lg border border-border-subtle overflow-hidden flex items-center justify-between px-1.5 h-8 w-full"
+                  onMouseEnter={() => {
+                    const desc = 
+                      attr === 'Strength' ? 'Gives 1 armor per point' :
+                      attr === 'Dexterity' ? 'Gives 1 haste rating per point' :
+                      attr === 'Intelligence' ? 'Gives 2 mana per point' :
+                      'Gives 4 hp per point';
+                    setHoveredCustom(
+                      <div className="w-60 bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none">
+                        <div className="text-xs text-text-secondary leading-relaxed">
+                          {desc}
+                        </div>
+                      </div>
+                    );
+                  }}
+                  onMouseLeave={() => setHoveredCustom(null)}
+                >
                    <div className="flex flex-row items-center flex-1 px-1 overflow-hidden min-w-0">
                      <span className="text-text-secondary text-[12px] uppercase tracking-wide leading-none truncate flex-1">{attr}</span>
                      <div className="h-3.5 w-px bg-border-subtle/80 mx-1.5 shrink-0" />
@@ -159,11 +180,20 @@ export function InventoryPanel() {
                 {renderEquipmentRow('weapon1', `Main Hand (${activeWeaponSet === 1 ? 'I' : 'II'})`)}
                 
                 {/* Weapon Swap Button */}
-                <div className="absolute right-[-9px] top-1/2 -translate-y-1/2 bg-surface-deep rounded z-20">
+                <div 
+                  className="absolute right-[-9px] top-1/2 -translate-y-1/2 bg-surface-deep rounded z-20"
+                  onMouseEnter={() => setHoveredCustom(
+                    <div className="bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none whitespace-nowrap">
+                      <div className="text-xs text-text-secondary leading-relaxed">
+                        Swap weapon set
+                      </div>
+                    </div>
+                  )}
+                  onMouseLeave={() => setHoveredCustom(null)}
+                >
                   <button
                     onClick={() => swapWeaponSet()}
                     className="w-[1.4rem] h-[1.4rem] bg-accent/10 hover:bg-accent/20 border border-accent/50 rounded flex items-center justify-center transition-all group shadow-[0_0_8px_rgba(56,189,248,0.2)] hover:shadow-[0_0_12px_rgba(56,189,248,0.4)]"
-                    title="Swap Weapon Set (W)"
                   >
                     <ArrowRightLeft className="w-3.5 h-3.5 text-accent transition-transform group-hover:scale-110" />
                   </button>
@@ -177,8 +207,8 @@ export function InventoryPanel() {
       </div>
 
       {/* Bottom Panel: Backpack */}
-      <div className="flex flex-col flex-1 overflow-hidden">
-        <div className="grid grid-cols-10 gap-1 auto-rows-max px-1.5 pt-1.5 pb-1 content-start bg-surface-deep border border-border-subtle rounded-xl flex-1">
+      <div className="flex flex-col flex-1 overflow-hidden min-h-0 bg-surface-deep border border-border-subtle rounded-xl">
+        <div className="grid grid-cols-10 gap-1 auto-rows-max px-1.5 pt-1.5 pb-1 content-start flex-1 overflow-y-auto custom-scrollbar">
           {Array.from({ length: 50 }).map((_, i) => {
             const item = inventory[i] ?? null;
             const rarityClasses = item ? RARITY_COLORS[item.rarity] : 'bg-surface-base/50 border-border-subtle/30';

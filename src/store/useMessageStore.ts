@@ -30,6 +30,14 @@ export const useMessageStore = create<MessageState>((set) => ({
         { id, type, text, expiresAt }
       ]
     }));
+
+    if (durationMs > 0) {
+      setTimeout(() => {
+        set((state) => ({
+          messages: state.messages.filter(m => m.id !== id)
+        }));
+      }, durationMs);
+    }
   },
   
   removeMessage: (id) => {

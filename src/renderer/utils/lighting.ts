@@ -1,40 +1,105 @@
-import type { LootDrop } from '../../store/useWorldStore';
+import { useWorldStore, type GridMap } from '../../store/useWorldStore';
+import { useLightingStore } from '../../store/useLightingStore';
 
-// Set ambient darkness much higher (0.9) so far away tiles are actually dark
-export const AMBIENT_DARKNESS = 0.9; 
-const PLAYER_LIGHT_RADIUS = 7.0; 
+export interface PointLight {
+  x: number;
+  y: number;
+  color: number;
+  radius: number;
+  intensity: number;
+}
 
-/**
- * Calculates the light intensity for a given tile coordinate (0.0 to 1.0).
- */
-export function getTileLightIntensity(
+export interface TileLighting {
+  intensity: number;      // 0.0 to 1.0 (for fog visibility calculation)
+  entityTint: number;     // RGB hex, final tint applied to entities
+}
+
+export function extractLights(grid: GridMap): PointLight[] {
+  const lights: PointLight[] = [];
+  for (const obs of grid.obstacles) {
+    if (obs.type === 'torch') {
+      lights.push({
+        x: obs.x,
+        y: obs.y,
+        color: 0xffffff,
+        radius: 3.0,
+        intensity: 0.9,
+      });
+    } else if (obs.type === 'npc_guide') {
+      lights.push({
+        x: obs.x,
+        y: obs.y,
+        color: 0xffffff,
+        radius: 3.0,
+        intensity: 0.9,
+      });
+    } else if (obs.type === 'campfire') {
+      lights.push({
+        x: obs.x,
+        y: obs.y,
+        color: 0xffffff,
+        radius: 5.0,
+        intensity: 0.9,
+      });
+    }
+  }
+  return lights;
+}
+
+export function getTileLighting(
   x: number,
   y: number,
   playerPos: { x: number; y: number },
-  _lootDrops: LootDrop[],
-  _visibleTiles: Set<string>
-): number {
-  let lightIntensity = 0;
+  pointLights: PointLight[]
+): TileLighting {
+  const isTown = useWorldStore.getState().grid.environment === 'town';
+  const lighting = useLightingStore.getState();
+  const playerLightRadius = lighting.playerLightRadiusDungeon;
 
-  // 1. Player Light (Non-linear falloff so it drops off faster)
-  const distToPlayer = Math.sqrt(Math.pow(x - playerPos.x, 2) + Math.pow(y - playerPos.y, 2));
-  const playerNorm = Math.max(0, 1.0 - (distToPlayer / PLAYER_LIGHT_RADIUS));
-  lightIntensity += Math.pow(playerNorm, 1.2) * 1.0;
-
-
-
-  return Math.min(1.0, lightIntensity);
-}
-
-/**
- * Converts a light intensity (0.0 to 1.0) into a PIXI tint color (e.g. 0xffffff).
- */
-export function getEntityTint(intensity: number): number {
-  // Make the drop-off much more aggressive so lighting changes are obvious
-  // minBrightness of 0.1 (10%) when intensity is 0 to match 0.9 ambient darkness.
-  const minBrightness = 0.1;
-  const brightness = minBrightness + (1.0 - minBrightness) * intensity;
+  let totalIntensity = 0;
   
-  const v = Math.floor(brightness * 255);
-  return (v << 16) | (v << 8) | v;
+  // Base white light (Player + Ambient)
+  let whiteIntensity = 0;
+
+  // 1. Player Light (White)
+  const distToPlayer = Math.sqrt(Math.pow(x - playerPos.x, 2) + Math.pow(y - playerPos.y, 2));
+  const playerNorm = Math.max(0, 1.0 - (distToPlayer / playerLightRadius));
+  const pIntensity = Math.pow(playerNorm, 1.2) * 1.0;
+  
+  if (pIntensity > 0) {
+    whiteIntensity = Math.max(whiteIntensity, pIntensity);
+    totalIntensity = Math.max(totalIntensity, pIntensity);
+  }
+  
+  for (const light of pointLights) {
+    const dist = Math.sqrt(Math.pow(x - light.x, 2) + Math.pow(y - light.y, 2));
+    const norm = Math.max(0, 1.0 - (dist / light.radius));
+    if (norm > 0) {
+      const lIntensity = Math.pow(norm, 1.2) * light.intensity;
+      totalIntensity = Math.max(totalIntensity, lIntensity);
+      whiteIntensity = Math.max(whiteIntensity, lIntensity);
+    }
+  }
+
+  // 3. Ambient Baseline
+  if (isTown) {
+    const ambient = 0.45;
+    totalIntensity = Math.max(totalIntensity, ambient);
+    whiteIntensity = Math.max(whiteIntensity, ambient);
+  }
+
+  // Calculate Entity Tint
+  const ent = Math.min(1.0, whiteIntensity);
+  const { minBrightness } = lighting;
+  
+  // Interpolate between minBrightness and the received light
+  const finalVal = minBrightness + (1.0 - minBrightness) * ent;
+  const rgb = Math.floor(finalVal * 255);
+
+  const entityTint = (rgb << 16) | (rgb << 8) | rgb;
+
+  return {
+    intensity: Math.min(1.0, totalIntensity),
+    entityTint
+  };
 }

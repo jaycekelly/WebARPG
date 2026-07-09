@@ -3,7 +3,10 @@ import { useStatsStore } from './useStatsStore';
 import { useCombatStore } from './useCombatStore';
 import { useAppStore } from './useAppStore';
 import { useVisionStore } from './useVisionStore';
+import { useMetaStore } from './useMetaStore';
 import type { ClassType } from '../engine/player/types';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import { dualStorage } from './storage';
 
 interface PlayerState {
   playerClass: ClassType;
@@ -12,7 +15,7 @@ interface PlayerState {
   currentHealth: number;
   currentMana: number;
   activeTargetId: string | null;
-  ignoredTargetId: string | null;
+  ignoredTargetIds: string[];
   level: number;
   currentXp: number;
   skillPoints: number;
@@ -26,7 +29,7 @@ interface PlayerState {
   
   move: (dx: number, dy: number) => void;
   setPosition: (x: number, y: number) => void;
-  setTarget: (id: string | null, fromCancel?: boolean) => void;
+  setTarget: (id: string | null, fromCancel?: boolean, isAuto?: boolean) => void;
   takeDamage: (amount: number) => void;
   heal: (amount: number) => void;
   restoreMana: (amount: number) => void;
@@ -43,17 +46,19 @@ interface PlayerState {
 
 }
 
-export const usePlayerStore = create<PlayerState>((set, get) => ({
-  playerClass: 'Fighter',
+export const usePlayerStore = create<PlayerState>()(
+  persist(
+    (set, get) => ({
+      playerClass: 'Fighter',
   secondaryClass: 'Mage',
   position: { x: 5, y: 5 },
   currentHealth: 100,
   currentMana: 40,
   activeTargetId: null,
-  ignoredTargetId: null,
+  ignoredTargetIds: [],
   level: 1,
   currentXp: 0,
-  skillPoints: 0,
+  skillPoints: 2,
   attributePoints: 0,
   gold: 0,
   normalPityCount: 0,
@@ -99,11 +104,22 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     useVisionStore.getState().updateVision({ x, y });
   },
   
-  setTarget: (id, fromCancel = false) => set((state) => {
-    if (id === null && fromCancel && state.activeTargetId) {
-      return { activeTargetId: null, ignoredTargetId: state.activeTargetId };
+  setTarget: (id, _fromCancel = false, isAuto = false) => set((state) => {
+    let newIgnored = state.ignoredTargetIds;
+
+    // If we are changing targets, the old target was untargeted, so ignore it
+    if (state.activeTargetId && state.activeTargetId !== id) {
+       if (!newIgnored.includes(state.activeTargetId)) {
+          newIgnored = [...newIgnored, state.activeTargetId];
+       }
     }
-    return { activeTargetId: id, ignoredTargetId: id !== null ? null : state.ignoredTargetId };
+    
+    // If we manually target an enemy, remove it from the ignored list
+    if (id !== null && !isAuto && newIgnored.includes(id)) {
+      newIgnored = newIgnored.filter(ignored => ignored !== id);
+    }
+    
+    return { activeTargetId: id, ignoredTargetIds: newIgnored };
   }),
 
   takeDamage: (amount) => set((state) => {
@@ -146,8 +162,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     while (newXp >= 100 * Math.pow(newLevel, 2)) {
       newXp -= 100 * Math.pow(newLevel, 2);
       newLevel++;
-      newSkillPoints++;
-      newAttrPoints++;
+      newSkillPoints += 2;
+      newAttrPoints += 4;
       leveledUp = true;
         
         useStatsStore.getState().addModifier({
@@ -182,6 +198,11 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
 
     if (leveledUp) {
       set({ currentXp: newXp, level: newLevel, skillPoints: newSkillPoints, attributePoints: newAttrPoints });
+      
+      const activeCharId = useMetaStore.getState().activeCharacterId;
+      if (activeCharId) {
+        useMetaStore.getState().updateCharacter(activeCharId, { level: newLevel });
+      }
 
       return { leveledUp: true, newLevel };
     } else {
@@ -204,7 +225,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     const statsStore = useStatsStore.getState();
     const currentBase = statsStore.modifiers.find(m => m.id === `base_${stat.toLowerCase()}`);
     if (currentBase) {
-      statsStore.updateModifierValue(`base_${stat.toLowerCase()}`, currentBase.value + 5);
+      statsStore.updateModifierValue(`base_${stat.toLowerCase()}`, currentBase.value + 1);
     }
     
     return { attributePoints: state.attributePoints - 1 };
@@ -260,4 +281,10 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     return true;
   },
 
-}));
+    }),
+    {
+      name: 'webarpg-player',
+      storage: createJSONStorage(() => dualStorage),
+    }
+  )
+);

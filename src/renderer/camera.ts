@@ -28,18 +28,25 @@ export function createCamera(): CameraInstance {
       currentFocusX = targetFocusX;
       currentFocusY = targetFocusY;
     } else {
-      // Exponential decay lerp for framerate-independent, professional smoothing
-      const decay = 6.0; // Lowered from 12.0 for a softer, slower follow
-      const lerpFactor = 1 - Math.exp(-decay * dt);
-
-      currentFocusX += (targetFocusX - currentFocusX) * lerpFactor;
-      currentFocusY += (targetFocusY - currentFocusY) * lerpFactor;
-
-      // Snap to target if very close to prevent sub-pixel creeping
       const distSq = (targetFocusX - currentFocusX)**2 + (targetFocusY - currentFocusY)**2;
-      if (distSq < 0.00001) {
+      
+      // If the target is very far (e.g. level transition or teleport), snap immediately
+      if (distSq > 100) {
         currentFocusX = targetFocusX;
         currentFocusY = targetFocusY;
+      } else {
+        // Exponential decay lerp for framerate-independent, professional smoothing
+        const decay = 6.0; // Lowered from 12.0 for a softer, slower follow
+        const lerpFactor = 1 - Math.exp(-decay * dt);
+
+        currentFocusX += (targetFocusX - currentFocusX) * lerpFactor;
+        currentFocusY += (targetFocusY - currentFocusY) * lerpFactor;
+
+        // Snap to target if very close to prevent sub-pixel creeping
+        if (distSq < 0.00001) {
+          currentFocusX = targetFocusX;
+          currentFocusY = targetFocusY;
+        }
       }
     }
 

@@ -54,9 +54,8 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
   },
   {
     id: 'inc_mana_regen',
-    allowedTypes: ['helm', 'chest', 'gloves', 'legs', 'boots', 'shield', 'tome', 'weapon-1h', 'weapon-2h', 'amulet', 'ring'],
+    allowedTypes: ['helm', 'chest', 'gloves', 'legs', 'boots', 'shield', 'tome'],
     allowedArmorCategories: ['Caster'],
-    allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
     minLevel: 1,
     stat: 'ManaRegenPercent',
     type: 'increased',
@@ -174,7 +173,7 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     allowedTypes: ['helm', 'chest', 'gloves', 'legs', 'boots', 'shield', 'amulet'],
     allowedArmorCategories: ['Light'],
     minLevel: 1,
-    stat: 'DeflectEffect',
+    stat: 'DeflectAmount',
     type: 'flat',
     baseValue: 5,
     levelMultiplier: 0.1,
@@ -212,8 +211,20 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
   // Parry (Weapons + Amulets)
   // ----------------------------------------------------
   {
-    id: 'parry_chance',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'amulet'],
+    id: 'parry_chance_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    allowedWeaponCategories: ['Sword', 'Dagger', 'Axe', 'Scepter', 'Unarmed'],
+    minLevel: 1,
+    stat: 'ParryRating',
+    type: 'flat',
+    baseValue: 22,
+    levelMultiplier: 2.25,
+    descriptionTpl: '+{value} Parry Rating',
+    exclusivityGroup: 'Parry'
+  },
+  {
+    id: 'parry_chance_jewelry',
+    allowedTypes: ['amulet'],
     minLevel: 1,
     stat: 'ParryRating',
     type: 'flat',
@@ -223,8 +234,20 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Parry'
   },
   {
-    id: 'spell_parry_chance',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'amulet'],
+    id: 'spell_parry_chance_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    allowedWeaponCategories: ['Sword', 'Dagger', 'Axe', 'Scepter', 'Unarmed'],
+    minLevel: 1,
+    stat: 'SpellParryRating',
+    type: 'flat',
+    baseValue: 15,
+    levelMultiplier: 1.5,
+    descriptionTpl: '+{value} Spell Parry Rating',
+    exclusivityGroup: 'Parry'
+  },
+  {
+    id: 'spell_parry_chance_jewelry',
+    allowedTypes: ['amulet'],
     minLevel: 1,
     stat: 'SpellParryRating',
     type: 'flat',

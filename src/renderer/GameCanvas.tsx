@@ -11,6 +11,7 @@ import { createTileVfxRenderer } from './systems/renderTileVfx';
 import { createParticleRenderer } from './systems/renderParticles';
 import { createFogRenderer } from './systems/renderFog';
 import { setupCanvasInput, getClickTarget, unprojectScreenToWorld, getCurrentPointerClientCoords } from './input/canvasInput';
+import { extractLights } from './utils/lighting';
 import { useWorldStore } from '../store/useWorldStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useCombatStore } from '../store/useCombatStore';
@@ -48,7 +49,7 @@ export function GameCanvas() {
 
       const appState = useAppStore.getState();
       // Don't handle movement keys when paused (Space toggles pause in App)
-      if (appState.location !== 'dungeon') return;
+      if (appState.location !== 'dungeon' && appState.location !== 'town') return;
 
       const key = e.key.toLowerCase();
       pressedKeys.current.add(key);
@@ -177,7 +178,7 @@ export function GameCanvas() {
           const c = useCombatStore.getState();
           const a = useAppStore.getState();
 
-          if (a.location !== 'dungeon') {
+          if (a.location !== 'dungeon' && a.location !== 'town') {
             entities.container.visible = false;
             floor.container.visible = false;
             boundaryWalls.container.visible = false;
@@ -219,9 +220,7 @@ export function GameCanvas() {
                 const obstacle = w.grid.obstacles.find(o => o.x === newX && o.y === newY);
                 if (!obstacle) {
                   const enemy = w.getEnemyAt(newX, newY);
-                  if (enemy && !enemy.isDead) {
-                    if (p.activeTargetId !== enemy.id) p.setTarget(enemy.id);
-                  } else {
+                  if (!enemy || enemy.isDead) {
                     InputHandler.requestAction({ type: 'move', dx, dy });
                   }
                 }
@@ -299,7 +298,7 @@ export function GameCanvas() {
             const worldPos = unprojectScreenToWorld(sx, sy, projParams);
             if (worldPos) {
               hoveredTile = { x: worldPos.gx, y: worldPos.gy };
-              const target = getClickTarget(worldPos.gx, worldPos.gy);
+              const target = getClickTarget(worldPos.gx, worldPos.gy, sx, sy, projParams);
               hoveredEnemyId = target.enemyId;
               
               if (target.lootId !== hoveredLootId) {
@@ -340,6 +339,8 @@ export function GameCanvas() {
           }
 
           const vs = useVisionStore.getState();
+          const pointLights = extractLights(w.grid);
+          
           fog.update(
             projParams.panX,
             projParams.panY,
@@ -351,7 +352,7 @@ export function GameCanvas() {
             vs.exploredTiles,
             vs.visibleTiles,
             p.position,
-            w.lootDrops
+            pointLights
           );
           boundaryWalls.update(
             projParams.panX,
@@ -362,8 +363,9 @@ export function GameCanvas() {
             tileSize,
             focusWorldY,
             p.position,
-            w.lootDrops,
-            vs.visibleTiles
+            pointLights,
+            vs.visibleTiles,
+            vs.exploredTiles
           );
 
           const iconSize = BASE_ICON_SIZE * (tileSize / REF_TILE_SIZE);
@@ -392,6 +394,7 @@ export function GameCanvas() {
               [], // no hit effects during pause
               hoveredEnemyId,
               vs.visibleTiles,
+              vs.exploredTiles
             );
 
             // Targeting overlay: still works during pause for skill aiming
@@ -417,6 +420,7 @@ export function GameCanvas() {
             c.hitEffects,
             hoveredEnemyId,
             vs.visibleTiles,
+            vs.exploredTiles
           );
 
           // Targeting overlay: dim tiles outside effective range

@@ -407,6 +407,20 @@ export class SkillExecutor {
                     const elementalMult = 1 + (statsState.getStat('WeaponElementalDamage') / 100);
                     base *= elementalMult;
                 }
+             } else if (skill.tags.includes('Spell')) {
+                // Spell Enhancements
+                const effectiveness = effect.damageEffectiveness || 1.0;
+                if (finalElement === 'Strike') {
+                    base += statsState.getStat('StrikeDamageToSpells') * effectiveness;
+                } else if (finalElement === 'Pierce') {
+                    base += statsState.getStat('PierceDamageToSpells') * effectiveness;
+                } else if (finalElement === 'Fire') {
+                    base += statsState.getStat('FireDamageToSpells') * effectiveness;
+                } else if (finalElement === 'Cold') {
+                    base += statsState.getStat('ColdDamageToSpells') * effectiveness;
+                } else if (finalElement === 'Lightning') {
+                    base += statsState.getStat('LightningDamageToSpells') * effectiveness;
+                }
              }
              
              let tagIncreasedSum = 0;
@@ -452,13 +466,13 @@ export class SkillExecutor {
                       'PierceResist': (targetObj.stats.pierceResist || 0) + (targetObj.stats.physicalResist || 0),
                       'PhysicalResist': targetObj.stats.physicalResist || 0,
                       'DeflectChance': targetObj.stats.deflectChance || 0,
-                      'DeflectEffect': targetObj.stats.deflectEffect || 0,
+                      'DeflectAmount': targetObj.stats.deflectEffect || 0,
                       'Block': targetObj.stats.block || 0,
                       'SpellBlock': targetObj.stats.spellBlock || 0,
-                      'BlockEffect': targetObj.stats.blockEffect || 0,
+                      'BlockAmount': targetObj.stats.blockEffect || 0,
                       'Parry': targetObj.stats.parry || 0,
                       'SpellParry': targetObj.stats.spellParry || 0,
-                      'ParryEffect': targetObj.stats.parryEffect || 0,
+                      'ParryAmount': targetObj.stats.parryEffect || 0,
                    };
                    
                    // Enemies with block stats are assumed to have a shield for mechanic purposes
@@ -491,17 +505,11 @@ export class SkillExecutor {
                 defenderBaseBlockChance
              );
 
-             if (result === 'deflect') {
-                if (enemy.id === 'player') {
-                   addLog(`You deflected your own attack!`, 'system');
-                } else {
-                   addLog(`You missed ${enemy.name}!`, 'system');
-                }
-             } else {
-                 let resultText = '';
-                 if (result === 'block') resultText = ' (Blocked)';
-                 else if (result === 'parry') resultText = ' (Parried)';
-                 else if (result === 'crit') resultText = ' (Critical Strike!)';
+             let resultText = '';
+             if (result === 'block') resultText = ' (Blocked)';
+             else if (result === 'parry') resultText = ' (Parried)';
+             else if (result === 'deflect') resultText = ' (Deflected)';
+             else if (result === 'crit') resultText = ' (Critical Strike!)';
                  
                  // Apply Shock Multiplier
                  let shockMultiplier = 1.0;
@@ -516,7 +524,12 @@ export class SkillExecutor {
                  
                  if (enemy.id === 'player') {
                     playerState.takeDamage(actualDamage);
-                    useCombatStore.getState().addFloatingText(playerState.position.x, playerState.position.y, actualDamage.toFixed(0), { colorClass: 'text-zinc-100', isCrit: result === 'crit' });
+                    let displayString = actualDamage.toFixed(0);
+                    if (result === 'block') displayString += ' (Block)';
+                    else if (result === 'parry') displayString += ' (Parry)';
+                    else if (result === 'deflect') displayString += ' (Deflect)';
+                    
+                    useCombatStore.getState().addFloatingText(playerState.position.x, playerState.position.y, displayString, { colorClass: 'text-zinc-100', isCrit: result === 'crit' });
                     useCombatStore.getState().addHitEffect('player', playerState.position.x, playerState.position.y, vfxColor, finalElement);
                     addLog(`You hit yourself for ${actualDamage.toFixed(0)} damage!${resultText}`, 'enemy-attack');
                  } else {
@@ -528,7 +541,12 @@ export class SkillExecutor {
                     else if (finalElement === 'Cold') dmgColor = 'text-blue-300';
                     else if (finalElement === 'Lightning') dmgColor = 'text-purple-500';
                     
-                    useCombatStore.getState().addFloatingText(enemy.position.x, enemy.position.y, actualDamage.toFixed(0), { colorClass: dmgColor, isCrit: result === 'crit' });
+                    let displayString = actualDamage.toFixed(0);
+                    if (result === 'block') displayString += ' (Block)';
+                    else if (result === 'parry') displayString += ' (Parry)';
+                    else if (result === 'deflect') displayString += ' (Deflect)';
+
+                    useCombatStore.getState().addFloatingText(enemy.position.x, enemy.position.y, displayString, { colorClass: dmgColor, isCrit: result === 'crit' });
                     
                     // For AoE skills, source is the center of the cast. Otherwise, it's the player.
                     const srcX = (skill.targeting === 'Area' || skill.targeting === 'Ground') && finalTargetPos ? finalTargetPos.x : playerState.position.x;
@@ -589,7 +607,6 @@ export class SkillExecutor {
                    // Handle Kill is now centralized in useGameEngine.ts
                 }
              }
-          }
           else if (effect.type === 'heal') {
              const healAmount = (effect.baseValue || 0) * multiplier * healingMultiplier;
              if (enemy.id === 'player') {

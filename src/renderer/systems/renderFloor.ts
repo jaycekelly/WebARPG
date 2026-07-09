@@ -122,7 +122,42 @@ export function createFloorRenderer(): FloorRenderer {
       br.screenX, br.screenY,
       bl.screenX, bl.screenY
     ]);
-    bgLayer.fill({ color: COLOR_FLOOR_BG });
+    const bgColor = g.environment === 'town' ? 0x1f3d23 : COLOR_FLOOR_BG;
+    bgLayer.fill({ color: bgColor });
+
+    if (g.environment === 'town') {
+      const dirtTiles = new Set([
+        // Around campfire (2, 6)
+        '1,5', '2,5', '3,5',
+        '1,6', '2,6', '3,6',
+        '1,7', '2,7', '3,7',
+        // Around spawn (6, 6)
+        '5,5', '6,5', '7,5',
+        '5,6', '6,6', '7,6',
+        '5,7', '6,7', '7,7',
+        // Connections & Path to dungeon (10, 6)
+        '4,6', '8,6', '9,6', '10,6'
+      ]);
+      const dirtColor = 0x4a3b32; // Lighter dirt color
+      
+      for (let y = 0; y < g.height; y++) {
+        for (let x = 0; x < g.width; x++) {
+          if (dirtTiles.has(`${x},${y}`)) {
+            const p1 = projectTileToScreen(x - 0.5, y - 0.5, params);
+            const p2 = projectTileToScreen(x + 0.5, y - 0.5, params);
+            const p3 = projectTileToScreen(x + 0.5, y + 0.5, params);
+            const p4 = projectTileToScreen(x - 0.5, y + 0.5, params);
+            bgLayer.poly([
+              p1.screenX, p1.screenY,
+              p2.screenX, p2.screenY,
+              p3.screenX, p3.screenY,
+              p4.screenX, p4.screenY
+            ]);
+            bgLayer.fill({ color: dirtColor });
+          }
+        }
+      }
+    }
   }
 
   // ---- Per-frame update -----------------------------------------------------

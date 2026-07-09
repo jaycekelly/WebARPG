@@ -55,9 +55,8 @@ export class DamageCalculator {
     const deflectChance = RatingCalculator.getDeflectChance(deflectRating, defenderLevel);
     
     if (Math.random() < deflectChance) {
-      const baseDeflectEffect = 40;
-      const addedDeflectEffect = defenderStats['DeflectEffect'] || 0;
-      deflectMitigation = (baseDeflectEffect + addedDeflectEffect) / 100;
+      const deflectAmount = defenderStats['DeflectAmount'] || 0;
+      deflectMitigation = deflectAmount / 100;
     }
 
     // 3. Block or Parry (Mutually Exclusive based on equipment)
@@ -71,18 +70,16 @@ export class DamageCalculator {
       const totalBlockChance = shieldBlockChance + ratingBlockChance;
 
       if (Math.random() < totalBlockChance) {
-         const baseBlockEffect = isSpell ? 0 : 75;
-         const addedBlockEffect = defenderStats['BlockEffect'] || 0;
-         blockMitigation = (baseBlockEffect + addedBlockEffect) / 100;
+         const blockAmount = isSpell ? 0 : (defenderStats['BlockAmount'] || 0);
+         blockMitigation = blockAmount / 100;
       }
     } else if (defenderHasWeapon) {
       const parryRating = isSpell ? (defenderStats['SpellParryRating'] || 0) : (defenderStats['ParryRating'] || 0);
       const parryChance = RatingCalculator.getParryChance(parryRating, defenderLevel);
       
       if (Math.random() < parryChance) {
-         const baseParryEffect = isSpell ? 0 : 50;
-         const addedParryEffect = defenderStats['ParryEffect'] || 0;
-         parryMitigation = (baseParryEffect + addedParryEffect) / 100;
+         const parryAmount = isSpell ? 0 : (defenderStats['ParryAmount'] || 0);
+         parryMitigation = parryAmount / 100;
       }
     }
     

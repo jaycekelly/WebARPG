@@ -5,8 +5,19 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
   // Generic Damage (Weaker)
   // ----------------------------------------------------
   {
-    id: 'flat_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'flat_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    minLevel: 1,
+    stat: 'Damage',
+    type: 'flat',
+    baseValue: 3,
+    levelMultiplier: 0.045,
+    descriptionTpl: '+{value} Damage',
+    exclusivityGroup: 'Damage'
+  },
+  {
+    id: 'flat_damage_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 1,
     stat: 'Damage',
     type: 'flat',
@@ -16,8 +27,19 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Damage'
   },
   {
-    id: 'inc_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    minLevel: 1,
+    stat: 'Damage',
+    type: 'flat',
+    baseValue: 6,
+    levelMultiplier: 0.03,
+    descriptionTpl: '+{value}% Damage',
+    exclusivityGroup: 'Damage'
+  },
+  {
+    id: 'inc_damage_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 1,
     stat: 'Damage',
     type: 'flat',
@@ -31,9 +53,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
   // Delivery Methods (Damage Group)
   // ----------------------------------------------------
   {
-    id: 'inc_melee_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'amulet', 'ring'], // No Tome
+    id: 'inc_melee_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Sword', 'Dagger', 'Axe', 'Scepter', 'Unarmed'], // No Bow/Wand/Staff
+    minLevel: 1,
+    stat: 'MeleeDamage',
+    type: 'flat',
+    baseValue: 7.5,
+    levelMultiplier: 0.045,
+    descriptionTpl: '+{value}% Melee Damage',
+    exclusivityGroup: 'Damage'
+  },
+  {
+    id: 'inc_melee_damage_jewelry',
+    allowedTypes: ['amulet', 'ring'], // No Tome
     minLevel: 1,
     stat: 'MeleeDamage',
     type: 'flat',
@@ -43,9 +76,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Damage'
   },
   {
-    id: 'inc_ranged_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_ranged_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Bow', 'Wand', 'Staff'],
+    minLevel: 1,
+    stat: 'RangedDamage',
+    type: 'flat',
+    baseValue: 7.5,
+    levelMultiplier: 0.045,
+    descriptionTpl: '+{value}% Ranged Damage',
+    exclusivityGroup: 'Damage'
+  },
+  {
+    id: 'inc_ranged_damage_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 1,
     stat: 'RangedDamage',
     type: 'flat',
@@ -79,8 +123,19 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Damage'
   },
   {
-    id: 'inc_skill_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_skill_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    minLevel: 1,
+    stat: 'SkillDamage',
+    type: 'flat',
+    baseValue: 9,
+    levelMultiplier: 0.06,
+    descriptionTpl: '+{value}% Skill Damage',
+    exclusivityGroup: 'Damage'
+  },
+  {
+    id: 'inc_skill_damage_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 1,
     stat: 'SkillDamage',
     type: 'flat',
@@ -90,8 +145,19 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Damage'
   },
   {
-    id: 'inc_area_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_area_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    minLevel: 5,
+    stat: 'AreaDamage',
+    type: 'flat',
+    baseValue: 9,
+    levelMultiplier: 0.06,
+    descriptionTpl: '+{value}% Area Damage',
+    exclusivityGroup: 'Damage'
+  },
+  {
+    id: 'inc_area_damage_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 5,
     stat: 'AreaDamage',
     type: 'flat',
@@ -106,9 +172,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
   // ----------------------------------------------------
   // Slightly weaker broad types
   {
-    id: 'inc_physical_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'amulet', 'ring'],
+    id: 'inc_physical_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Sword', 'Dagger', 'Bow', 'Axe', 'Scepter', 'Unarmed'],
+    minLevel: 1,
+    stat: 'PhysicalDamage',
+    type: 'flat',
+    baseValue: 7.5,
+    levelMultiplier: 0.045,
+    descriptionTpl: '+{value}% Physical Damage',
+    exclusivityGroup: 'DamageType'
+  },
+  {
+    id: 'inc_physical_damage_jewelry',
+    allowedTypes: ['amulet', 'ring'],
     minLevel: 1,
     stat: 'PhysicalDamage',
     type: 'flat',
@@ -118,9 +195,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'DamageType'
   },
   {
-    id: 'inc_elemental_damage',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_elemental_damage_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'ElementalDamage',
+    type: 'flat',
+    baseValue: 7.5,
+    levelMultiplier: 0.045,
+    descriptionTpl: '+{value}% Elemental Damage',
+    exclusivityGroup: 'DamageType'
+  },
+  {
+    id: 'inc_elemental_damage_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 1,
     stat: 'ElementalDamage',
     type: 'flat',
@@ -138,8 +226,8 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'StrikeDamage',
     type: 'increased',
-    baseValue: 7,
-    levelMultiplier: 0.04,
+    baseValue: 10.5,
+    levelMultiplier: 0.06,
     weight: 200,
     descriptionTpl: '+{value}% Strike Damage',
     exclusivityGroup: 'DamageType'
@@ -162,8 +250,8 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'PierceDamage',
     type: 'flat',
-    baseValue: 7,
-    levelMultiplier: 0.04,
+    baseValue: 10.5,
+    levelMultiplier: 0.06,
     weight: 200,
     descriptionTpl: '+{value}% Pierce Damage',
     exclusivityGroup: 'DamageType'
@@ -186,8 +274,8 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'FireDamage',
     type: 'flat',
-    baseValue: 7,
-    levelMultiplier: 0.04,
+    baseValue: 10.5,
+    levelMultiplier: 0.06,
     weight: 200,
     descriptionTpl: '+{value}% Fire Damage',
     exclusivityGroup: 'DamageType'
@@ -210,8 +298,8 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'ColdDamage',
     type: 'flat',
-    baseValue: 7,
-    levelMultiplier: 0.04,
+    baseValue: 10.5,
+    levelMultiplier: 0.06,
     weight: 200,
     descriptionTpl: '+{value}% Cold Damage',
     exclusivityGroup: 'DamageType'
@@ -234,8 +322,8 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'LightningDamage',
     type: 'flat',
-    baseValue: 7,
-    levelMultiplier: 0.04,
+    baseValue: 10.5,
+    levelMultiplier: 0.06,
     weight: 200,
     descriptionTpl: '+{value}% Lightning Damage',
     exclusivityGroup: 'DamageType'
@@ -304,9 +392,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
   // Penetration
   // ----------------------------------------------------
   {
-    id: 'inc_phys_pen',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_phys_pen_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Sword', 'Dagger', 'Bow', 'Axe', 'Scepter', 'Unarmed'],
+    minLevel: 10,
+    stat: 'PhysicalPenetrationPercent',
+    type: 'flat', 
+    baseValue: 4.5,
+    levelMultiplier: 0.15,
+    descriptionTpl: '+{value}% Physical Penetration',
+    exclusivityGroup: 'Penetration'
+  },
+  {
+    id: 'inc_phys_pen_accessory',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 10,
     stat: 'PhysicalPenetrationPercent',
     type: 'flat', 
@@ -316,9 +415,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Penetration'
   },
   {
-    id: 'inc_strike_pen',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_strike_pen_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Sword', 'Axe', 'Scepter', 'Unarmed'],
+    minLevel: 10,
+    stat: 'StrikePenetrationPercent',
+    type: 'flat',
+    baseValue: 6,
+    levelMultiplier: 0.15,
+    descriptionTpl: '+{value}% Strike Penetration',
+    exclusivityGroup: 'Penetration'
+  },
+  {
+    id: 'inc_strike_pen_accessory',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 10,
     stat: 'StrikePenetrationPercent',
     type: 'flat',
@@ -328,9 +438,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Penetration'
   },
   {
-    id: 'inc_pierce_pen',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_pierce_pen_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Dagger', 'Bow'],
+    minLevel: 10,
+    stat: 'PiercePenetrationPercent',
+    type: 'flat',
+    baseValue: 6,
+    levelMultiplier: 0.15,
+    descriptionTpl: '+{value}% Pierce Penetration',
+    exclusivityGroup: 'Penetration'
+  },
+  {
+    id: 'inc_pierce_pen_accessory',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 10,
     stat: 'PiercePenetrationPercent',
     type: 'flat',
@@ -340,9 +461,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Penetration'
   },
   {
-    id: 'inc_fire_pen',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_fire_pen_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 10,
+    stat: 'FirePenetrationPercent',
+    type: 'flat',
+    baseValue: 6,
+    levelMultiplier: 0.15,
+    descriptionTpl: '+{value}% Fire Penetration',
+    exclusivityGroup: 'Penetration'
+  },
+  {
+    id: 'inc_fire_pen_accessory',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 10,
     stat: 'FirePenetrationPercent',
     type: 'flat',
@@ -352,9 +484,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Penetration'
   },
   {
-    id: 'inc_cold_pen',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_cold_pen_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 10,
+    stat: 'ColdPenetrationPercent',
+    type: 'flat',
+    baseValue: 6,
+    levelMultiplier: 0.15,
+    descriptionTpl: '+{value}% Cold Penetration',
+    exclusivityGroup: 'Penetration'
+  },
+  {
+    id: 'inc_cold_pen_accessory',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 10,
     stat: 'ColdPenetrationPercent',
     type: 'flat',
@@ -364,9 +507,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Penetration'
   },
   {
-    id: 'inc_lightning_pen',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_lightning_pen_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 10,
+    stat: 'LightningPenetrationPercent',
+    type: 'flat',
+    baseValue: 6,
+    levelMultiplier: 0.15,
+    descriptionTpl: '+{value}% Lightning Penetration',
+    exclusivityGroup: 'Penetration'
+  },
+  {
+    id: 'inc_lightning_pen_accessory',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 10,
     stat: 'LightningPenetrationPercent',
     type: 'flat',
@@ -376,9 +530,20 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Penetration'
   },
   {
-    id: 'inc_ele_pen',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_ele_pen_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 10,
+    stat: 'ElementalPenetrationPercent',
+    type: 'flat',
+    baseValue: 4.5,
+    levelMultiplier: 0.15,
+    descriptionTpl: '+{value}% Elemental Penetration',
+    exclusivityGroup: 'Penetration'
+  },
+  {
+    id: 'inc_ele_pen_accessory',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 10,
     stat: 'ElementalPenetrationPercent',
     type: 'flat',
@@ -392,8 +557,19 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
   // Critical
   // ----------------------------------------------------
   {
-    id: 'flat_crit_chance',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'flat_crit_chance_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    minLevel: 1,
+    stat: 'AttackCriticalStrikeChance',
+    type: 'flat',
+    baseValue: 1.5,
+    levelMultiplier: 0.075,
+    descriptionTpl: '+{value}% Base Crit Strike Chance',
+    exclusivityGroup: 'CritChance'
+  },
+  {
+    id: 'flat_crit_chance_accessory',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 1,
     stat: 'AttackCriticalStrikeChance',
     type: 'flat',
@@ -403,8 +579,19 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'CritChance'
   },
   {
-    id: 'inc_crit_chance',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_crit_chance_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    minLevel: 5,
+    stat: 'AttackCriticalStrikeChance',
+    type: 'increased',
+    baseValue: 15,
+    levelMultiplier: 0.3,
+    descriptionTpl: '+{value}% Critical Strike Chance',
+    exclusivityGroup: 'CritChance'
+  },
+  {
+    id: 'inc_crit_chance_accessory',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 5,
     stat: 'AttackCriticalStrikeChance',
     type: 'increased',
@@ -414,8 +601,18 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'CritChance'
   },
   {
-    id: 'inc_crit_multi',
-    allowedTypes: ['weapon-1h', 'weapon-2h', 'tome', 'amulet', 'ring'],
+    id: 'inc_crit_multi_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    minLevel: 5,
+    stat: 'CriticalStrikeMultiplier',
+    type: 'flat',
+    baseValue: 22.5,
+    levelMultiplier: 0.3,
+    descriptionTpl: '+{value}% Critical Strike Multiplier'
+  },
+  {
+    id: 'inc_crit_multi_accessory',
+    allowedTypes: ['tome', 'amulet', 'ring'],
     minLevel: 5,
     stat: 'CriticalStrikeMultiplier',
     type: 'flat',
@@ -434,8 +631,8 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'StrikeDamageToWeapons',
     type: 'flat',
-    baseValue: 3,
-    levelMultiplier: 0.1,
+    baseValue: 4.5,
+    levelMultiplier: 0.15,
     weight: 200,
     descriptionTpl: '+{value} Strike Damage to Attacks',
     exclusivityGroup: 'FlatDamage'
@@ -458,8 +655,8 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'PierceDamageToWeapons',
     type: 'flat',
-    baseValue: 3,
-    levelMultiplier: 0.1,
+    baseValue: 4.5,
+    levelMultiplier: 0.15,
     weight: 200,
     descriptionTpl: '+{value} Pierce Damage to Attacks',
     exclusivityGroup: 'FlatDamage'
@@ -482,8 +679,8 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'FireDamageToWeapons',
     type: 'flat',
-    baseValue: 3,
-    levelMultiplier: 0.1,
+    baseValue: 4.5,
+    levelMultiplier: 0.15,
     weight: 200,
     descriptionTpl: '+{value} Fire Damage to Attacks',
     exclusivityGroup: 'FlatDamage'
@@ -506,8 +703,8 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'ColdDamageToWeapons',
     type: 'flat',
-    baseValue: 3,
-    levelMultiplier: 0.1,
+    baseValue: 4.5,
+    levelMultiplier: 0.15,
     weight: 200,
     descriptionTpl: '+{value} Cold Damage to Attacks',
     exclusivityGroup: 'FlatDamage'
@@ -530,8 +727,8 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'LightningDamageToWeapons',
     type: 'flat',
-    baseValue: 3,
-    levelMultiplier: 0.1,
+    baseValue: 4.5,
+    levelMultiplier: 0.15,
     weight: 200,
     descriptionTpl: '+{value} Lightning Damage to Attacks',
     exclusivityGroup: 'FlatDamage'
@@ -554,8 +751,8 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     minLevel: 1,
     stat: 'WeaponElementalDamage',
     type: 'increased',
-    baseValue: 6,
-    levelMultiplier: 0.04,
+    baseValue: 9,
+    levelMultiplier: 0.06,
     weight: 200,
     descriptionTpl: '+{value}% Weapon Elemental Damage',
     exclusivityGroup: 'FlatDamage'
@@ -569,6 +766,82 @@ export const OFFENSIVE_AFFIXES: AffixTemplate[] = [
     baseValue: 6,
     levelMultiplier: 0.04,
     descriptionTpl: '+{value}% Weapon Elemental Damage',
+    exclusivityGroup: 'FlatDamage'
+  },
+
+  // ----------------------------------------------------
+  // Spell Enhancements
+  // ----------------------------------------------------
+  {
+    id: 'flat_fire_to_spells_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'FireDamageToSpells',
+    type: 'flat',
+    baseValue: 3,
+    levelMultiplier: 0.12,
+    weight: 200,
+    descriptionTpl: '+{value} Fire Damage to Spells',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'flat_fire_to_spells_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
+    minLevel: 1,
+    stat: 'FireDamageToSpells',
+    type: 'flat',
+    baseValue: 2,
+    levelMultiplier: 0.08,
+    descriptionTpl: '+{value} Fire Damage to Spells',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'flat_cold_to_spells_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'ColdDamageToSpells',
+    type: 'flat',
+    baseValue: 3,
+    levelMultiplier: 0.12,
+    weight: 200,
+    descriptionTpl: '+{value} Cold Damage to Spells',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'flat_cold_to_spells_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
+    minLevel: 1,
+    stat: 'ColdDamageToSpells',
+    type: 'flat',
+    baseValue: 2,
+    levelMultiplier: 0.08,
+    descriptionTpl: '+{value} Cold Damage to Spells',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'flat_lightning_to_spells_weapon',
+    allowedTypes: ['weapon-1h', 'weapon-2h'],
+    allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
+    minLevel: 1,
+    stat: 'LightningDamageToSpells',
+    type: 'flat',
+    baseValue: 3,
+    levelMultiplier: 0.12,
+    weight: 200,
+    descriptionTpl: '+{value} Lightning Damage to Spells',
+    exclusivityGroup: 'FlatDamage'
+  },
+  {
+    id: 'flat_lightning_to_spells_jewelry',
+    allowedTypes: ['tome', 'amulet', 'ring'],
+    minLevel: 1,
+    stat: 'LightningDamageToSpells',
+    type: 'flat',
+    baseValue: 2,
+    levelMultiplier: 0.08,
+    descriptionTpl: '+{value} Lightning Damage to Spells',
     exclusivityGroup: 'FlatDamage'
   },
 
