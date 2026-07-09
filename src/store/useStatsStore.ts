@@ -16,9 +16,9 @@ const getTreeModifiers = (): StatModifier[] => {
     const processClass = (cls: ClassType) => {
        const mPts = skillState.getTotalPointsSpent(cls);
        if (mPts > 0) {
-          if (cls === 'Fighter') treeMods.push({ id: `mastery_${cls}_str`, sourceId: `mastery_${cls}`, stat: 'Strength', type: 'flat', value: mPts * 2 });
-          else if (cls === 'Rogue') treeMods.push({ id: `mastery_${cls}_dex`, sourceId: `mastery_${cls}`, stat: 'Dexterity', type: 'flat', value: mPts * 2 });
-          else if (cls === 'Mage') treeMods.push({ id: `mastery_${cls}_int`, sourceId: `mastery_${cls}`, stat: 'Intelligence', type: 'flat', value: mPts * 2 });
+          if (cls === 'Fighter') treeMods.push({ id: `mastery_${cls}_str`, sourceId: `mastery_${cls}`, stat: 'Strength', type: 'flat', value: mPts * 3 });
+          else if (cls === 'Rogue') treeMods.push({ id: `mastery_${cls}_dex`, sourceId: `mastery_${cls}`, stat: 'Dexterity', type: 'flat', value: mPts * 3 });
+          else if (cls === 'Mage') treeMods.push({ id: `mastery_${cls}_int`, sourceId: `mastery_${cls}`, stat: 'Intelligence', type: 'flat', value: mPts * 3 });
        }
        
        const tree = SKILL_TREE[cls] || [];
@@ -60,11 +60,11 @@ interface StatsState {
 export const useStatsStore = create<StatsState>((set, get) => ({
   modifiers: [
     { id: 'base_health', sourceId: 'base_character', stat: 'Health', type: 'flat', value: 80 },
-    { id: 'base_mana', sourceId: 'base_character', stat: 'Mana', type: 'flat', value: 30 },
+    { id: 'base_energy', sourceId: 'base_character', stat: 'Energy', type: 'flat', value: 30 },
     { id: 'base_damage', sourceId: 'base_character', stat: 'WeaponDamage', type: 'flat', value: 10 },
     { id: 'base_move', sourceId: 'base_character', stat: 'MoveSpeed', type: 'flat', value: 1.33 },
     { id: 'base_hp_regen', sourceId: 'base_character', stat: 'HealthRegeneration', type: 'flat', value: 0.5 },
-    { id: 'base_mana_regen', sourceId: 'base_character', stat: 'ManaRegeneration', type: 'flat', value: 0.4 },
+    { id: 'base_energy_regen', sourceId: 'base_character', stat: 'EnergyRegeneration', type: 'flat', value: 2.5 },
     { id: 'base_deflect_amount', sourceId: 'base_character', stat: 'DeflectAmount', type: 'flat', value: 40 },
     { id: 'base_block_amount', sourceId: 'base_character', stat: 'BlockAmount', type: 'flat', value: 75 },
     { id: 'base_parry_amount', sourceId: 'base_character', stat: 'ParryAmount', type: 'flat', value: 50 },
@@ -174,25 +174,25 @@ export const useStatsStore = create<StatsState>((set, get) => ({
        }
     }
 
-    if (stat === 'Mana') {
+    if (stat === 'Energy') {
        const int = get().getStat('Intelligence');
        if (int > 0) {
          mods.push({
-           id: 'int_mana_bonus',
+           id: 'int_energy_bonus',
            sourceId: 'base_attributes',
-           stat: 'Mana',
+           stat: 'Energy',
            type: 'flat',
-           value: int * 2
+           value: int * 1
          });
        }
        const level = usePlayerStore.getState().level;
        if (level > 1) {
          mods.push({
-           id: 'level_mana_bonus',
+           id: 'level_energy_bonus',
            sourceId: 'base_attributes',
-           stat: 'Mana',
+           stat: 'Energy',
            type: 'flat',
-           value: (level - 1) * 4
+           value: (level - 1) * 3
          });
        }
     }
@@ -210,15 +210,15 @@ export const useStatsStore = create<StatsState>((set, get) => ({
        }
     }
 
-    if (stat === 'ManaRegeneration') {
+    if (stat === 'EnergyRegeneration') {
        const level = usePlayerStore.getState().level;
        if (level > 1) {
          mods.push({
-           id: 'level_mana_regen_bonus',
+           id: 'level_energy_regen_bonus',
            sourceId: 'base_attributes',
-           stat: 'ManaRegeneration',
+           stat: 'EnergyRegeneration',
            type: 'flat',
-           value: (level - 1) * 0.04
+           value: (level - 1) * 0.2
          });
        }
     }
@@ -298,7 +298,7 @@ export const useStatsStore = create<StatsState>((set, get) => ({
 
     const intStat = stats['Intelligence'] || 0;
     if (intStat > 0) {
-      stats['Mana'] = (stats['Mana'] || 0) + (intStat * 2);
+      stats['Energy'] = (stats['Energy'] || 0) + (intStat * 1);
     }
 
     const str = stats['Strength'] || 0;

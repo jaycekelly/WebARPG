@@ -1,12 +1,15 @@
 import { create } from 'zustand';
+import { globalMouseX, globalMouseY } from '../components/GlobalTooltip';
 
-export type ScreenMessageType = 'above' | 'below' | 'top';
+export type ScreenMessageType = 'above' | 'below' | 'top' | 'mouse';
 
 export interface ScreenMessage {
   id: string;
   type: ScreenMessageType;
   text: string;
   expiresAt: number;
+  x?: number;
+  y?: number;
 }
 
 interface MessageState {
@@ -23,11 +26,19 @@ export const useMessageStore = create<MessageState>((set) => ({
     const id = Math.random().toString(36).substring(2, 9);
     const expiresAt = durationMs === 0 ? Infinity : Date.now() + durationMs;
     
+    // For mouse messages, capture the current global mouse coordinates
+    let x = undefined;
+    let y = undefined;
+    if (type === 'mouse') {
+       x = globalMouseX;
+       y = globalMouseY;
+    }
+    
     set((state) => ({
       // Keep only 1 message of each type at a time to prevent overlapping spam
       messages: [
         ...state.messages.filter(m => m.expiresAt > Date.now() && m.type !== type),
-        { id, type, text, expiresAt }
+        { id, type, text, expiresAt, x, y }
       ]
     }));
 

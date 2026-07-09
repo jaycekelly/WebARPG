@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { clearVolatileSaves, setPreventSaves } from './store/storage';
+import { setRunState, setPreventSaves } from './store/storage';
 import { CharacterWindow } from './components/CharacterWindow';
 import { useGameEngine } from './engine/useGameEngine';
 import { useAppStore } from './store/useAppStore';
@@ -13,6 +13,8 @@ import { TownView } from './components/TownView';
 import { DungeonView } from './components/DungeonView';
 import { DataEditorView } from './components/DataEditorView';
 import { GlobalTooltip } from './components/GlobalTooltip';
+import { GlobalMessages } from './components/GlobalMessages';
+import { EscapeMenu } from './components/EscapeMenu';
 import { useUIScale } from './hooks/useUIScale';
 import { LevelGenerator } from './engine/world/LevelGenerator';
 import { useVisionStore } from './store/useVisionStore';
@@ -24,7 +26,7 @@ const GameOverScreen = () => {
     if (currentHealth > 0) return;
     const handleInput = () => {
        setPreventSaves(true);
-       clearVolatileSaves();
+       setRunState('town');
        sessionStorage.setItem('webarpg-skip-menu-once', 'true');
        window.location.reload();
     };
@@ -51,16 +53,48 @@ function App() {
   const { location, setLocation } = useAppStore();
 
   useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'hidden') {
+        useAppStore.getState().updateLastActiveTime();
+      } else {
+        useAppStore.getState().resumeFromBackground();
+      }
+    };
+    
+    const handleUnload = () => {
+      useAppStore.getState().updateLastActiveTime();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('beforeunload', handleUnload);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, []);
+
+  useEffect(() => {
     if (location === 'town') {
        const { grid } = useWorldStore.getState();
        if (grid.environment !== 'town') {
           LevelGenerator.initializeTown();
+       } else {
+          // If loading a save in town, default to town spawn
+          usePlayerStore.getState().setPosition(6, 6);
        }
        // Heal upon entering town
        const maxHp = useStatsStore.getState().getStat('Health');
-       const maxMana = useStatsStore.getState().getStat('Mana');
+       const maxMana = useStatsStore.getState().getStat('Energy');
        usePlayerStore.getState().heal(maxHp);
-       usePlayerStore.getState().restoreMana(maxMana);
+       usePlayerStore.getState().restoreEnergy(maxMana);
+
+       // Close all menus when entering or loading in town
+       const appState = useAppStore.getState();
+       appState.setVendorOpen(false);
+       appState.setCharacterWindowOpen(false);
+       appState.setStatsPopoutOpen(false);
+       appState.setDungeonSelectOpen(false);
     }
   }, [location]);
 
@@ -139,6 +173,16 @@ function App() {
 
       if (e.key.toLowerCase() === 'k') {
         const appState = useAppStore.getState();
+        if (appState.characterWindowOpen && appState.characterWindowTab === 'active_skills') {
+          appState.setCharacterWindowOpen(false);
+        } else {
+          appState.setCharacterWindowTab('active_skills');
+          appState.setCharacterWindowOpen(true);
+        }
+      }
+
+      if (e.key.toLowerCase() === 'p') {
+        const appState = useAppStore.getState();
         if (appState.characterWindowOpen && appState.characterWindowTab === 'skills') {
           appState.setCharacterWindowOpen(false);
         } else {
@@ -185,6 +229,15 @@ function App() {
           playerState.setTarget(null, true);
           return;
         }
+
+        // 5. Toggle Escape Menu
+        if (appState.escapeMenuOpen) {
+          appState.setEscapeMenuOpen(false);
+          appState.setPaused(false);
+        } else {
+          appState.setEscapeMenuOpen(true);
+          appState.setPaused(true, true);
+        }
       }
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
@@ -197,6 +250,7 @@ function App() {
         <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
           <DataEditorView />
           <GlobalTooltip />
+          <GlobalMessages />
         </div>
       </div>
     );
@@ -211,6 +265,8 @@ function App() {
 
         <CharacterWindow />
         <GlobalTooltip />
+        <GlobalMessages />
+        <EscapeMenu />
         <GameOverScreen />
       </div>
     </div>

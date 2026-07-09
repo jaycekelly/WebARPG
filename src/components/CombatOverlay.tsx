@@ -1,7 +1,7 @@
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
-import { InputHandler, getEffectiveCastTime, getEffectiveManaCost, getEffectiveGcd, getMainHandAttackCooldown, getOffHandAttackCooldown } from '../engine/input/InputHandler';
+import { InputHandler, getEffectiveCastTime, getEffectiveEnergyCost, getEffectiveGcd, getMainHandAttackCooldown, getOffHandAttackCooldown } from '../engine/input/InputHandler';
 import { hasLineOfSight, getChebyshevDistance } from '../engine/world/gridMath';
 import { useStatsStore } from '../store/useStatsStore';
 import { useBuffStore } from '../store/useBuffStore';
@@ -11,11 +11,11 @@ import { useInventoryStore } from '../store/useInventoryStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import { useVisionStore } from '../store/useVisionStore';
 import { useMessageStore } from '../store/useMessageStore';
-import { FlaskConical, X, Flame, ArrowUpCircle, Backpack, BookOpen } from 'lucide-react';
+import { FlaskConical, X, Flame, ArrowUpCircle, Backpack, BookOpen, Sparkles } from 'lucide-react';
 import { IconWhirl } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { SKILLS } from '../data/skills';
-import { clearVolatileSaves } from '../store/storage';
+import { setRunState } from '../store/storage';
 
 import { ICONS } from './IconLibrary';
 
@@ -24,7 +24,7 @@ const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => 
 };
 
 export function CombatOverlay() {
-  const { activeTargetId, setTarget, position, currentMana, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, lastManaFlaskTime, useManaFlask } = usePlayerStore();
+  const { activeTargetId, setTarget, position, currentEnergy, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore();
   const setContent = useTooltipStore(state => state.setContent);
   const { enemies } = useWorldStore();
   const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime } = useCombatStore();
@@ -34,23 +34,19 @@ export function CombatOverlay() {
   const { messages } = useMessageStore();
   
   const playerBuffs = entityBuffs['player'] || [];
-  const visiblePlayerBuffs = playerBuffs.filter(b => b.maxDurationMs !== null && b.maxDurationMs <= 30000 && b.buffId !== 'flask_recovery' && b.buffId !== 'mana_flask_recovery');
+  const visiblePlayerBuffs = playerBuffs.filter(b => b.maxDurationMs !== null && b.maxDurationMs <= 30000 && b.buffId !== 'flask_recovery');
   
   let expectedHealAmount = 0;
-  let expectedManaAmount = 0;
   for (const b of playerBuffs) {
       if (b.isHoT && b.hotHealPerTick && b.durationMs && b.hotTickRateMs) {
           const ticksRemaining = Math.floor(b.durationMs / b.hotTickRateMs);
           expectedHealAmount += ticksRemaining * b.hotHealPerTick;
       }
-      if (b.buffId === 'mana_flask_recovery' && b.isHoT && b.hotManaPerTick && b.durationMs && b.hotTickRateMs) {
-          const ticksRemaining = Math.floor(b.durationMs / b.hotTickRateMs);
-          expectedManaAmount += ticksRemaining * b.hotManaPerTick;
-      }
+
   }
   
   const maxHealth = getStat('Health');
-  const maxMana = getStat('Mana');
+  const maxEnergy = getStat('Energy');
   const xpRequired = 100 * Math.pow(level, 2);
 
   const target = enemies.find(e => e.id === activeTargetId && !e.isDead);
@@ -215,30 +211,7 @@ export function CombatOverlay() {
         }
       }
 
-      // Handle Mana Flask
-      if (e.key.toLowerCase() === 't') {
-        const playerState = usePlayerStore.getState();
-        const maxMp = useStatsStore.getState().getStat('Mana');
-        if (playerState.currentMana < maxMp && playerState.useManaFlask()) {
-           useBuffStore.getState().addBuff('player', {
-             buffId: 'mana_flask_recovery',
-             name: 'Mana Flask Recovery',
-             type: 'buff',
-             stackingBehavior: 'refresh',
-             durationMs: 3000,
-             maxDurationMs: 3000,
-             stacks: 1,
-             maxStacks: 1,
-             icon: 'Zap',
-             statModifiers: [],
-             isHoT: true,
-             hotTickRateMs: 50,
-             hotManaPerTick: (maxMp * 0.5) / (3000 / 50)
-           });
-           
-           useCombatStore.getState().addLog('Used Mana Flask.', 'system');
-        }
-      }
+
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -509,65 +482,7 @@ export function CombatOverlay() {
                <span className="absolute -bottom-1 left-0 text-[0.6875rem] font-bold text-white z-30 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{`R`}</span>
             </div>
             
-            {/* Mana Flask Button (Moved to absolute right of Action Bar) */}
-            <div className="absolute -top-[0.1875rem] -right-10 z-30">
-               <button 
-                 className={`relative w-8 h-8 rounded-full border flex items-center justify-center overflow-hidden transition-all focus:outline-none focus:ring-0
-                   ${now - lastManaFlaskTime >= 30000 
-                      ? 'bg-surface-deep border-border-subtle hover:border-accent'
-                      : 'bg-surface-deep border-border-subtle cursor-not-allowed opacity-80'}
-                 `}
-                 onClick={() => {
-                   if (currentMana < maxMana && useManaFlask()) {
-                      useBuffStore.getState().addBuff('player', {
-                        buffId: 'mana_flask_recovery',
-                        name: 'Mana Flask Recovery',
-                        type: 'buff',
-                        stackingBehavior: 'refresh',
-                        durationMs: 3000,
-                        maxDurationMs: 3000,
-                        stacks: 1,
-                        maxStacks: 1,
-                        icon: 'Zap',
-                        statModifiers: [],
-                        isHoT: true,
-                        hotTickRateMs: 50,
-                        hotManaPerTick: (maxMana * 0.5) / (3000 / 50)
-                      });
-                      
-                      useCombatStore.getState().addLog('Used Mana Flask.', 'system');
-                   }
-                 }}
-                 onMouseEnter={() => setContent(
-                  <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none backdrop-blur-md">
-                    <div className="font-bold text-blue-400 mb-1">
-                      Mana Flask
-                    </div>
-                    <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-border-subtle uppercase tracking-widest">
-                      30.0 CD
-                    </div>
-                    <div className="text-xs text-text-primary leading-snug mb-1">
-                      Restores <span className="text-blue-400 font-bold">50%</span> of your maximum mana over <span className="text-text-primary font-bold">3 seconds</span>.
-                    </div>
-                  </div>
-                )}
-                onMouseLeave={() => setContent(null)}
-               >
-                  <FlaskConical className="w-4 h-4 text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)] z-10" />
-                  {now - lastManaFlaskTime < 30000 && (
-                     <div 
-                       className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
-                       style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastManaFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.7) 0)` }}
-                     >
-                       <span className="text-white font-bold text-[0.625rem] z-30 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
-                         {Math.ceil((30000 - (now - lastManaFlaskTime)) / 1000)}
-                       </span>
-                     </div>
-                  )}
-               </button>
-               <span className="absolute -bottom-1 left-0 text-[0.6875rem] font-bold text-white z-30 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{`T`}</span>
-            </div>
-            
+
             {/* Health & Mana Bars */}
             <div className="flex w-full gap-1 relative z-20 mb-0">
                {/* Health Bar (slots 1-4) */}
@@ -589,23 +504,17 @@ export function CombatOverlay() {
                     {currentHealth > 0 ? Math.max(1, Math.floor(currentHealth)) : 0}/{maxHealth}
                   </div>
                </div>
-               {/* Mana Bar (slots 5-8) */}
+               {/* Energy Bar (slots 5-8) */}
                <div className="relative flex-1 h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
-                  {expectedManaAmount > 0 && (
-                    <div 
-                      className="absolute top-0 left-0 h-full bg-blue-400/70 border-r border-blue-300/50 transition-all duration-75"
-                      style={{ width: `${Math.min(100, ((currentMana + expectedManaAmount) / maxMana) * 100)}%` }}
-                    />
-                  )}
                   <div 
-                    className="absolute top-0 left-0 h-full transition-all duration-300 border-r border-blue-950"
+                    className="absolute top-0 left-0 h-full transition-all duration-300 border-r border-yellow-950"
                     style={{ 
-                      width: `${Math.min(100, (currentMana / maxMana) * 100)}%`,
-                      background: 'linear-gradient(to bottom, #2563eb 0%, #2563eb 50%, #1e40af 50%, #1e40af 100%)'
+                      width: `${Math.min(100, (currentEnergy / maxEnergy) * 100)}%`,
+                      background: 'linear-gradient(to bottom, #eab308 0%, #eab308 50%, #ca8a04 50%, #ca8a04 100%)'
                     }}
                   />
                   <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
-                    {Math.floor(currentMana)}/{maxMana}
+                    {Math.floor(currentEnergy)}/{maxEnergy}
                   </div>
                </div>
             </div>
@@ -668,14 +577,14 @@ export function CombatOverlay() {
                    castPercent = Math.min(100, (elapsed / skill.castTime) * 100);
                 }
 
-                const outOfMana = skill ? currentMana < getEffectiveManaCost(skill) : false;
+                const outOfEnergy = skill ? currentEnergy < getEffectiveEnergyCost(skill) : false;
 
                 return (
                   <div key={index} className="relative">
                     <button
                       className={`relative w-12 h-12 flex items-center justify-center rounded-lg border transition-all overflow-hidden bg-surface-base focus:outline-none focus:ring-0
                         ${isBinding ? 'border-accent bg-surface-raised animate-pulse' : 'border-border-subtle hover:border-border-strong hover:bg-surface-raised'}
-                        ${outOfMana && !isBinding ? 'opacity-50 grayscale' : ''}
+                        ${outOfEnergy && !isBinding ? 'opacity-50 grayscale' : ''}
                       `}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -725,7 +634,7 @@ export function CombatOverlay() {
                             <div className="w-56 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 text-left pointer-events-none backdrop-blur-md">
                               <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
                               <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
-                                 <span>{getEffectiveManaCost(skill)} Mana</span>
+                                 <span>{getEffectiveEnergyCost(skill)} Energy</span>
                                  <span>{skill.cooldownMs ? `${(skill.cooldownMs / 1000).toFixed(1)} CD` : 'No CD'}</span>
                               </div>
                               <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
@@ -869,7 +778,9 @@ export function CombatOverlay() {
            <p className="text-text-secondary text-lg mb-8 max-w-md text-center">Your run has ended. All dungeon progress and unbanked items have been lost.</p>
            <button 
              onClick={() => {
-               clearVolatileSaves();
+               setRunState('town');
+               useAppStore.getState().setLocation('town');
+               usePlayerStore.getState().setTarget(null, true);
                window.location.reload();
              }}
              className="px-8 py-3 bg-surface-deep border border-red-900/50 hover:border-red-500 text-red-500 hover:text-red-400 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] rounded-lg font-bold text-lg transition-all cursor-pointer"
@@ -910,7 +821,7 @@ export function CombatOverlay() {
             }}
             onMouseEnter={() => setContent(
               <div className="w-52 bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none mb-2">
-                <div className="font-bold text-sm text-text-primary mb-1 tracking-tight">Town Portal</div>
+                <div className="font-bold text-sm text-text-primary mb-1 tracking-tight">Town Portal (B)</div>
                 <div className="text-xs text-text-secondary leading-relaxed">
                   Forfeit dungeon and return to town
                 </div>
@@ -935,7 +846,7 @@ export function CombatOverlay() {
           onMouseEnter={() => setContent(
             <div className="w-auto bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1 text-left backdrop-blur-md pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
-                Inventory
+                Inventory (I)
               </div>
             </div>
           )}
@@ -947,9 +858,41 @@ export function CombatOverlay() {
           }`}
         >
           <Backpack className="w-5 h-5" />
-          {usePlayerStore(state => state.attributePoints) > 0 && (
+          {attributePoints > 0 && (
              <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse z-50">
                {usePlayerStore.getState().attributePoints}
+             </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => {
+            const appState = useAppStore.getState();
+            if (appState.characterWindowOpen && appState.characterWindowTab === 'active_skills') {
+              appState.setCharacterWindowOpen(false);
+            } else {
+              appState.setCharacterWindowTab('active_skills');
+              appState.setCharacterWindowOpen(true);
+            }
+          }}
+          onMouseEnter={() => setContent(
+            <div className="w-auto bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1 text-left backdrop-blur-md pointer-events-none mb-2">
+              <div className="text-xs text-text-primary leading-relaxed font-bold">
+                Skills (K)
+              </div>
+            </div>
+          )}
+          onMouseLeave={() => setContent(null)}
+          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
+            useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'active_skills')
+              ? 'text-accent border-accent bg-surface-deep'
+              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
+          }`}
+        >
+          <Sparkles className="w-5 h-5" />
+          {activeSkillPoints > 0 && (
+             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse z-50">
+               {usePlayerStore.getState().activeSkillPoints}
              </span>
           )}
         </button>
@@ -967,7 +910,7 @@ export function CombatOverlay() {
           onMouseEnter={() => setContent(
             <div className="w-auto bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1 text-left backdrop-blur-md pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
-                Skills
+                Passives (P)
               </div>
             </div>
           )}
@@ -979,9 +922,9 @@ export function CombatOverlay() {
           }`}
         >
           <BookOpen className="w-5 h-5" />
-          {usePlayerStore(state => state.skillPoints) > 0 && (
+          {passivePoints > 0 && (
              <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse z-50">
-               {usePlayerStore.getState().skillPoints}
+               {usePlayerStore.getState().passivePoints}
              </span>
           )}
         </button>

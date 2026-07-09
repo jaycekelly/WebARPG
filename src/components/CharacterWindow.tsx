@@ -5,6 +5,7 @@ import { useTooltipStore } from '../store/useTooltipStore';
 import { InventoryPanel } from './InventoryPanel';
 import { CharacterSheet } from './CharacterSheet';
 import { SkillTreePanel } from './SkillTreePanel';
+import { ActiveSkillPanel } from './ActiveSkillPanel';
 
 export function CharacterWindow() {
   const { 
@@ -17,7 +18,8 @@ export function CharacterWindow() {
   } = useAppStore();
   
   const attributePoints = usePlayerStore(state => state.attributePoints);
-  const skillPoints = usePlayerStore(state => state.skillPoints);
+  const passivePoints = usePlayerStore(state => state.passivePoints);
+  const activeSkillPoints = usePlayerStore(state => state.activeSkillPoints);
   const gold = usePlayerStore(state => state.gold);
   
   const showStats = statsPopoutOpen && characterWindowTab === 'inventory';
@@ -41,32 +43,53 @@ export function CharacterWindow() {
       
       {/* Header & Tabs */}
       <div className="flex items-end justify-center px-4 border-b border-border-subtle bg-surface-base flex-shrink-0 relative h-[1.375rem]">
-        <div className="flex gap-2 h-full">
+        <div className="flex gap-0 h-full">
           <button 
             onClick={() => setCharacterWindowTab('inventory')}
-            className={`relative w-16 text-[10px] uppercase tracking-widest font-black h-full transition-colors flex items-center justify-center ${characterWindowTab === 'inventory' ? 'text-accent' : 'text-text-secondary hover:text-text-primary'}`}
+            className={`relative px-0 text-[10px] uppercase tracking-widest font-black h-full transition-colors flex items-center justify-center ${characterWindowTab === 'inventory' ? 'text-accent' : 'text-text-secondary hover:text-text-primary'}`}
           >
-            <span className={`w-12 h-full flex items-center justify-center border-b-[2px] ${characterWindowTab === 'inventory' ? 'border-accent' : 'border-transparent'}`}>
-              Inv
+            <span className={`w-18 h-full flex items-center justify-center border-b-[2px] ${characterWindowTab === 'inventory' ? 'border-accent' : 'border-transparent'}`}>
+              <span className="relative">
+                Inventory
+                {attributePoints > 0 && (
+                   <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse" />
+                )}
+              </span>
             </span>
-            {attributePoints > 0 && (
-               <span className="absolute right-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse" />
-            )}
           </button>
           
+          <button 
+            onClick={() => {
+              setCharacterWindowTab('active_skills');
+              if (statsPopoutOpen) setStatsPopoutOpen(false);
+            }}
+            className={`relative px-0 text-[10px] uppercase tracking-widest font-black h-full transition-colors flex items-center justify-center ${characterWindowTab === 'active_skills' ? 'text-accent' : 'text-text-secondary hover:text-text-primary'}`}
+          >
+            <span className={`w-18 h-full flex items-center justify-center border-b-[2px] ${characterWindowTab === 'active_skills' ? 'border-accent' : 'border-transparent'}`}>
+              <span className="relative">
+                Skills
+                {activeSkillPoints > 0 && (
+                   <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse" />
+                )}
+              </span>
+            </span>
+          </button>
+
           <button 
             onClick={() => {
               setCharacterWindowTab('skills');
               if (statsPopoutOpen) setStatsPopoutOpen(false);
             }}
-            className={`relative w-16 text-[10px] uppercase tracking-widest font-black h-full transition-colors flex items-center justify-center ${characterWindowTab === 'skills' ? 'text-accent' : 'text-text-secondary hover:text-text-primary'}`}
+            className={`relative px-0 text-[10px] uppercase tracking-widest font-black h-full transition-colors flex items-center justify-center ${characterWindowTab === 'skills' ? 'text-accent' : 'text-text-secondary hover:text-text-primary'}`}
           >
-            <span className={`w-12 h-full flex items-center justify-center border-b-[2px] ${characterWindowTab === 'skills' ? 'border-accent' : 'border-transparent'}`}>
-              Skills
+            <span className={`w-18 h-full flex items-center justify-center border-b-[2px] ${characterWindowTab === 'skills' ? 'border-accent' : 'border-transparent'}`}>
+              <span className="relative">
+                Passives
+                {passivePoints > 0 && (
+                   <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse" />
+                )}
+              </span>
             </span>
-            {skillPoints > 0 && (
-               <span className="absolute right-1 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse" />
-            )}
           </button>
         </div>
         
@@ -90,6 +113,10 @@ export function CharacterWindow() {
 
         {characterWindowTab === 'skills' && (
           <SkillTreePanel />
+        )}
+
+        {characterWindowTab === 'active_skills' && (
+          <ActiveSkillPanel />
         )}
       </div>
 

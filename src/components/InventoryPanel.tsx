@@ -117,7 +117,7 @@ export function InventoryPanel() {
                     const desc = 
                       attr === 'Strength' ? 'Gives 1 armor per point' :
                       attr === 'Dexterity' ? 'Gives 1 haste rating per point' :
-                      attr === 'Intelligence' ? 'Gives 2 mana per point' :
+                      attr === 'Intelligence' ? 'Gives 1 energy per point' :
                       'Gives 4 hp per point';
                     setHoveredCustom(
                       <div className="w-60 bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none">
@@ -136,7 +136,7 @@ export function InventoryPanel() {
                    </div>
                    {attributePoints > 0 && (
                      <button 
-                       onClick={() => allocateAttribute(attr)}
+                       onClick={(e) => allocateAttribute(attr, e.shiftKey ? 5 : 1)}
                        className="w-5 h-5 rounded bg-accent/20 hover:bg-accent/40 text-accent border border-accent/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 shrink-0 shadow-[0_0_8px_rgba(56,189,248,0.4)] animate-pulse ml-0.5"
                      >
                        <Plus className="w-3 h-3" />

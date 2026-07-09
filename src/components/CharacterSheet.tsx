@@ -27,7 +27,7 @@ const STAT_CATEGORIES: StatCategory[] = [
     icon: Activity,
     stats: [
       { id: 'Health', label: 'Max Health', fractionDigits: 0 },
-      { id: 'Mana', label: 'Max Mana', fractionDigits: 0 },
+      { id: 'Energy', label: 'Max Energy', fractionDigits: 0 },
       { id: 'Armor', label: 'Armor', fractionDigits: 0 },
       { id: 'DeflectRating', label: 'Deflect Rating', fractionDigits: 0 },
       { id: 'WeaponDamage', label: 'Weapon Damage', fractionDigits: 0 },
@@ -36,13 +36,13 @@ const STAT_CATEGORIES: StatCategory[] = [
     ]
   },
   {
-    title: 'Health & Mana',
+    title: 'Health & Energy',
     icon: Heart,
     stats: [
       { id: 'HealthRegeneration', label: 'Health/sec', fractionDigits: 2 },
       { id: 'HealthRegenPercent', label: 'Health Regen', suffix: '%', fractionDigits: 1 },
-      { id: 'ManaRegeneration', label: 'Mana/sec', fractionDigits: 2 },
-      { id: 'ManaRegenPercent', label: 'Mana Regen', suffix: '%', fractionDigits: 1 },
+      { id: 'EnergyRegeneration', label: 'Energy/sec', fractionDigits: 2 },
+      { id: 'EnergyRegenPercent', label: 'Energy Regen', suffix: '%', fractionDigits: 1 },
     ]
   },
   {
@@ -148,9 +148,9 @@ const STAT_CATEGORIES: StatCategory[] = [
       { id: 'SpellVamp', label: 'Spell Vamp', suffix: '%', fractionDigits: 1 },
       { id: 'LifeGainOnHit', label: 'Life per Hit', fractionDigits: 1 },
       { id: 'LifeOnKill', label: 'Life per Kill', fractionDigits: 1 },
-      { id: 'ManaLeech', label: 'Mana Leech', suffix: '%', fractionDigits: 1 },
-      { id: 'ManaGainOnHit', label: 'Mana per Hit', fractionDigits: 1 },
-      { id: 'ManaOnKill', label: 'Mana per Kill', fractionDigits: 1 },
+      { id: 'EnergyLeech', label: 'Energy Leech', suffix: '%', fractionDigits: 1 },
+      { id: 'EnergyGainOnHit', label: 'Energy per Hit', fractionDigits: 1 },
+      { id: 'EnergyOnKill', label: 'Energy per Kill', fractionDigits: 1 },
     ]
   },
   {
@@ -160,7 +160,7 @@ const STAT_CATEGORIES: StatCategory[] = [
       { id: 'SkillReach', label: 'Skill Reach', fractionDigits: 0 },
       { id: 'CooldownReductionRating', label: 'CDR Rating', fractionDigits: 0 },
       { id: 'MoveSpeed', label: 'Move Speed', fractionDigits: 0 },
-      { id: 'ManaCostReduction', label: 'Mana Cost Reduction', suffix: '%', fractionDigits: 0 },
+      { id: 'EnergyCostReduction', label: 'Energy Cost Reduction', suffix: '%', fractionDigits: 0 },
       { id: 'BuffEffect', label: 'Buff Effect', suffix: '%', fractionDigits: 0 },
       { id: 'BuffDuration', label: 'Buff Duration', suffix: '%', fractionDigits: 0 },
       { id: 'MagicFind', label: 'Magic Find', suffix: '%', fractionDigits: 0 },
@@ -176,9 +176,9 @@ function computeTotalRegen(getStat: (stat: StatType) => number, statId: StatType
     const pctRegen = getStat('HealthRegenPercent');
     return flatRegen * (1 + pctRegen / 100);
   }
-  if (statId === 'ManaRegeneration') {
-    const flatRegen = getStat('ManaRegeneration');
-    const pctRegen = getStat('ManaRegenPercent');
+  if (statId === 'EnergyRegeneration') {
+    const flatRegen = getStat('EnergyRegeneration');
+    const pctRegen = getStat('EnergyRegenPercent');
     return flatRegen * (1 + pctRegen / 100);
   }
   return getStat(statId);
@@ -199,7 +199,7 @@ export function CharacterSheet() {
             </h3>
             <div className="bg-surface-base rounded-xl border border-border-subtle overflow-hidden shadow-inner py-0.5">
               {category.stats.map((statDef, index) => {
-                const isRegen = statDef.id === 'HealthRegeneration' || statDef.id === 'ManaRegeneration';
+                const isRegen = statDef.id === 'HealthRegeneration' || statDef.id === 'EnergyRegeneration';
                 let rawVal = isRegen ? computeTotalRegen(getStat, statDef.id) : getStat(statDef.id);
 
                 let displayVal: string;

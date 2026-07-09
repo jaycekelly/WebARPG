@@ -374,12 +374,15 @@ export function GameCanvas() {
           if (a.isPaused) {
             // Cinematic "Time Freeze" overlay
             const { width, height } = app.renderer;
-            pauseOverlay.visible = true;
-            pauseOverlay.clear();
-            
-            // Very subtle dark blue tint to freeze the world (clearer visibility)
-            pauseOverlay.rect(0, 0, width, height);
-            pauseOverlay.fill({ color: 0x05131e, alpha: 0.25 });
+            if (!a.escapeMenuOpen) {
+               pauseOverlay.visible = true;
+               pauseOverlay.clear();
+               // Very subtle dark blue tint to freeze the world (clearer visibility)
+               pauseOverlay.rect(0, 0, width, height);
+               pauseOverlay.fill({ color: 0x05131e, alpha: 0.25 });
+            } else {
+               pauseOverlay.visible = false;
+            }
 
             // Render entities (frozen) with hover target ring support
             entities.update(

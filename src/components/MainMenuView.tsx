@@ -8,6 +8,7 @@ export const MainMenuView = () => {
     const { characters, activeCharacterId, addCharacter, setActiveCharacter } = useMetaStore();
     const [view, setView] = useState<'main' | 'select' | 'create'>('main');
     const [newName, setNewName] = useState('');
+    const [selectedClass, setSelectedClass] = useState<'Fighter' | 'Rogue' | 'Ranger' | 'Mage'>('Fighter');
     
     const sortedCharacters = [...characters].sort((a, b) => b.lastPlayed - a.lastPlayed);
     
@@ -33,7 +34,7 @@ export const MainMenuView = () => {
             id,
             name: newName.trim(),
             level: 1,
-            playerClass: 'Fighter',
+            playerClass: selectedClass,
             lastPlayed: Date.now()
         });
         setActiveCharacter(id);
@@ -119,7 +120,7 @@ export const MainMenuView = () => {
                     </div>
                     
                     <div className="flex flex-col gap-1 mt-2">
-                        <label className="text-text-secondary text-xs">Character Name</label>
+                        <label className="text-text-secondary text-xs font-bold uppercase tracking-widest">Character Name</label>
                         <input 
                             type="text" 
                             className="bg-surface-base border border-border-subtle focus:border-accent rounded-lg py-2 px-3 text-text-primary outline-none transition-colors text-sm"
@@ -130,7 +131,27 @@ export const MainMenuView = () => {
                         />
                     </div>
                     
-                    <div className="flex gap-2 mt-2">
+                    <div className="flex flex-col gap-1 mt-2">
+                        <label className="text-text-secondary text-xs font-bold uppercase tracking-widest">Starting Class</label>
+                        <div className="grid grid-cols-2 gap-2">
+                            {(['Fighter', 'Rogue', 'Ranger', 'Mage'] as const).map(cls => {
+                                const isEnabled = cls === 'Fighter';
+                                const isSelected = selectedClass === cls;
+                                return (
+                                    <button
+                                        key={cls}
+                                        disabled={!isEnabled}
+                                        onClick={() => setSelectedClass(cls)}
+                                        className={`py-2 px-2 rounded-lg border text-sm font-bold transition-all ${!isEnabled ? 'opacity-30 cursor-not-allowed bg-surface-deep border-border-subtle text-text-muted' : isSelected ? 'bg-accent/10 border-accent text-accent shadow-[0_0_10px_rgba(56,189,248,0.2)]' : 'bg-surface-base hover:bg-surface-raised border-border-subtle hover:border-border-strong text-text-secondary hover:text-text-primary'}`}
+                                    >
+                                        {cls}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    
+                    <div className="flex gap-2 mt-4">
                         <button 
                             className="flex-1 bg-surface-base hover:bg-surface-raised border border-border-subtle text-text-secondary hover:text-text-primary py-2 rounded-lg transition-all font-bold text-sm"
                             onClick={() => setView('main')}
@@ -138,7 +159,7 @@ export const MainMenuView = () => {
                             Cancel
                         </button>
                         <button 
-                            className="flex-1 bg-accent/20 hover:bg-accent/30 border border-accent text-accent py-2 rounded-lg transition-all font-bold text-sm"
+                            className="flex-1 bg-accent/20 hover:bg-accent/30 border border-accent text-accent py-2 rounded-lg transition-all font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                             onClick={handleCreateChar}
                             disabled={!newName.trim()}
                         >

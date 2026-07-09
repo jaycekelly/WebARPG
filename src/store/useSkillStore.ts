@@ -36,10 +36,10 @@ export const useSkillStore = create<SkillState>()(
     const node = currentTree.find((n: any) => n.id === nodeId);
     if (!node) return false;
 
-    if (playerStore.skillPoints <= 0) return false; // No points to spend
+    if (playerStore.passivePoints <= 0) return false; // No points to spend
 
     // Check tier unlock requirement
-    const TIER_REQS = [0, 0, 4, 10, 18, 28];
+    const TIER_REQS = [0, 0, 5, 10, 15, 20];
     const requiredPoints = TIER_REQS[node.tier] || 0;
     const spent = state.getTotalPointsSpent(classType);
     
@@ -49,7 +49,7 @@ export const useSkillStore = create<SkillState>()(
     if (currentPoints >= node.maxPoints) return false;
 
     // We can allocate!
-    playerStore.addSkillPoints(-1); // Consume point
+    playerStore.addPassivePoints(-1); // Consume point
 
     set((s) => ({
       allocatedPoints: {

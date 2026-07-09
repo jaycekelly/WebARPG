@@ -1,5 +1,3 @@
-import { useAppStore } from './useAppStore';
-
 const getActiveCharPrefix = (name: string) => {
     try {
         const metaStoreRaw = localStorage.getItem('webarpg-meta');
@@ -17,6 +15,14 @@ const getActiveCharPrefix = (name: string) => {
 let preventSaves = false;
 export const setPreventSaves = (val: boolean) => preventSaves = val;
 
+export const setRunState = (state: 'town' | 'dungeon') => {
+    const prefixedName = getActiveCharPrefix('webarpg-run-state');
+    localStorage.setItem(prefixedName, state);
+    if (state === 'town') {
+        clearVolatileSaves();
+    }
+};
+
 export const dualStorage = {
   getItem: (name: string) => {
     const prefixedName = getActiveCharPrefix(name);
@@ -30,23 +36,18 @@ export const dualStorage = {
   },
   setItem: (name: string, value: string) => {
     if (preventSaves) return;
-    let location = 'town';
-    try {
-        location = useAppStore.getState().location;
-    } catch (e) {
-        // App store might not be initialized yet during initial hydration passes
-    }
     
     const prefixedName = getActiveCharPrefix(name);
+    const runStateKey = getActiveCharPrefix('webarpg-run-state');
+    const location = localStorage.getItem(runStateKey) || 'town';
     
     if (location === 'town') {
       localStorage.setItem(`${prefixedName}-town`, value);
-      // Clean up any lingering volatile save
-      localStorage.removeItem(`${prefixedName}-volatile`);
     } else {
       localStorage.setItem(`${prefixedName}-volatile`, value);
     }
   },
+
   removeItem: (name: string) => {
     const prefixedName = getActiveCharPrefix(name);
     localStorage.removeItem(`${prefixedName}-town`);

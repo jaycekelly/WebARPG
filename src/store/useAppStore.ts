@@ -9,10 +9,11 @@ interface AppState {
   location: AppLocation;
   vendorOpen: boolean;
   characterWindowOpen: boolean;
-  characterWindowTab: 'inventory' | 'skills';
+  characterWindowTab: 'inventory' | 'skills' | 'active_skills';
   statsPopoutOpen: boolean;
   isPaused: boolean;
   dungeonSelectOpen: boolean;
+  escapeMenuOpen: boolean;
   pauseTimeOffset: number;
   pauseStartTime: number | null;
   pixiFloorVisible: boolean;
@@ -20,14 +21,20 @@ interface AppState {
   setLocation: (loc: AppLocation) => void;
   setVendorOpen: (isOpen: boolean) => void;
   setCharacterWindowOpen: (isOpen: boolean) => void;
-  setCharacterWindowTab: (tab: 'inventory' | 'skills') => void;
+  setCharacterWindowTab: (tab: 'inventory' | 'skills' | 'active_skills') => void;
   setStatsPopoutOpen: (isOpen: boolean) => void;
   setDungeonSelectOpen: (isOpen: boolean) => void;
-  setPaused: (paused: boolean) => void;
+  setEscapeMenuOpen: (isOpen: boolean) => void;
+  setPaused: (paused: boolean, silent?: boolean) => void;
   togglePause: () => void;
   togglePixiFloor: () => void;
   setSelectedLootDropId: (id: string | null) => void;
   getGameTime: () => number;
+  
+  // Anti-save scumming / Offline time freeze
+  lastActiveTime: number | null;
+  updateLastActiveTime: () => void;
+  resumeFromBackground: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -39,6 +46,7 @@ export const useAppStore = create<AppState>()(
   characterWindowTab: 'inventory',
   statsPopoutOpen: false,
   dungeonSelectOpen: false,
+  escapeMenuOpen: false,
   isPaused: false,
   pauseTimeOffset: 0,
   pauseStartTime: null,
@@ -53,10 +61,11 @@ export const useAppStore = create<AppState>()(
   setCharacterWindowTab: (characterWindowTab) => set({ characterWindowTab }),
   setStatsPopoutOpen: (statsPopoutOpen) => set({ statsPopoutOpen }),
   setDungeonSelectOpen: (dungeonSelectOpen) => set({ dungeonSelectOpen }),
-  setPaused: (isPaused) => set((state) => {
+  setEscapeMenuOpen: (escapeMenuOpen) => set({ escapeMenuOpen }),
+  setPaused: (isPaused, silent = false) => set((state) => {
     if (isPaused === state.isPaused) return {};
     if (isPaused) {
-      useMessageStore.getState().addScreenMessage('top', 'TACTICAL PAUSE', 0);
+      if (!silent) useMessageStore.getState().addScreenMessage('top', 'TACTICAL PAUSE', 0);
       return { isPaused, pauseStartTime: Date.now() };
     } else {
       useMessageStore.getState().removeMessageByType('top');
@@ -86,11 +95,31 @@ export const useAppStore = create<AppState>()(
       return now - state.pauseTimeOffset - (now - state.pauseStartTime);
     }
     return now - state.pauseTimeOffset;
-  }
+  },
+  
+  lastActiveTime: null,
+  updateLastActiveTime: () => set({ lastActiveTime: Date.now() }),
+  resumeFromBackground: () => set((state) => {
+    if (state.lastActiveTime) {
+      const elapsed = Date.now() - state.lastActiveTime;
+      if (elapsed > 0) {
+        return { 
+          pauseTimeOffset: state.pauseTimeOffset + elapsed,
+          lastActiveTime: null 
+        };
+      }
+    }
+    return { lastActiveTime: null };
+  })
     }),
     {
       name: 'webarpg-app',
       storage: createJSONStorage(() => dualStorage),
+      onRehydrateStorage: () => (state) => {
+        if (state) {
+          state.resumeFromBackground();
+        }
+      }
     }
   )
 );

@@ -7,13 +7,13 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'Intelligence': 'Intelligence',
   'Vitality': 'Vitality',
 
-  // Health & Mana
+  // Health & Energy
   'Health': 'Max Health',
   'HealthRegeneration': 'Health Regen / sec',
   'HealthRegenPercent': '% Health Regen',
-  'Mana': 'Max Mana',
-  'ManaRegeneration': 'Mana Regen / sec',
-  'ManaRegenPercent': '% Mana Regen',
+  'Energy': 'Max Energy',
+  'EnergyRegeneration': 'Energy Regen / sec',
+  'EnergyRegenPercent': '% Energy Regen',
 
   // Damage
   'WeaponDamage': 'Weapon Damage',
@@ -99,15 +99,15 @@ const STAT_DISPLAY_NAMES: Record<StatType, string> = {
   'SpellVamp': '% Spellvamp',
   'LifeGainOnHit': 'Life on Hit',
   'LifeOnKill': 'Life on Kill',
-  'ManaLeech': '% Mana Leech',
-  'ManaGainOnHit': 'Mana on Hit',
-  'ManaOnKill': 'Mana on Kill',
+  'EnergyLeech': '% Energy Leech',
+  'EnergyGainOnHit': 'Energy on Hit',
+  'EnergyOnKill': 'Energy on Kill',
 
   // Misc
   'SkillReach': 'Skill Reach',
   'CooldownReductionRating': 'Cooldown Reduction Rating',
   'MoveSpeed': '% Move Speed',
-  'ManaCostReduction': '% Mana Cost Reduction',
+  'EnergyCostReduction': '% Energy Cost Reduction',
   'Tenacity': '% Tenacity',
   'BuffEffect': '% Buff Effect',
   'BuffDuration': '% Buff Duration',

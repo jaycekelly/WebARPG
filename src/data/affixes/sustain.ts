@@ -85,50 +85,50 @@ export const SUSTAIN_AFFIXES: AffixTemplate[] = [
   },
 
   // ----------------------------------------------------
-  // Mana Leech Group
+  // Energy Leech Group
   // ----------------------------------------------------
   {
-    id: 'flat_mana_leech_weapon',
+    id: 'flat_energy_leech_weapon',
     allowedTypes: ['weapon-1h', 'weapon-2h'],
     minLevel: 1,
-    stat: 'ManaLeech',
+    stat: 'EnergyLeech',
     type: 'flat',
     baseValue: 1.5,
     levelMultiplier: 0.15,
-    descriptionTpl: '+{value}% Mana Leech',
-    exclusivityGroup: 'ManaLeech'
+    descriptionTpl: '+{value}% Energy Leech',
+    exclusivityGroup: 'EnergyLeech'
   },
   {
-    id: 'flat_mana_leech_jewelry',
+    id: 'flat_energy_leech_jewelry',
     allowedTypes: ['amulet', 'ring'],
     minLevel: 1,
-    stat: 'ManaLeech',
+    stat: 'EnergyLeech',
     type: 'flat',
     baseValue: 1,
     levelMultiplier: 0.1,
-    descriptionTpl: '+{value}% Mana Leech',
-    exclusivityGroup: 'ManaLeech'
+    descriptionTpl: '+{value}% Energy Leech',
+    exclusivityGroup: 'EnergyLeech'
   },
   {
-    id: 'flat_mana_on_hit_weapon',
+    id: 'flat_energy_on_hit_weapon',
     allowedTypes: ['weapon-1h', 'weapon-2h'],
     minLevel: 1,
-    stat: 'ManaGainOnHit',
+    stat: 'EnergyGainOnHit',
     type: 'flat',
     baseValue: 1.5,
     levelMultiplier: 0.3,
-    descriptionTpl: '+{value} Mana Gain on Hit',
-    exclusivityGroup: 'ManaLeech'
+    descriptionTpl: '+{value} Energy Gain on Hit',
+    exclusivityGroup: 'EnergyLeech'
   },
   {
-    id: 'flat_mana_on_hit_jewelry',
+    id: 'flat_energy_on_hit_jewelry',
     allowedTypes: ['amulet', 'ring'],
     minLevel: 1,
-    stat: 'ManaGainOnHit',
+    stat: 'EnergyGainOnHit',
     type: 'flat',
     baseValue: 1,
     levelMultiplier: 0.2,
-    descriptionTpl: '+{value} Mana Gain on Hit',
-    exclusivityGroup: 'ManaLeech'
+    descriptionTpl: '+{value} Energy Gain on Hit',
+    exclusivityGroup: 'EnergyLeech'
   }
 ];

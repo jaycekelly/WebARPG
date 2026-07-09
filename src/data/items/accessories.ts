@@ -35,7 +35,7 @@ export const ACCESSORIES: Record<string, ItemTemplate> = {
     name: 'Sapphire Amulet',
     icon: 'amulet',
     itemType: 'amulet',
-    baseStats: [Stat('Mana', 8)],
+    baseStats: [Stat('Energy', 8)],
   },
   // #endregion
   // #endregion

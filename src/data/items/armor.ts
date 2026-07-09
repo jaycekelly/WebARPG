@@ -118,7 +118,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
   // #endregion
   // #endregion
 
-  // #region Mage Armor (Armor + Mana Regen)
+  // #region Mage Armor (Armor + Energy Regen)
   // #region Tier 1
   silk_hood: {
     id: 'silk_hood',
@@ -126,7 +126,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'helmet',
     itemType: 'helm',
     armorCategory: 'Caster',
-    baseStats: [Stat('Armor', 5), Stat('ManaRegenPercent', 5)],
+    baseStats: [Stat('Armor', 5), Stat('EnergyRegenPercent', 5)],
   },
   silk_robe: {
     id: 'silk_robe',
@@ -134,7 +134,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'chest_armor',
     itemType: 'chest',
     armorCategory: 'Caster',
-    baseStats: [Stat('Armor', 12), Stat('ManaRegenPercent', 10)],
+    baseStats: [Stat('Armor', 12), Stat('EnergyRegenPercent', 10)],
   },
   silk_leggings: {
     id: 'silk_leggings',
@@ -142,7 +142,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'leg_armor',
     itemType: 'legs',
     armorCategory: 'Caster',
-    baseStats: [Stat('Armor', 7), Stat('ManaRegenPercent', 8)],
+    baseStats: [Stat('Armor', 7), Stat('EnergyRegenPercent', 8)],
   },
   silk_gloves: {
     id: 'silk_gloves',
@@ -150,7 +150,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'gloves',
     itemType: 'gloves',
     armorCategory: 'Caster',
-    baseStats: [Stat('Armor', 3), Stat('ManaRegenPercent', 4)],
+    baseStats: [Stat('Armor', 3), Stat('EnergyRegenPercent', 4)],
   },
   silk_shoes: {
     id: 'silk_shoes',
@@ -158,7 +158,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     icon: 'boots',
     itemType: 'boots',
     armorCategory: 'Caster',
-    baseStats: [Stat('Armor', 3), Stat('ManaRegenPercent', 4)],
+    baseStats: [Stat('Armor', 3), Stat('EnergyRegenPercent', 4)],
   },
   warding_shield: {
     id: 'warding_shield',
@@ -167,7 +167,7 @@ export const ARMOR: Record<string, ItemTemplate> = {
     itemType: 'shield',
     armorCategory: 'Caster',
     baseBlockChance: 10,
-    baseStats: [Stat('Armor', 6), Stat('ManaRegenPercent', 15)],
+    baseStats: [Stat('Armor', 6), Stat('EnergyRegenPercent', 15)],
   },
   // #endregion
   // #endregion

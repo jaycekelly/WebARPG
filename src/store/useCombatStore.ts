@@ -1,5 +1,7 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { useAppStore } from './useAppStore';
+import { dualStorage } from './storage';
 
 export interface CombatLogEntry {
   id: string;
@@ -109,7 +111,9 @@ interface CombatState {
   clearQueue: () => void;
 }
 
-export const useCombatStore = create<CombatState>((set) => ({
+export const useCombatStore = create<CombatState>()(
+  persist(
+    (set) => ({
   logs: [],
   floatingTexts: [],
   hitEffects: [],
@@ -252,4 +256,10 @@ export const useCombatStore = create<CombatState>((set) => ({
 
   queueAction: (action) => set({ queuedAction: action }),
   clearQueue: () => set({ queuedAction: null })
-}));
+    }),
+    {
+      name: 'webarpg-combat',
+      storage: createJSONStorage(() => dualStorage)
+    }
+  )
+);

@@ -1,5 +1,7 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { StatType } from '../engine/stats/types';
+import { dualStorage } from './storage';
 
 export interface StatModifier {
   stat: StatType;
@@ -47,7 +49,9 @@ interface BuffState {
   };
 }
 
-export const useBuffStore = create<BuffState>((set) => ({
+export const useBuffStore = create<BuffState>()(
+  persist(
+    (set) => ({
   entityBuffs: {},
 
   addBuff: (entityId, newBuff) => {
@@ -162,4 +166,10 @@ export const useBuffStore = create<BuffState>((set) => ({
 
     return { dotEvents, hotEvents, manaEvents };
   }
-}));
+    }),
+    {
+      name: 'webarpg-buffs',
+      storage: createJSONStorage(() => dualStorage)
+    }
+  )
+);

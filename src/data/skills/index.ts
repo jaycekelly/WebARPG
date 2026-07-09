@@ -1,8 +1,10 @@
 import type { Skill } from '../../engine/skills/types';
 import { MELEE_SKILLS } from './melee';
 import { SPELL_SKILLS } from './spells';
+import { PROTOTYPE_SKILLS } from './prototype';
 
 export const SKILLS: Record<string, Skill> = {
   ...MELEE_SKILLS,
   ...SPELL_SKILLS,
+  ...PROTOTYPE_SKILLS,
 };

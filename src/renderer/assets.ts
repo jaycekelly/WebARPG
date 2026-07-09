@@ -6,14 +6,16 @@ const PADDING = 6;
 const DRAW_SIZE = TEXTURE_SIZE - PADDING * 2;
 const SCALE = DRAW_SIZE / 24; // 24 is the SVG viewBox size
 
-export type IconPathDef = {
-  paths: string[];
+export type PathItem = string | { d: string, fill?: boolean };
+
+export interface IconPathDef {
+  paths: PathItem[];
   scale?: number;
   colors?: string[];
-};
+}
 
 // ---- Icon SVG path data (from lucide-react v1.22.0, ISC license) --------------
-export const ICON_PATHS: Record<string, IconPathDef | string[]> = {
+export const ICON_PATHS: Record<string, IconPathDef | PathItem[]> = {
   // ---- Custom Hand-drawn Icons ----
   human: [
     'M12 2a3 3 0 1 0 0 6 3 3 0 1 0 0-6Z', // Head
@@ -31,8 +33,8 @@ export const ICON_PATHS: Record<string, IconPathDef | string[]> = {
     'M 3 15 H 21 A 1 1 0 0 1 22 16 V 18 A 1 1 0 0 1 21 19 H 3 A 1 1 0 0 1 2 18 V 16 A 1 1 0 0 1 3 15 Z'
   ],
   amulet: [
-    'M 12 21 A 6 6 0 1 1 12 9 A 6 6 0 1 1 12 21', // Circle
-    'M18 3A6 6 0 0 1 6 3' // Horns
+    'M 12 21 A 6 6 0 1 1 12 9 A 6 6 0 1 1 12 21', // Circle (Filled)
+    { d: 'M18 3A6 6 0 0 1 6 3', fill: false }      // Horns (Not filled to leave the U-shape open)
   ],
   staff: [
     'M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z'
@@ -269,21 +271,30 @@ function drawIcon(
   ctx.lineJoin = 'round';
 
   if (fillBackground) {
-    // First pass: fill all paths to give the icon a solid body
-    // This prevents background lights (like loot beams) from shining through hollow line art
+    // First pass: fill paths to give the icon a solid body
     ctx.fillStyle = '#18181b'; // Dark surface color
-    for (const d of paths) {
-      const p = new Path2D(d);
-      ctx.fill(p);
+    for (const item of paths) {
+      const d = typeof item === 'string' ? item : item.d;
+      const shouldFill = typeof item === 'string' ? true : item.fill !== false;
+      if (shouldFill) {
+        const p = new Path2D(d);
+        ctx.fill(p);
+      }
     }
   }
 
   // Second pass: stroke all paths to draw the icon's colored lines over the filled body
   for (let i = 0; i < paths.length; i++) {
-    const d = paths[i];
-    const pathColor = (!isArray && def.colors && def.colors[i]) ? def.colors[i] : color;
-    ctx.strokeStyle = pathColor;
+    const item = paths[i];
+    const d = typeof item === 'string' ? item : item.d;
     const p = new Path2D(d);
+    
+    if (def && !isArray && def.colors && def.colors[i]) {
+      ctx.strokeStyle = def.colors[i];
+    } else {
+      ctx.strokeStyle = color;
+    }
+    
     ctx.stroke(p);
   }
 

@@ -8,4 +8,5 @@ export const SKILL_TREE: Record<ClassType, TalentNode[]> = {
   Fighter: FIGHTER_TREE,
   Mage: [],
   Rogue: [],
+  Ranger: [],
 };

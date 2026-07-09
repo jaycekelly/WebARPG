@@ -88,10 +88,10 @@ export class SkillExecutor {
     useCombatStore.getState().triggerCombatEvent();
     
     if (cascadeDepth === 0) {
-      const reduction = statsState.getStat('ManaCostReduction');
-      const effectiveMana = Math.max(0, Math.floor(skill.manaCost * (1 - (reduction / 100))));
-      if (!playerState.useMana(effectiveMana)) {
-        addLog(`Not enough mana for ${skill.name}.`, 'system');
+      const reduction = statsState.getStat('EnergyCostReduction');
+      const effectiveEnergy = Math.max(0, Math.floor(skill.energyCost * (1 - (reduction / 100))));
+      if (!playerState.useEnergy(effectiveEnergy)) {
+        addLog(`Not enough energy for ${skill.name}.`, 'system');
         return;
       }
     }
@@ -567,8 +567,8 @@ export class SkillExecutor {
                    if (lifesteal > 0 && isAttackSkill) totalSustain += actualDamage * (lifesteal / 100);
                    if (spellVamp > 0 && !isAttackSkill) totalSustain += actualDamage * (spellVamp / 100);
                    
-                   const manaOnHit = statsState.getStat('ManaGainOnHit');
-                   const manaLeech = statsState.getStat('ManaLeech');
+                   const manaOnHit = statsState.getStat('EnergyGainOnHit');
+                   const manaLeech = statsState.getStat('EnergyLeech');
                    let totalManaSustain = 0;
                    if (manaOnHit > 0) totalManaSustain += manaOnHit;
                    if (manaLeech > 0 && isAttackSkill) totalManaSustain += actualDamage * (manaLeech / 100);
@@ -577,7 +577,7 @@ export class SkillExecutor {
                    const targetObj = worldState.enemies.find(e => e.id === enemy.id);
                    if (targetObj && targetObj.health <= actualDamage) {
                        const lifeOnKill = statsState.getStat('LifeOnKill');
-                       const manaOnKill = statsState.getStat('ManaOnKill');
+                       const manaOnKill = statsState.getStat('EnergyOnKill');
                        if (lifeOnKill > 0) totalSustain += lifeOnKill;
                        if (manaOnKill > 0) totalManaSustain += manaOnKill;
                    }
@@ -586,7 +586,7 @@ export class SkillExecutor {
                      playerState.heal(totalSustain);
                    }
                    if (totalManaSustain > 0) {
-                     playerState.restoreMana(totalManaSustain);
+                     playerState.restoreEnergy(totalManaSustain);
                    }
                    
                    // Cascade

@@ -80,7 +80,7 @@ export interface Skill {
   
   tags: SkillTag[];
   
-  manaCost: number;
+  energyCost: number;
   range: number; // 0 for self, >0 for targeted
   cooldownMs?: number; // Specific cooldown for this skill
   gcdDuration: number;
@@ -96,4 +96,8 @@ export interface Skill {
   
   // The escape hatch for bizarre edge-case skills
   onExecute?: (sourceId: string, targetId: string) => void;
+  
+  // Unlock Requirements
+  requiredLevel?: number;
+  classRequirement?: string;
 }

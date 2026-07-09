@@ -44,7 +44,7 @@ export const GameIcon = (name: string) => (props: any) => {
       strokeLinejoin="round"
     >
       <g transform={transform}>
-        {paths.map((p: string, i: number) => <path key={i} d={p} />)}
+        {paths.map((p: any, i: number) => <path key={i} d={typeof p === 'string' ? p : p.d} fill={p.fill ? "currentColor" : "none"} />)}
       </g>
     </svg>
   );

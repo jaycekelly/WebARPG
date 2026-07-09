@@ -86,14 +86,14 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'Junk'
   },
   {
-    id: 'flat_mana_on_kill',
+    id: 'flat_energy_on_kill',
     allowedTypes: ['amulet', 'ring'],
     minLevel: 1,
-    stat: 'ManaOnKill',
+    stat: 'EnergyOnKill',
     type: 'flat',
     baseValue: 3,
     levelMultiplier: 0.2,
-    descriptionTpl: '+{value} Mana on Kill',
+    descriptionTpl: '+{value} Energy on Kill',
     exclusivityGroup: 'Junk'
   },
 
@@ -145,26 +145,26 @@ export const MISC_AFFIXES: AffixTemplate[] = [
     descriptionTpl: '+{value} CDR Rating'
   },
   {
-    id: 'inc_mana_cost_reduction_weapon',
+    id: 'inc_energy_cost_reduction_weapon',
     allowedTypes: ['weapon-1h', 'weapon-2h'],
     allowedWeaponCategories: ['Wand', 'Staff', 'Scepter'],
     minLevel: 5,
-    stat: 'ManaCostReduction',
+    stat: 'EnergyCostReduction',
     type: 'increased',
     baseValue: 7.5,
     levelMultiplier: 0.15,
-    descriptionTpl: '-{value}% Mana Costs'
+    descriptionTpl: '-{value}% Energy Costs'
   },
   {
-    id: 'inc_mana_cost_reduction_accessory',
+    id: 'inc_energy_cost_reduction_accessory',
     allowedTypes: ['shield', 'tome', 'amulet', 'ring'],
     allowedArmorCategories: ['Caster'],
     minLevel: 5,
-    stat: 'ManaCostReduction',
+    stat: 'EnergyCostReduction',
     type: 'increased',
     baseValue: 5,
     levelMultiplier: 0.1,
-    descriptionTpl: '-{value}% Mana Costs'
+    descriptionTpl: '-{value}% Energy Costs'
   },
 
   // ----------------------------------------------------

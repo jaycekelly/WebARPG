@@ -27,42 +27,29 @@ export const DEFENSIVE_AFFIXES: AffixTemplate[] = [
     exclusivityGroup: 'HealthRegen'
   },
   
-  // Mana
   {
-    id: 'flat_mana',
-    allowedTypes: ['helm', 'chest', 'gloves', 'legs', 'boots', 'shield', 'tome', 'amulet', 'ring'],
-    allowedArmorCategories: ['Caster'],
-    minLevel: 1,
-    stat: 'Mana',
-    type: 'flat',
-    baseValue: 4,
-    levelMultiplier: 0.05,
-    descriptionTpl: '+{value} Max Mana',
-    exclusivityGroup: 'MaxMana'
-  },
-  {
-    id: 'inc_mana',
+    id: 'inc_energy',
     allowedTypes: ['helm', 'chest', 'gloves', 'legs', 'boots', 'shield', 'tome', 'amulet', 'ring'],
     allowedArmorCategories: ['Caster'],
     minLevel: 5,
-    stat: 'Mana',
+    stat: 'Energy',
     type: 'increased',
     baseValue: 3,
     levelMultiplier: 0.04,
-    descriptionTpl: '+{value}% Max Mana',
-    exclusivityGroup: 'MaxMana'
+    descriptionTpl: '+{value}% Max Energy',
+    exclusivityGroup: 'MaxEnergy'
   },
   {
-    id: 'inc_mana_regen',
+    id: 'inc_energy_regen',
     allowedTypes: ['helm', 'chest', 'gloves', 'legs', 'boots', 'shield', 'tome'],
     allowedArmorCategories: ['Caster'],
     minLevel: 1,
-    stat: 'ManaRegenPercent',
+    stat: 'EnergyRegenPercent',
     type: 'increased',
     baseValue: 10,
     levelMultiplier: 0.05,
-    descriptionTpl: '+{value}% Mana Regen',
-    exclusivityGroup: 'ManaRegen'
+    descriptionTpl: '+{value}% Energy Regen',
+    exclusivityGroup: 'EnergyRegen'
   },
   
   // Armor (Generic Defense, allowed on everything except weapons)

@@ -17,13 +17,13 @@ export type StatType =
   | 'Intelligence'
   | 'Vitality'
 
-  // Health & Mana
+  // Health & Energy
   | 'Health'
   | 'HealthRegeneration'
   | 'HealthRegenPercent'
-  | 'Mana'
-  | 'ManaRegeneration'
-  | 'ManaRegenPercent'
+  | 'Energy'
+  | 'EnergyRegeneration'
+  | 'EnergyRegenPercent'
 
   // Damage
   | 'WeaponDamage'
@@ -111,15 +111,15 @@ export type StatType =
   | 'SpellVamp'
   | 'LifeGainOnHit'
   | 'LifeOnKill'
-  | 'ManaLeech'
-  | 'ManaGainOnHit'
-  | 'ManaOnKill'
+  | 'EnergyLeech'
+  | 'EnergyGainOnHit'
+  | 'EnergyOnKill'
 
   // Misc
   | 'SkillReach'
   | 'CooldownReductionRating'
   | 'MoveSpeed'
-  | 'ManaCostReduction'
+  | 'EnergyCostReduction'
   | 'Tenacity'
   | 'BuffEffect'
   | 'BuffDuration'

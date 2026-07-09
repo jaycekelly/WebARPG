@@ -1,1 +1,1 @@
-export type ClassType = 'Fighter' | 'Mage' | 'Rogue';
+export type ClassType = 'Fighter' | 'Mage' | 'Rogue' | 'Ranger';

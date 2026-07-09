@@ -13,36 +13,38 @@ interface PlayerState {
   secondaryClass: ClassType | null;
   position: { x: number; y: number };
   currentHealth: number;
-  currentMana: number;
+  currentEnergy: number;
   activeTargetId: string | null;
   ignoredTargetIds: string[];
   level: number;
   currentXp: number;
-  skillPoints: number;
+  passivePoints: number;
+  activeSkillPoints: number;
   attributePoints: number;
   gold: number;
   normalPityCount: number;
   magicPityCount: number;
   boundSkills: (string | null)[];
   lastFlaskTime: number;
-  lastManaFlaskTime: number;
+
   
   move: (dx: number, dy: number) => void;
   setPosition: (x: number, y: number) => void;
   setTarget: (id: string | null, fromCancel?: boolean, isAuto?: boolean) => void;
+  setSecondaryClass: (cls: ClassType | null) => void;
   takeDamage: (amount: number) => void;
   heal: (amount: number) => void;
-  restoreMana: (amount: number) => void;
-  useMana: (amount: number) => boolean;
+  restoreEnergy: (amount: number) => void;
+  useEnergy: (amount: number) => boolean;
   addXp: (amount: number) => { leveledUp: boolean, newLevel: number };
   addGold: (amount: number) => void;
-  addSkillPoints: (amount: number) => void;
-  allocateAttribute: (stat: 'Strength' | 'Dexterity' | 'Intelligence' | 'Vitality') => void;
+  addPassivePoints: (amount: number) => void;
+  addActiveSkillPoints: (amount: number) => void;
+  allocateAttribute: (stat: 'Strength' | 'Dexterity' | 'Intelligence' | 'Vitality', amount?: number) => void;
   incrementPity: (rarity: 'Normal' | 'Magic') => void;
   resetPity: (rarity: 'Normal' | 'Magic') => void;
   bindSkill: (slotIndex: number, skillId: string | null) => void;
   useFlask: () => boolean;
-  useManaFlask: () => boolean;
 
 }
 
@@ -50,22 +52,22 @@ export const usePlayerStore = create<PlayerState>()(
   persist(
     (set, get) => ({
       playerClass: 'Fighter',
-  secondaryClass: 'Mage',
+  secondaryClass: null,
   position: { x: 5, y: 5 },
   currentHealth: 100,
-  currentMana: 40,
+  currentEnergy: 35,
   activeTargetId: null,
   ignoredTargetIds: [],
   level: 1,
   currentXp: 0,
-  skillPoints: 2,
+  passivePoints: 1,
+  activeSkillPoints: 2,
   attributePoints: 0,
   gold: 0,
   normalPityCount: 0,
   magicPityCount: 0,
   boundSkills: ['heavy_strike', 'charge_attack', 'fireball', null, null, null, null, null],
   lastFlaskTime: 0,
-  lastManaFlaskTime: 0,
   move: (dx, dy) => {
     let moved = false;
     let nextPos: { x: number, y: number } | undefined;
@@ -103,6 +105,8 @@ export const usePlayerStore = create<PlayerState>()(
     set({ position: { x, y } });
     useVisionStore.getState().updateVision({ x, y });
   },
+
+  setSecondaryClass: (cls) => set({ secondaryClass: cls }),
   
   setTarget: (id, _fromCancel = false, isAuto = false) => set((state) => {
     let newIgnored = state.ignoredTargetIds;
@@ -135,16 +139,16 @@ export const usePlayerStore = create<PlayerState>()(
     return { currentHealth: newHealth };
   }),
 
-  restoreMana: (amount) => set((state) => {
-    const maxMana = useStatsStore.getState().getStat('Mana');
-    const newMana = Math.min(maxMana, state.currentMana + amount);
-    return { currentMana: newMana };
+  restoreEnergy: (amount) => set((state) => {
+    const maxEnergy = useStatsStore.getState().getStat('Energy');
+    const newEnergy = Math.min(maxEnergy, state.currentEnergy + amount);
+    return { currentEnergy: newEnergy };
   }),
 
-  useMana: (amount) => {
-    const { currentMana } = get();
-    if (currentMana >= amount) {
-      set({ currentMana: currentMana - amount });
+  useEnergy: (amount) => {
+    const { currentEnergy } = get();
+    if (currentEnergy >= amount) {
+      set({ currentEnergy: currentEnergy - amount });
       return true;
     }
     return false;
@@ -154,16 +158,18 @@ export const usePlayerStore = create<PlayerState>()(
     const state = get();
     let newXp = state.currentXp + amount;
     let newLevel = state.level;
-    let newSkillPoints = state.skillPoints;
+    let newPassivePoints = state.passivePoints;
+    let newActiveSkillPoints = state.activeSkillPoints;
     let newAttrPoints = state.attributePoints;
     let leveledUp = false;
 
     // We use a while loop in case they gain enough XP to gain multiple levels
-    while (newXp >= 100 * Math.pow(newLevel, 2)) {
+    while (newLevel < 50 && newXp >= 100 * Math.pow(newLevel, 2)) {
       newXp -= 100 * Math.pow(newLevel, 2);
       newLevel++;
-      newSkillPoints += 2;
-      newAttrPoints += 4;
+      newPassivePoints += 1;
+      newActiveSkillPoints += newLevel <= 38 ? 2 : 1;
+      newAttrPoints += 5;
       leveledUp = true;
         
         useStatsStore.getState().addModifier({
@@ -174,30 +180,20 @@ export const usePlayerStore = create<PlayerState>()(
           value: 10
         });
         useStatsStore.getState().addModifier({
-          id: `lvl_mana_${newLevel}_${Math.random()}`,
-          sourceId: 'base_character_leveling',
-          stat: 'Mana',
-          type: 'flat',
-          value: 10
-        });
-        useStatsStore.getState().addModifier({
           id: `lvl_hpregen_${newLevel}_${Math.random()}`,
           sourceId: 'base_character_leveling',
           stat: 'HealthRegeneration',
           type: 'flat',
           value: 0.025
         });
-        useStatsStore.getState().addModifier({
-          id: `lvl_manaregen_${newLevel}_${Math.random()}`,
-          sourceId: 'base_character_leveling',
-          stat: 'ManaRegeneration',
-          type: 'flat',
-          value: 0.1
-        });
+    }
+
+    if (newLevel >= 50) {
+      newXp = 0; // Cap XP at max level
     }
 
     if (leveledUp) {
-      set({ currentXp: newXp, level: newLevel, skillPoints: newSkillPoints, attributePoints: newAttrPoints });
+      set({ currentXp: newXp, level: newLevel, passivePoints: newPassivePoints, activeSkillPoints: newActiveSkillPoints, attributePoints: newAttrPoints });
       
       const activeCharId = useMetaStore.getState().activeCharacterId;
       if (activeCharId) {
@@ -215,20 +211,25 @@ export const usePlayerStore = create<PlayerState>()(
     gold: state.gold + amount
   })),
 
-  addSkillPoints: (amount) => set((state) => ({
-    skillPoints: Math.max(0, state.skillPoints + amount)
+  addPassivePoints: (amount) => set((state) => ({
+    passivePoints: Math.max(0, state.passivePoints + amount)
+  })),
+
+  addActiveSkillPoints: (amount) => set((state) => ({
+    activeSkillPoints: Math.max(0, state.activeSkillPoints + amount)
   })),
   
-  allocateAttribute: (stat) => set((state) => {
+  allocateAttribute: (stat, amount = 1) => set((state) => {
     if (state.attributePoints <= 0) return state;
     
+    const allocAmount = Math.min(state.attributePoints, amount);
     const statsStore = useStatsStore.getState();
     const currentBase = statsStore.modifiers.find(m => m.id === `base_${stat.toLowerCase()}`);
     if (currentBase) {
-      statsStore.updateModifierValue(`base_${stat.toLowerCase()}`, currentBase.value + 1);
+      statsStore.updateModifierValue(`base_${stat.toLowerCase()}`, currentBase.value + allocAmount);
     }
     
-    return { attributePoints: state.attributePoints - 1 };
+    return { attributePoints: state.attributePoints - allocAmount };
   }),
 
   incrementPity: (rarity) => set((state) => {
@@ -269,17 +270,6 @@ export const usePlayerStore = create<PlayerState>()(
     return true;
   },
 
-  useManaFlask: () => {
-    const { lastManaFlaskTime } = get();
-    const now = useAppStore.getState().getGameTime();
-    
-    if (now - lastManaFlaskTime < 30000) {
-      return false;
-    }
-    
-    set({ lastManaFlaskTime: now });
-    return true;
-  },
 
     }),
     {

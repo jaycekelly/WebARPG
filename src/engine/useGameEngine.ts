@@ -7,7 +7,7 @@ import { InputHandler, getMainHandAttackCooldown, getOffHandAttackCooldown } fro
 import { useStatsStore } from '../store/useStatsStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useSkillStore } from '../store/useSkillStore';
-import { clearVolatileSaves } from '../store/storage';
+import { setRunState } from '../store/storage';
 import type { SkillTag } from './skills/types';
 import { SKILLS } from '../data/skills';
 import { SkillExecutor } from './skills/executor';
@@ -82,7 +82,7 @@ export function useGameEngine() {
 
       manaEvents.forEach(event => {
         if (event.entityId === 'player') {
-          usePlayerStore.getState().restoreMana(event.manaAmount);
+          usePlayerStore.getState().restoreEnergy(event.manaAmount);
         }
       });
 
@@ -97,9 +97,9 @@ export function useGameEngine() {
       const totalHpRegen = baseHpRegen * (1 + (hpRegenPercent / 100));
       accumulatedHpRegen += totalHpRegen * dtSec;
       
-      const maxMana = statsState.getStat('Mana');
-      const manaRegenFlat = statsState.getStat('ManaRegeneration');
-      const manaRegenPercent = statsState.getStat('ManaRegenPercent');
+      const maxMana = statsState.getStat('Energy');
+      const manaRegenFlat = statsState.getStat('EnergyRegeneration');
+      const manaRegenPercent = statsState.getStat('EnergyRegenPercent');
       
       const baseManaRegen = manaRegenFlat;
       const totalManaRegen = baseManaRegen * (1 + (manaRegenPercent / 100));
@@ -110,8 +110,8 @@ export function useGameEngine() {
         if (accumulatedHpRegen > 0 && playerState.currentHealth < maxHp && playerState.currentHealth > 0) {
             usePlayerStore.getState().heal(accumulatedHpRegen);
         }
-        if (accumulatedManaRegen > 0 && playerState.currentMana < maxMana && playerState.currentHealth > 0) {
-            usePlayerStore.getState().restoreMana(accumulatedManaRegen);
+        if (accumulatedManaRegen > 0 && playerState.currentEnergy < maxMana && playerState.currentHealth > 0) {
+            usePlayerStore.getState().restoreEnergy(accumulatedManaRegen);
         }
         accumulatedHpRegen = 0;
         accumulatedManaRegen = 0;
@@ -167,7 +167,7 @@ export function useGameEngine() {
       // Handle Cast Completions
       if (castingSkillId && castEndTime > 0 && now >= castEndTime) {
         if (castingSkillId === 'portal_skill') {
-           clearVolatileSaves();
+           setRunState('town');
            useAppStore.getState().setLocation('town');
            usePlayerStore.getState().setTarget(null, true);
            // Force stores to save to town immediately
@@ -175,6 +175,8 @@ export function useGameEngine() {
            useInventoryStore.setState(s => ({ ...s }));
            useSkillStore.setState(s => ({ ...s }));
            useWorldStore.setState(s => ({ ...s }));
+           useCombatStore.setState(s => ({ ...s }));
+           useBuffStore.setState(s => ({ ...s }));
            setCasting(null);
            return;
         }
@@ -189,9 +191,18 @@ export function useGameEngine() {
               execTargetPos = currentTarget.position;
             }
           }
-          SkillExecutor.execute(skill, combatState.castTargetId, execTargetPos);
+          
+          try {
+             SkillExecutor.execute(skill, combatState.castTargetId, execTargetPos);
+          } catch (execErr) {
+             console.error('Skill Execution Error:', execErr);
+             combatState.addLog(`SPELL EXECUTION CRASH: ${execErr instanceof Error ? execErr.message : String(execErr)}`, 'system');
+          } finally {
+             setCasting(null);
+          }
+        } else {
+          setCasting(null);
         }
-        setCasting(null);
       }
 
       // Auto Target Checking
@@ -352,21 +363,21 @@ export function useGameEngine() {
                  if (lifeOnHit > 0) totalSustain += lifeOnHit;
                  if (lifesteal > 0) totalSustain += finalDamage * (lifesteal / 100);
                  
-                 const manaOnHit = statsState.getStat('ManaGainOnHit');
-                 const manaLeech = statsState.getStat('ManaLeech');
+                 const manaOnHit = statsState.getStat('EnergyGainOnHit');
+                 const manaLeech = statsState.getStat('EnergyLeech');
                  let totalManaSustain = 0;
                  if (manaOnHit > 0) totalManaSustain += manaOnHit;
                  if (manaLeech > 0) totalManaSustain += finalDamage * (manaLeech / 100);
                  
                  if (target.health <= finalDamage) {
                      const lifeOnKill = statsState.getStat('LifeOnKill');
-                     const manaOnKill = statsState.getStat('ManaOnKill');
+                     const manaOnKill = statsState.getStat('EnergyOnKill');
                      if (lifeOnKill > 0) totalSustain += lifeOnKill;
                      if (manaOnKill > 0) totalManaSustain += manaOnKill;
                  }
                  
                  if (totalSustain > 0) usePlayerStore.getState().heal(totalSustain);
-                 if (totalManaSustain > 0) usePlayerStore.getState().restoreMana(totalManaSustain);
+                 if (totalManaSustain > 0) usePlayerStore.getState().restoreEnergy(totalManaSustain);
               }
               return true;
             }

@@ -20,9 +20,9 @@ const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => 
   return Math.max(Math.abs(p1.x - p2.x), Math.abs(p1.y - p2.y));
 };
 
-export const getEffectiveManaCost = (skill: Skill) => {
-  const reduction = useStatsStore.getState().getStat('ManaCostReduction');
-  return Math.max(0, Math.floor(skill.manaCost * (1 - (reduction / 100))));
+export const getEffectiveEnergyCost = (skill: Skill) => {
+  const reduction = useStatsStore.getState().getStat('EnergyCostReduction');
+  return Math.max(0, Math.floor(skill.energyCost * (1 - (reduction / 100))));
 };
 
 export const getEffectiveGcd = (skill: Skill) => {
@@ -147,7 +147,7 @@ export class InputHandler {
     }
 
     const { addLog, triggerGcd, setCasting } = combatState;
-    const { position, currentMana } = playerState;
+    const { position, currentEnergy } = playerState;
 
     const target = tId ? worldState.enemies.find(e => e.id === tId) : undefined;
 
@@ -168,11 +168,11 @@ export class InputHandler {
       }
     }
 
-    // Check Mana
-    const effectiveMana = getEffectiveManaCost(skill);
-    if (currentMana < effectiveMana) {
-      combatState.addFloatingText(position.x, position.y, 'Not Enough Mana', { colorClass: 'text-blue-400' });
-      addLog(`Not enough mana for ${skill.name}.`, 'system');
+    // Check Energy
+    const effectiveEnergy = getEffectiveEnergyCost(skill);
+    if (currentEnergy < effectiveEnergy) {
+      combatState.addFloatingText(position.x, position.y, 'Not Enough Energy', { colorClass: 'text-yellow-400' });
+      addLog(`Not enough energy for ${skill.name}.`, 'system');
       return;
     }
 

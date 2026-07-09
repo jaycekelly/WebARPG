@@ -7,7 +7,7 @@ export const SPELL_SKILLS: Record<string, Skill> = {
     description: 'Hurl a fiery projectile that explodes on impact.',
     icon: 'Flame',
     tags: ['Spell', 'Fire', 'Area'],
-    manaCost: 10,
+    energyCost: 10,
     range: 5,
     cooldownMs: 10000,
     gcdDuration: 1300,
@@ -21,5 +21,7 @@ export const SPELL_SKILLS: Record<string, Skill> = {
     effects: [
       { type: 'damage', element: 'Fire', baseValue: 25, damageEffectiveness: 1.5 },
     ],
+    requiredLevel: 0,
+    classRequirement: 'Mage'
   },
 };

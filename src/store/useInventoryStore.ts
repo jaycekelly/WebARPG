@@ -132,7 +132,7 @@ export const useInventoryStore = create<InventoryState>()(
         // Global Combat Lockout Check
         const combatState = useCombatStore.getState();
         if (useAppStore.getState().getGameTime() - combatState.lastCombatEventTime < 5000) {
-          useMessageStore.getState().addScreenMessage('above', 'Cannot change equipment in combat', 4000);
+          useMessageStore.getState().addScreenMessage('mouse', "Can't change gear in combat!", 1500);
           return;
         }
 
@@ -216,7 +216,7 @@ export const useInventoryStore = create<InventoryState>()(
         // Global Combat Lockout Check
         const combatState = useCombatStore.getState();
         if (useAppStore.getState().getGameTime() - combatState.lastCombatEventTime < 5000) {
-          useMessageStore.getState().addScreenMessage('above', 'Cannot change equipment in combat', 4000);
+          useMessageStore.getState().addScreenMessage('mouse', "Can't change gear in combat!", 1500);
           return;
         }
 
@@ -304,28 +304,40 @@ export const useInventoryStore = create<InventoryState>()(
 // Initialize starter gear if the player has nothing
 setTimeout(() => {
   const store = useInventoryStore.getState();
+  const playerClass = usePlayerStore.getState().playerClass;
   if (Object.keys(store.equipment).length === 0 && store.inventory.filter(Boolean).length === 0) {
-     const sword = ItemGenerator.generateUnique('bronze_sword', 1);
-     const shield = ItemGenerator.generateUnique('iron_shield', 1);
-     const chest = ItemGenerator.generateUnique('iron_chest', 1);
-     const legs = ItemGenerator.generateUnique('iron_legs', 1);
+     let starterItems: (Item | null)[] = [];
      
-     if (sword) sword.rarity = 'Normal';
-     if (shield) shield.rarity = 'Normal';
-     if (chest) chest.rarity = 'Normal';
-     if (legs) legs.rarity = 'Normal';
+     switch (playerClass) {
+        case 'Fighter':
+        default:
+           const sword = ItemGenerator.generateUnique('bronze_sword', 1);
+           const shield = ItemGenerator.generateUnique('iron_shield', 1);
+           const chest = ItemGenerator.generateUnique('iron_chest', 1);
+           const legs = ItemGenerator.generateUnique('iron_legs', 1);
+           
+           if (sword) sword.rarity = 'Normal';
+           if (shield) shield.rarity = 'Normal';
+           if (chest) chest.rarity = 'Normal';
+           if (legs) legs.rarity = 'Normal';
+           
+           starterItems = [sword, shield, chest, legs];
+           break;
+        // In the future, add cases for Mage, Rogue, Ranger here
+     }
      
      // Loot into inventory first so they get consecutive slots
-     if (sword) store.lootItem(sword, true);
-     if (shield) store.lootItem(shield, true);
-     if (chest) store.lootItem(chest, true);
-     if (legs) store.lootItem(legs, true);
+     starterItems.forEach((item) => {
+        if (item) {
+           store.lootItem(item, true);
+        }
+     });
      
-     // With sparse array, items land at indices 0,1,2,3. Equip by explicit index.
-     // After each equip the slot becomes null but indices don't shift.
-     if (sword) store.equip(0);
-     if (shield) store.equip(1);
-     if (chest) store.equip(2);
-     if (legs) store.equip(3);
+     // Equip them sequentially
+     starterItems.forEach((item, index) => {
+        if (item) {
+           store.equip(index);
+        }
+     });
   }
 }, 100);

@@ -2,11 +2,13 @@ import { useAppStore } from '../store/useAppStore';
 import { Map, ArrowRight, X } from 'lucide-react';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { LevelGenerator } from '../engine/world/LevelGenerator';
+import { setRunState } from '../store/storage';
 
 export function TownView() {
   const { setLocation, dungeonSelectOpen, setDungeonSelectOpen } = useAppStore();
 
   const handleEnterDungeon = () => {
+    setRunState('dungeon');
     LevelGenerator.initializeDungeon(40, 40, usePlayerStore.getState().level);
     setDungeonSelectOpen(false);
     setLocation('dungeon');

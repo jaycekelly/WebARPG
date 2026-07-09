@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useTooltipStore } from '../store/useTooltipStore';
 
-let globalMouseX = 0;
-let globalMouseY = 0;
+export let globalMouseX = 0;
+export let globalMouseY = 0;
 
 if (typeof window !== 'undefined') {
   window.addEventListener('mousemove', (e) => {
