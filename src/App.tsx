@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { setRunState, setPreventSaves } from './store/storage';
 import { CharacterWindow } from './components/CharacterWindow';
 import { useGameEngine } from './engine/useGameEngine';
@@ -8,6 +8,7 @@ import { usePlayerStore } from './store/usePlayerStore';
 import { useInventoryStore } from './store/useInventoryStore';
 import { useWorldStore } from './store/useWorldStore';
 import { useStatsStore } from './store/useStatsStore';
+import { useMetaStore } from './store/useMetaStore';
 
 import { TownView } from './components/TownView';
 import { DungeonView } from './components/DungeonView';
@@ -51,6 +52,28 @@ function App() {
   useGameEngine(); // Mount the 60fps game engine loop
   useUIScale(); // Mount the responsive UI scaler
   const { location, setLocation } = useAppStore();
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    const checkHydration = () => {
+      if (useAppStore.persist.hasHydrated() && usePlayerStore.persist.hasHydrated()) {
+        setHydrated(true);
+        // Sync loaded level back to meta store for character select screen
+        const metaState = useMetaStore.getState();
+        const playerState = usePlayerStore.getState();
+        if (metaState.activeCharacterId) {
+          metaState.updateCharacter(metaState.activeCharacterId, { level: playerState.level });
+        }
+      }
+    };
+    const unsubApp = useAppStore.persist.onFinishHydration(checkHydration);
+    const unsubPlayer = usePlayerStore.persist.onFinishHydration(checkHydration);
+    checkHydration();
+    return () => {
+      unsubApp();
+      unsubPlayer();
+    };
+  }, []);
 
   useEffect(() => {
     const handleVisibility = () => {
@@ -75,7 +98,7 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (location === 'town') {
+    if (hydrated && location === 'town') {
        const { grid } = useWorldStore.getState();
        if (grid.environment !== 'town') {
           LevelGenerator.initializeTown();
@@ -95,8 +118,10 @@ function App() {
        appState.setCharacterWindowOpen(false);
        appState.setStatsPopoutOpen(false);
        appState.setDungeonSelectOpen(false);
+       appState.setEscapeMenuOpen(false);
+       if ('setSkillTreeOpen' in appState) (appState as any).setSkillTreeOpen(false);
     }
-  }, [location]);
+  }, [location, hydrated]);
 
   // Initial vision update in case we loaded from a persisted save where vision (non-persisted) is empty
   useEffect(() => {
@@ -198,8 +223,8 @@ function App() {
 
         // 1. Cancel Casting (combat safety — highest priority)
         if (combatState.castingSkillId) {
+          combatState.refundSkillCooldown(combatState.castingSkillId);
           combatState.setCasting(null);
-          combatState.triggerGcd(0);
           combatState.addLog("Spell cast cancelled.", 'system');
           return;
         }

@@ -6,7 +6,6 @@ import { useMessageStore } from '../store/useMessageStore';
 import { InputHandler, getMainHandAttackCooldown, getOffHandAttackCooldown } from './input/InputHandler';
 import { useStatsStore } from '../store/useStatsStore';
 import { useInventoryStore } from '../store/useInventoryStore';
-import { useSkillStore } from '../store/useSkillStore';
 import { setRunState } from '../store/storage';
 import type { SkillTag } from './skills/types';
 import { SKILLS } from '../data/skills';
@@ -57,7 +56,7 @@ export function useGameEngine() {
         if (event.entityId === 'player') {
           usePlayerStore.getState().takeDamage(event.damage);
           const { position } = usePlayerStore.getState();
-          combatState.addFloatingText(position.x, position.y, event.damage.toFixed(0), { colorClass: 'text-zinc-100' });
+          combatState.addFloatingText(position.x, position.y, event.damage.toFixed(0), { colorClass: 'text-red-400' });
           // Optional: combat log for player taking dot damage
         } else {
           const enemy = worldState.enemies.find(e => e.id === event.entityId);
@@ -95,7 +94,12 @@ export function useGameEngine() {
       
       const baseHpRegen = hpRegenFlat;
       const totalHpRegen = baseHpRegen * (1 + (hpRegenPercent / 100));
-      accumulatedHpRegen += totalHpRegen * dtSec;
+      
+      const timeSinceCombat = now - combatState.lastCombatEventTime;
+      const isOutOfCombat = timeSinceCombat > 5000;
+      
+      const finalHpRegen = isOutOfCombat ? totalHpRegen * 3 : totalHpRegen;
+      accumulatedHpRegen += finalHpRegen * dtSec;
       
       const maxMana = statsState.getStat('Energy');
       const manaRegenFlat = statsState.getStat('EnergyRegeneration');
@@ -118,6 +122,20 @@ export function useGameEngine() {
         lastRegenFlushTime = currentTime;
       }
 
+      // Adrenaline Decay: no decay in-combat, 20/sec after 4s out of combat
+      const timeSinceCombat = now - combatState.lastCombatEventTime;
+      if (timeSinceCombat > 4000 && playerState.currentAdrenaline > 0) {
+        const decayAmount = 20 * dtSec;
+        usePlayerStore.getState().decayAdrenaline(decayAmount);
+      }
+
+      // Adrenaline Generation: Passively generate 5 per second, ONLY IF player dealt damage within last 3 seconds
+      const timeSinceDamageDealt = now - combatState.lastDamageDealtTime;
+      if (timeSinceDamageDealt <= 3000 && playerState.currentAdrenaline < 100) {
+        const generationAmount = 5 * dtSec;
+        usePlayerStore.getState().addAdrenaline(generationAmount);
+      }
+
       // Handle Ground Zones
       worldState.clearExpiredZones(now);
       worldState.zones.forEach(zone => {
@@ -126,7 +144,7 @@ export function useGameEngine() {
           // Player on zone
           if (position.x === zone.position.x && position.y === zone.position.y) {
              usePlayerStore.getState().takeDamage(tickDamage);
-             combatState.addFloatingText(position.x, position.y, tickDamage.toFixed(0), { colorClass: 'text-zinc-100' });
+             combatState.addFloatingText(position.x, position.y, tickDamage.toFixed(0), { colorClass: 'text-red-400' });
           }
           
           // Enemy on zone
@@ -170,13 +188,6 @@ export function useGameEngine() {
            setRunState('town');
            useAppStore.getState().setLocation('town');
            usePlayerStore.getState().setTarget(null, true);
-           // Force stores to save to town immediately
-           usePlayerStore.setState(s => ({ ...s }));
-           useInventoryStore.setState(s => ({ ...s }));
-           useSkillStore.setState(s => ({ ...s }));
-           useWorldStore.setState(s => ({ ...s }));
-           useCombatStore.setState(s => ({ ...s }));
-           useBuffStore.setState(s => ({ ...s }));
            setCasting(null);
            return;
         }
@@ -185,20 +196,32 @@ export function useGameEngine() {
           combatState.setLastAttackAnimationTime(now);
           // Resolve target position at cast-finish time so targeted spells home
           let execTargetPos = combatState.castTargetPos;
+          let targetInvalid = false;
+          
           if (combatState.castTargetId) {
             const currentTarget = worldState.enemies.find(e => e.id === combatState.castTargetId);
             if (currentTarget && !currentTarget.isDead) {
               execTargetPos = currentTarget.position;
+            } else {
+              if (skill.targeting === 'Single') {
+                 targetInvalid = true;
+              }
             }
           }
           
-          try {
-             SkillExecutor.execute(skill, combatState.castTargetId, execTargetPos);
-          } catch (execErr) {
-             console.error('Skill Execution Error:', execErr);
-             combatState.addLog(`SPELL EXECUTION CRASH: ${execErr instanceof Error ? execErr.message : String(execErr)}`, 'system');
-          } finally {
+          if (targetInvalid) {
+             combatState.refundSkillCooldown(castingSkillId);
+             combatState.addLog(`Cast failed: Target is dead or missing.`, 'system');
              setCasting(null);
+          } else {
+             try {
+                SkillExecutor.execute(skill, combatState.castTargetId, execTargetPos);
+             } catch (execErr) {
+                console.error('Skill Execution Error:', execErr);
+                combatState.addLog(`SPELL EXECUTION CRASH: ${execErr instanceof Error ? execErr.message : String(execErr)}`, 'system');
+             } finally {
+                setCasting(null);
+             }
           }
         } else {
           setCasting(null);
@@ -303,8 +326,9 @@ export function useGameEngine() {
               
               const attackPower = baseAttackPower * damageMultiplier;
               
+              const sunderReduction = useBuffStore.getState().getSunderArmorReduction(target.id);
               const enemyDefenderStats = {
-                'Armor': target.stats.armor,
+                'Armor': target.stats.armor * (1 - sunderReduction),
                 'FireResist': target.stats.fireResist,
                 'ColdResist': target.stats.coldResist,
                 'LightningResist': target.stats.lightningResist,
@@ -339,6 +363,8 @@ export function useGameEngine() {
                 
                  worldState.damageEnemy(target.id, finalDamage);
                  
+                 combatState.setLastDamageDealtTime(now);
+                 
                  let dmgColor = 'text-zinc-200';
                  if (damageType === 'Pierce') dmgColor = 'text-stone-300';
                  else if (damageType === 'Fire') dmgColor = 'text-orange-500';
@@ -356,6 +382,26 @@ export function useGameEngine() {
                  combatState.addHitEffect(target.id, position.x, position.y, vfxColor, damageType);
                  
                  combatState.addLog(`You hit ${target.name} for ${finalDamage.toFixed(0)} damage with ${handName}.${resultText}`, 'player-attack');
+                 
+                 // Zealous Blow Proc: all melee hits have a 5% chance to open a 6s window
+                 // during which the player can cast Zealous Blow (see zealous_blow skill /
+                 // InputHandler requiresBuffId gating) for a "next skill +25% damage" buff.
+                 if (Math.random() < 0.05) {
+                    const alreadyReadyAuto = (buffState.entityBuffs['player'] || []).some(b => b.buffId === 'zealous_blow_ready');
+                    useBuffStore.getState().addBuff('player', {
+                       buffId: 'zealous_blow_ready',
+                       name: 'Zealous Blow Ready',
+                       type: 'buff',
+                       stackingBehavior: 'refresh',
+                       durationMs: 6000,
+                       maxDurationMs: 6000,
+                       stacks: 1,
+                       maxStacks: 1,
+                       icon: 'Sparkles',
+                       statModifiers: []
+                    });
+                    if (!alreadyReadyAuto) combatState.addLog(`Zealous Blow is ready!`, 'ability');
+                 }
                  
                  const lifeOnHit = statsState.getStat('LifeGainOnHit');
                  const lifesteal = statsState.getStat('Lifesteal');
@@ -465,13 +511,23 @@ export function useGameEngine() {
               worldState.updateEnemy(enemy.id, { isAggroed: false });
            } else {
               worldState.updateEnemy(enemy.id, { isAggroed: true });
+              // Entering combat: an enemy just aggroed onto the player via the proximity
+              // aggro system above (not merely because the player attacked it).
+              combatState.triggerCombatEvent();
            }
         }
+
+        // Knockdown: prevents all attacks and movement while active
+        if (buffState.isKnockedDown(enemy.id)) return;
+
+        // Stun: prevents all attacks and movement while active
+        if (buffState.isStunned(enemy.id)) return;
 
         if (!isAggroed) {
            const distToOrigin = getChebyshevDistance(enemy.position, enemy.spawnOrigin);
            if (distToOrigin > 0) {
-               const moveCooldown = 1000 / Math.max(0.1, enemy.stats.moveSpeed);
+               // Move at double speed when returning to spawn to reset encounters faster
+               const moveCooldown = 1000 / Math.max(0.1, enemy.stats.moveSpeed * 2);
                if (now - (enemy.lastMoveTime || 0) >= moveCooldown) {
                   // Throttle pathfinding
                   if (pathfindingOperationsThisFrame >= MAX_PATHFINDING_PER_FRAME) return;
@@ -554,7 +610,7 @@ export function useGameEngine() {
             else if (result === 'parry') displayString += ' (Parry)';
             else if (result === 'deflect') displayString += ' (Deflect)';
 
-            combatState.addFloatingText(position.x, position.y, displayString, { colorClass: 'text-zinc-100', isCrit: result === 'crit' });
+            combatState.addFloatingText(position.x, position.y, displayString, { colorClass: 'text-red-400', isCrit: result === 'crit' });
             combatState.addHitEffect('player', enemy.position.x, enemy.position.y, 0xd4d4d8, 'Strike');
             
             let resultText = '';
@@ -572,8 +628,14 @@ export function useGameEngine() {
             if (pathfindingOperationsThisFrame >= MAX_PATHFINDING_PER_FRAME) return;
             pathfindingOperationsThisFrame++;
 
+            // Movement-decision snapshot lag: path toward where the player was when this
+            // move-cooldown window started, not their live position. This gives enemies a
+            // brief "commit" to a heading instead of instantly re-solving toward you every
+            // tick, which is what made it impossible to line enemies up for AoEs/cones.
+            const chaseTarget = enemy.chaseTargetSnapshot || position;
+
             // Use static solids for BFS so enemies don't path in crazy circles around each other
-            const path = findPath(enemy.position, position, isStaticSolid);
+            const path = findPath(enemy.position, chaseTarget, isStaticSolid);
             
             if (path && path.length > 0) {
               const idealNextPos = path[0];
@@ -598,7 +660,7 @@ export function useGameEngine() {
                    
                    let bestNeighbor = null;
                    let bestDist = Infinity;
-                   const currentDist = (enemy.position.x - position.x)**2 + (enemy.position.y - position.y)**2;
+                   const currentDist = (enemy.position.x - chaseTarget.x)**2 + (enemy.position.y - chaseTarget.y)**2;
                    
                    for (const n of neighbors) {
                       if (n.x < 0 || n.x >= worldState.grid.width || n.y < 0 || n.y >= worldState.grid.height) continue;
@@ -606,7 +668,7 @@ export function useGameEngine() {
                       if (dynamicSolidSet.has(`${n.x},${n.y}`)) continue;
                       if (n.x === position.x && n.y === position.y) continue;
                       
-                      const dist = (n.x - position.x)**2 + (n.y - position.y)**2;
+                      const dist = (n.x - chaseTarget.x)**2 + (n.y - chaseTarget.y)**2;
                       // Only allow neighbors that bring us strictly closer (prevents vibrating in place)
                       if (dist < currentDist && dist < bestDist) {
                          bestDist = dist;
@@ -620,12 +682,15 @@ export function useGameEngine() {
                       // Completely blocked from moving closer, just wait
                       // We update the move time so we don't spam pathfinding
                       worldState.updateEnemyMoveTime(enemy.id, now);
+                      worldState.updateEnemy(enemy.id, { chaseTargetSnapshot: { ...position } });
                       return;
                    }
                 }
 
                 worldState.moveEnemy(enemy.id, nextPos);
                 worldState.updateEnemyMoveTime(enemy.id, now);
+                // Snapshot the player's position now, at the start of the NEXT cooldown window
+                worldState.updateEnemy(enemy.id, { chaseTargetSnapshot: { ...position } });
                 // Update dynamic map so other enemies this frame don't walk into it
                 dynamicSolidSet.delete(`${enemy.position.x},${enemy.position.y}`);
                 dynamicSolidSet.add(`${nextPos.x},${nextPos.y}`);
@@ -769,9 +834,9 @@ export function useGameEngine() {
         } else {
           combatState.addLog(`ENGINE CRASH: Unknown error`, 'system');
         }
+      } finally {
+        animationFrameId = requestAnimationFrame(loop);
       }
-
-      animationFrameId = requestAnimationFrame(loop);
     };
 
     animationFrameId = requestAnimationFrame(loop);

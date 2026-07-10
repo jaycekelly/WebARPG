@@ -6,7 +6,7 @@ export interface CameraResult {
 }
 
 export interface CameraInstance {
-  update: (playerPos: { x: number; y: number }, viewportW: number, viewportH: number, tileSize: number, totalTileSize: number, dt: number) => CameraResult;
+  update: (playerPos: { x: number; y: number }, viewportW: number, viewportH: number, tileSize: number, totalTileSize: number, dt: number, isOutOfCombat?: boolean) => CameraResult;
 }
 
 export function createCamera(): CameraInstance {
@@ -20,6 +20,7 @@ export function createCamera(): CameraInstance {
     tileSize: number,
     totalTileSize: number,
     dt: number,
+    isOutOfCombat = false,
   ): CameraResult {
     const targetFocusX = playerPos.x;
     const targetFocusY = playerPos.y;
@@ -35,8 +36,11 @@ export function createCamera(): CameraInstance {
         currentFocusX = targetFocusX;
         currentFocusY = targetFocusY;
       } else {
-        // Exponential decay lerp for framerate-independent, professional smoothing
-        const decay = 6.0; // Lowered from 12.0 for a softer, slower follow
+        // Exponential decay lerp for framerate-independent, professional smoothing.
+        // Out-of-combat: higher decay keeps the camera locked to the player during
+        // fast OOC movement, preventing the lag that causes motion sickness.
+        // In-combat: lower decay gives the soft, weighted follow that looks great.
+        const decay = isOutOfCombat ? 10.0 : 6.0;
         const lerpFactor = 1 - Math.exp(-decay * dt);
 
         currentFocusX += (targetFocusX - currentFocusX) * lerpFactor;

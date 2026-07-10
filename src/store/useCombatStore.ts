@@ -66,6 +66,7 @@ interface CombatState {
   lastOffHandAttackTime: number;
   lastAttackAnimationTime: number;
   lastCombatEventTime: number;
+  lastDamageDealtTime: number;
   
   // Cast Bar State
   castingSkillId: string | null;
@@ -97,6 +98,7 @@ interface CombatState {
   setLastOffHandAttackTime: (time: number) => void;
   setLastAttackAnimationTime: (time: number) => void;
   triggerCombatEvent: () => void;
+  setLastDamageDealtTime: (time: number) => void;
   setCasting: (skillId: string | null, durationMs?: number, targetId?: string, targetPos?: {x: number, y: number}) => void;
   
   // Targeting setters
@@ -126,6 +128,7 @@ export const useCombatStore = create<CombatState>()(
   lastOffHandAttackTime: 0,
   lastAttackAnimationTime: 0,
   lastCombatEventTime: 0,
+  lastDamageDealtTime: 0,
   castingSkillId: null,
   castEndTime: 0,
   targetingSkillId: null,
@@ -239,6 +242,7 @@ export const useCombatStore = create<CombatState>()(
   setLastOffHandAttackTime: (time) => set({ lastOffHandAttackTime: time }),
   setLastAttackAnimationTime: (time) => set({ lastAttackAnimationTime: time }),
   triggerCombatEvent: () => set({ lastCombatEventTime: useAppStore.getState().getGameTime() }),
+  setLastDamageDealtTime: (time) => set({ lastDamageDealtTime: time }),
   
   setCasting: (skillId, durationMs = 0, targetId, targetPos) => set({ 
     castingSkillId: skillId, 

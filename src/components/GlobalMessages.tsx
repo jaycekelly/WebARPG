@@ -18,10 +18,10 @@ export function GlobalMessages() {
           return (
             <div 
               key={msg.id} 
-              className="fixed pointer-events-none z-[9999] flex flex-col items-center animate-[mouseFloat_1.3s_linear_forwards]"
-              style={{ left: msg.x / scale, top: (msg.y / scale) - 10 }}
+              className="fixed pointer-events-none z-[9999] flex flex-col items-center animate-[mouseFloat_1.5s_linear_forwards]"
+              style={{ left: msg.x / scale, top: (msg.y / scale) - 40 }}
             >
-              <span className="font-sans text-red-400 font-bold text-[20px] whitespace-nowrap">
+              <span className="font-sans text-red-400 font-bold text-[20px] whitespace-nowrap [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
                 {msg.text}
               </span>
             </div>

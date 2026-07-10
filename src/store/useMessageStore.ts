@@ -35,9 +35,9 @@ export const useMessageStore = create<MessageState>((set) => ({
     }
     
     set((state) => ({
-      // Keep only 1 message of each type at a time to prevent overlapping spam
+      // Keep only 1 message of each type at a time to prevent overlapping spam, EXCEPT mouse messages
       messages: [
-        ...state.messages.filter(m => m.expiresAt > Date.now() && m.type !== type),
+        ...state.messages.filter(m => m.expiresAt > Date.now() && (type === 'mouse' ? true : m.type !== type)),
         { id, type, text, expiresAt, x, y }
       ]
     }));

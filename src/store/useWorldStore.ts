@@ -27,6 +27,14 @@ export interface Enemy {
   isAggroed?: boolean;
   groupId?: string;
   scale?: number;
+  // Minimal channeling primitive: when set and in the future, this enemy is considered
+  // to be casting/channeling and can be interrupted (e.g. by Onslaught Leap).
+  channelingUntil?: number;
+  // Movement-decision snapshot: the player's position as of the start of this enemy's
+  // current move-cooldown window. melee_rusher AI paths toward this snapshot rather than
+  // the player's live position, so enemies commit to a heading instead of instantly
+  // re-solving toward you every tick (which made it impossible to line them up for AoEs).
+  chaseTargetSnapshot?: { x: number; y: number };
 }
 
 export interface LootDrop {

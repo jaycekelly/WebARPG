@@ -12,7 +12,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     itemType: 'weapon-1h',
     weaponCategory: 'Sword',
     damageType: 'Strike',
-    weaponAttackSpeed: 0.5,
+    weaponAttackSpeed: 0.4, // 1 attack every 2.5s (baseline)
     weaponRange: 1,
     baseCritChance: 5,
     baseStats: [Stat('WeaponDamage', 15)],
@@ -25,7 +25,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     itemType: 'weapon-2h',
     weaponCategory: 'Sword',
     damageType: 'Strike',
-    weaponAttackSpeed: 0.4,
+    weaponAttackSpeed: 1 / 3, // 1 attack every 3.0s (2H Sword/Staff exception)
     weaponRange: 1,
     baseCritChance: 5,
     baseStats: [Stat('WeaponDamage', 24)],
@@ -43,7 +43,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     itemType: 'weapon-1h',
     weaponCategory: 'Dagger',
     damageType: 'Pierce',
-    weaponAttackSpeed: 0.6,
+    weaponAttackSpeed: 0.4, // 1 attack every 2.5s (baseline)
     weaponRange: 1,
     baseCritChance: 10,
     baseStats: [Stat('WeaponDamage', 15)],
@@ -61,7 +61,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     itemType: 'weapon-1h',
     weaponCategory: 'Scepter',
     damageType: 'Cold',
-    weaponAttackSpeed: 0.5,
+    weaponAttackSpeed: 0.4, // 1 attack every 2.5s (baseline)
     weaponRange: 1,
     baseCritChance: 5,
     baseStats: [Stat('WeaponDamage', 17)],
@@ -79,7 +79,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     itemType: 'weapon-2h',
     weaponCategory: 'Staff',
     damageType: 'Fire',
-    weaponAttackSpeed: 0.5,
+    weaponAttackSpeed: 1 / 3, // 1 attack every 3.0s (2H Sword/Staff exception)
     weaponRange: 2,
     baseCritChance: 5,
     baseStats: [Stat('WeaponDamage', 22), Stat('SpellDamage', 25, 'increased')],
@@ -97,7 +97,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     itemType: 'weapon-1h',
     weaponCategory: 'Wand',
     damageType: 'Lightning',
-    weaponAttackSpeed: 0.6,
+    weaponAttackSpeed: 0.4, // 1 attack every 2.5s (baseline)
     weaponRange: 2,
     baseCritChance: 5,
     baseStats: [Stat('WeaponDamage', 16), Stat('SpellDamage', 15, 'increased')],
@@ -115,7 +115,7 @@ export const WEAPONS: Record<string, ItemTemplate> = {
     itemType: 'weapon-2h',
     weaponCategory: 'Bow',
     damageType: 'Pierce',
-    weaponAttackSpeed: 0.5,
+    weaponAttackSpeed: 0.4, // 1 attack every 2.5s (baseline) — bow is 2H but not Sword/Staff, so stays at baseline
     weaponRange: 3,
     baseCritChance: 5,
     baseStats: [Stat('WeaponDamage', 20)],

@@ -2,7 +2,8 @@ import {
   Sword, Shield, HelpCircle, Hexagon, ShieldAlert,
   Zap, Activity, Heart, Wrench, ShieldOff, Plus, ArrowUp, 
   Lock, ArrowUpCircle, FlaskConical, Droplet,
-  Crown, CircleSmall, Diamond, CandyCane
+  Crown, CircleSmall, Diamond, CandyCane, Sparkles,
+  Mountain, Rocket
 } from 'lucide-react';
 
 import { 
@@ -70,6 +71,9 @@ export const ICONS: Record<string, React.ElementType> = {
   FlaskConical,
   Droplet,
   Crown,
+  Sparkles,
+  Mountain,
+  Rocket,
 
   // Equipment overrides
   chest_armor: GameIcon('chest_armor'),
@@ -80,6 +84,12 @@ export const ICONS: Record<string, React.ElementType> = {
   ring: GameIcon('ring'),
   leg_armor: GameIcon('leg_armor'),
   staff: CandyCane,
+
+  // Fighter combo hit icons (hand-drawn paths in assets.ts ICON_PATHS, reused here via
+  // GameIcon() so the hotbar icon matches the same shape used by the floating combat
+  // text/entity Pixi renderer instead of falling back to Flame).
+  Scissors: GameIcon('Scissors'),
+  Hammer: GameIcon('Hammer'),
   
   Gem: Diamond,
   Disc: CircleSmall,

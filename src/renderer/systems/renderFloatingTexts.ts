@@ -1,15 +1,38 @@
-import { Container, Text, TextStyle } from 'pixi.js';
+import { Container, Sprite, Text, TextStyle } from 'pixi.js';
 import { projectTileToScreen } from '../../engine/world/screenProjection';
 import type { ProjectionParams } from '../../engine/world/screenProjection';
 import { useCombatStore } from '../../store/useCombatStore';
 import { useAppStore } from '../../store/useAppStore';
 import { useWorldStore } from '../../store/useWorldStore';
 import { usePlayerStore } from '../../store/usePlayerStore';
+import { getEntityTexture } from '../assets';
+
+// ===============================================================================
+// "Scrolling combat log" floating damage text.
+// -------------------------------------------------------------------------------
+// Constant-speed upward scroll (like a mini combat log ticking up from the hit
+// point) that only fades out right at the end of its lifetime. Any real skill
+// cast (executor.ts) renders its skill icon to the left of the number and is
+// drawn slightly larger than plain auto-attack damage text (useGameEngine.ts's
+// weapon-swing path, which never sets skillIcon/isSkillDamage).
+//
+// TO REVERT: restore renderFloatingTexts.ts from renderFloatingTexts.ts.bak
+// (the original file, saved alongside this one) and remove the skillIcon/
+// isSkillDamage fields + executor.ts wiring if desired.
+// ===============================================================================
 
 // ---- Constants ---------------------------------------------------------------
 
 const FLOAT_DISTANCE = 60; // Total upward pixels over lifetime
-const LANE_OFFSET_PX = 32;
+const RISE_DURATION_MS = 800; // Time spent in the initial fast-rise phase
+const FADE_DURATION_MS = 250; // Fades out only in the final portion of its lifetime
+const STAGGER_OFFSET_PX = 10; // How far a newer overlapping hit is nudged down/behind
+const STAGGER_WINDOW_MS = 350; // Hits at the same tile within this window get staggered
+const ICON_SIZE_PX = 26; // On-screen icon size (before camera/tile scaling)
+const ICON_GAP_PX = 4; // Gap between icon and text
+// Matches the skill hotbar's icon color (text-sky-400 in CombatOverlay.tsx) so the
+// floating combat text icon reads as "the same icon" the player just saw light up.
+const SKILL_ICON_COLOR = '#38bdf8';
 
 // Tailwind → hex color mapping
 const COLOR_MAP: Record<string, string> = {
@@ -38,9 +61,12 @@ function resolveColor(colorClass: string): string {
 // Clamped to [2, 3] — 1x is blurry, >3x wastes texture memory for imperceptible gain.
 const TEXT_RESOLUTION = Math.min(3, Math.max(2, window.devicePixelRatio || 2));
 
-function makeTextStyle(fillColor: string, isNumeric: boolean, isCrit: boolean): TextStyle {
+function makeTextStyle(fillColor: string, isNumeric: boolean, isCrit: boolean, isSkillDamage: boolean): TextStyle {
   const baseSize = isNumeric ? 22 : 20;
-  let size = isCrit ? baseSize * 1.55 : baseSize;
+  // Skill damage renders a notch larger than plain auto-attack damage, so skill
+  // hits read as slightly more impactful in the scrolling log at a glance.
+  const skillBumpedSize = isSkillDamage ? baseSize + 4 : baseSize;
+  let size = isCrit ? skillBumpedSize * 1.55 : skillBumpedSize;
   const isGold = fillColor === '#fbbf24';
   
   return new TextStyle({
@@ -49,15 +75,17 @@ function makeTextStyle(fillColor: string, isNumeric: boolean, isCrit: boolean): 
     fontWeight: isNumeric ? 'normal' : 'bold',
     fill: fillColor,
     padding: 10,
-    dropShadow: isGold ? { alpha: 0.8, color: '#d97706', blur: 6, distance: 0 } : undefined,
+    dropShadow: isGold 
+        ? { alpha: 0.8, color: '#d97706', blur: 6, distance: 0 } 
+        : { alpha: 1.0, color: '#000000', blur: 1, distance: 2 },
   });
 }
 
-function createText(content: string, colorClass: string, isCrit: boolean): Text {
+function createText(content: string, colorClass: string, isCrit: boolean, isSkillDamage: boolean): Text {
   const isNumeric = /^[-+0-9.,]+$/.test(content) || content.includes('Crit'); // treat "Crit!" as numeric font style
   return new Text({
     text: content,
-    style: makeTextStyle(resolveColor(colorClass), isNumeric, isCrit),
+    style: makeTextStyle(resolveColor(colorClass), isNumeric, isCrit, isSkillDamage),
     resolution: TEXT_RESOLUTION,
   });
 }
@@ -65,15 +93,17 @@ function createText(content: string, colorClass: string, isCrit: boolean): Text 
 // ---- Types -------------------------------------------------------------------
 
 interface TrackedText {
+  container: Container;
   text: Text;
+  icon: Sprite | null;
   id: string;
   spawnTime: number;
   screenX: number;
   screenY: number;
   iconScale: number;
   isPlayer: boolean;
-  laneOffset: number;
   isCrit: boolean;
+  staggerPx: number; // Extra downward offset so near-simultaneous hits don't overlap
 }
 
 export interface FloatingTextRenderer {
@@ -87,6 +117,8 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
   const container = new Container();
   container.zIndex = 9999; // Always on top
   const tracked = new Map<string, TrackedText>();
+  // Per-tile spawn history used purely for the overlap stagger calculation below.
+  const recentSpawnsByTile = new Map<string, number[]>();
 
   function tick(params: ProjectionParams) {
     const now = useAppStore.getState().getGameTime();
@@ -98,16 +130,37 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
 
       let entry = tracked.get(ft.id);
       if (!entry) {
-        let laneOffset = 0;
-        if (ft.lane === 'left') laneOffset = -LANE_OFFSET_PX;
-        else if (ft.lane === 'right') laneOffset = LANE_OFFSET_PX;
-        
         let colorClass = ft.color;
         if (ft.isCrit) colorClass = 'text-yellow-400';
         
-        const text = createText(ft.text, colorClass, !!ft.isCrit);
-        text.anchor.set(0.5, 0.5);
-        container.addChild(text);
+        const isSkillDamage = !!ft.isSkillDamage;
+        const text = createText(ft.text, colorClass, !!ft.isCrit, isSkillDamage);
+        text.anchor.set(0, 0.5);
+
+        let icon: Sprite | null = null;
+        if (ft.skillIcon) {
+          const texture = getEntityTexture(ft.skillIcon, SKILL_ICON_COLOR);
+          icon = new Sprite(texture);
+          icon.anchor.set(0, 0.5);
+          icon.width = ICON_SIZE_PX;
+          icon.height = ICON_SIZE_PX;
+        }
+
+        // Lay out icon + text left-to-right inside a wrapper container, then anchor
+        // that wrapper so the whole group is horizontally centered on the tile.
+        const group = new Container();
+        let cursorX = 0;
+        if (icon) {
+          icon.position.set(cursorX, 0);
+          group.addChild(icon);
+          cursorX += ICON_SIZE_PX + ICON_GAP_PX;
+        }
+        text.position.set(cursorX, 0);
+        group.addChild(text);
+
+        const totalWidth = cursorX + text.width;
+        group.pivot.set(totalWidth / 2, 0);
+        container.addChild(group);
 
         let iconScale = 0.85; // default
         let isPlayer = false;
@@ -122,16 +175,28 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
           }
         }
 
+        // Overlap stagger: if another hit spawned on this approximate tile very recently,
+        // nudge this newer one down a bit so it doesn't sit directly on top of the
+        // still-scrolling earlier hit - it'll catch up visually as it scrolls past.
+        const tileKey = `${Math.round(ft.x)},${Math.round(ft.y)}`;
+        const recent = (recentSpawnsByTile.get(tileKey) || []).filter(t => now - t < STAGGER_WINDOW_MS);
+        const staggerCount = recent.length;
+        const staggerPx = staggerCount * STAGGER_OFFSET_PX;
+        const delayMs = staggerCount * 100; // Add 100ms delay per overlap level
+        recentSpawnsByTile.set(tileKey, [...recent, now]);
+
         entry = {
+          container: group,
           text,
+          icon,
           id: ft.id,
-          spawnTime: now,
+          spawnTime: now + delayMs,
           screenX: 0,
           screenY: 0,
           iconScale,
           isPlayer,
-          laneOffset,
-          isCrit: !!ft.isCrit
+          isCrit: !!ft.isCrit,
+          staggerPx
         };
         tracked.set(ft.id, entry);
       }
@@ -142,62 +207,64 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
       // Compute lifetime progress
       const baseIconSize = 32 * (params.tileSize / (72 * 0.55));
       const activeBaseScale = baseIconSize / 128;
+      const cameraScale = activeBaseScale * projected.scale;
 
       const elapsed = now - entry.spawnTime;
+      
+      if (elapsed < 0) {
+        entry.container.alpha = 0;
+        entry.container.visible = false;
+        continue; // Wait until delay finishes to start rendering/moving
+      }
+      
+      entry.container.visible = true;
+
       const duration = ft.expiresAt - entry.spawnTime;
       const progress = Math.min(1.0, elapsed / Math.max(1, duration));
-      
-      // Easing implementation
+
+      // Fast rise initially, then slow drift for the remainder of its lifetime
       let verticalProgress = 0;
-      let scaleMult = 1.0;
+      if (elapsed <= RISE_DURATION_MS) {
+         // Fast rise: 70% of distance in the initial phase
+         verticalProgress = 0.7 * (elapsed / RISE_DURATION_MS);
+      } else {
+         // Slow drift: remaining 30% over the rest of the lifetime
+         const driftElapsed = elapsed - RISE_DURATION_MS;
+         const driftDuration = Math.max(1, duration - RISE_DURATION_MS);
+         verticalProgress = 0.7 + (0.3 * Math.min(1.0, driftElapsed / driftDuration));
+      }
+      const distancePx = FLOAT_DISTANCE * verticalProgress;
+
+      const fadeStartProgress = Math.max(0, 1 - (FADE_DURATION_MS / Math.max(1, duration)));
       let alpha = 1.0;
-      
-      // Phase 2: Primary rise (10% - 40%)
-      if (progress >= 0.1 && progress <= 0.4) {
-         const riseProgress = (progress - 0.1) / 0.3;
-         // Linear movement
-         verticalProgress = riseProgress * 0.9;
-      }
-      
-      // Phase 3 & 4: Trailing drift & Fade (40% - 100%)
-      if (progress > 0.4) {
-         const driftProgress = (progress - 0.4) / 0.6;
-         verticalProgress = 0.9 + (driftProgress * 0.1);
-      }
-      
-      // Fade starts at 55%
-      if (progress > 0.55) {
-         const fadeProgress = (progress - 0.55) / 0.45;
+      if (progress > fadeStartProgress) {
+         const fadeProgress = (progress - fadeStartProgress) / (1 - fadeStartProgress);
          alpha = 1.0 - fadeProgress;
       }
       
-      // Base spawn Y coordinate relative to entity feet
+      // Base spawn Y coordinate relative to entity feet. Uses the same anchor-derived
+      // formula as the sprite renderer's health bar offset (renderEntities.ts) so floating
+      // text lines up consistently across all enemy scales, not just the one it happened to
+      // be tuned against.
       const baseOffset = entry.isPlayer 
         ? -60 // Center-ish of the player
-        : -(70 * entry.iconScale) - 30; // Closer to center for enemies
+        : -(95 * entry.iconScale) - 15;
         
-      const rawYOffset = baseOffset - (FLOAT_DISTANCE * verticalProgress);
-      const dynamicYOffset = rawYOffset * activeBaseScale * projected.scale;
+      const rawYOffset = baseOffset - distancePx;
+      const dynamicYOffset = (rawYOffset * cameraScale) + entry.staggerPx;
       
-      // Horizontal lane shift: spawn close to middle (87.5%), drift outwards slightly to 95%
-      const startHorizontalOffset = entry.laneOffset * 0.875;
-      const horizontalDriftTotal = entry.laneOffset * 0.075;
-      const rawXOffset = startHorizontalOffset + (horizontalDriftTotal * verticalProgress);
-      const dynamicXOffset = rawXOffset * activeBaseScale * projected.scale;
-      
-      entry.screenX = projected.screenX + dynamicXOffset;
+      entry.screenX = projected.screenX;
       entry.screenY = projected.screenY + dynamicYOffset;
 
-      entry.text.position.set(entry.screenX, entry.screenY);
-      entry.text.scale.set(scaleMult);
-      entry.text.alpha = Math.max(0, alpha);
+      entry.container.position.set(entry.screenX, entry.screenY);
+      entry.container.alpha = Math.max(0, alpha);
     }
 
     // Remove expired texts
     for (const [id, entry] of tracked) {
       if (!activeIds.has(id)) {
-        entry.text.destroy();
-        container.removeChild(entry.text);
+        entry.container.destroy({ children: true });
+        container.removeChild(entry.container);
         tracked.delete(id);
       }
     }

@@ -47,11 +47,32 @@ interface BuffState {
     hotEvents: { entityId: string, healAmount: number }[],
     manaEvents: { entityId: string, manaAmount: number }[]
   };
+
+  // Universal Sunder debuff helpers
+  applySunder: (entityId: string, stacks?: number) => void;
+  getSunderStacks: (entityId: string) => number;
+  getSunderArmorReduction: (entityId: string) => number; // 0 to 0.4 (percent, as a fraction)
+
+  // Universal Knockdown helper
+  applyKnockdown: (entityId: string, durationMs: number) => void;
+  isKnockedDown: (entityId: string) => boolean;
+
+  // Universal Stun helper
+  applyStun: (entityId: string, durationMs: number) => void;
+  isStunned: (entityId: string) => boolean;
 }
+
+export const SUNDER_BUFF_ID = 'sunder';
+export const SUNDER_MAX_STACKS = 5;
+export const SUNDER_DURATION_MS = 8000;
+export const SUNDER_ARMOR_PER_STACK = 8; // 8% per stack
+
+export const KNOCKDOWN_BUFF_ID = 'knockdown';
+export const STUN_BUFF_ID = 'stun';
 
 export const useBuffStore = create<BuffState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
   entityBuffs: {},
 
   addBuff: (entityId, newBuff) => {
@@ -69,7 +90,7 @@ export const useBuffStore = create<BuffState>()(
           updatedList[existingBuffIndex] = {
             ...existing,
             durationMs: existing.maxDurationMs, // Refresh duration
-            stacks: newBuff.stackingBehavior === 'stack' ? Math.min(existing.maxStacks, existing.stacks + 1) : existing.stacks
+            stacks: newBuff.stackingBehavior === 'stack' ? Math.min(existing.maxStacks, existing.stacks + (newBuff.stacks || 1)) : existing.stacks
           };
           return { entityBuffs: { ...state.entityBuffs, [entityId]: updatedList } };
         }
@@ -165,6 +186,72 @@ export const useBuffStore = create<BuffState>()(
     });
 
     return { dotEvents, hotEvents, manaEvents };
+  },
+
+  applySunder: (entityId, stacks = 1) => {
+    get().addBuff(entityId, {
+      buffId: SUNDER_BUFF_ID,
+      name: 'Sunder',
+      type: 'debuff',
+      stackingBehavior: 'stack',
+      durationMs: SUNDER_DURATION_MS,
+      maxDurationMs: SUNDER_DURATION_MS,
+      stacks,
+      maxStacks: SUNDER_MAX_STACKS,
+      icon: 'ShieldOff',
+      statModifiers: []
+    });
+  },
+
+  getSunderStacks: (entityId) => {
+    const buffs = get().entityBuffs[entityId] || [];
+    const sunder = buffs.find(b => b.buffId === SUNDER_BUFF_ID);
+    return sunder?.stacks || 0;
+  },
+
+  getSunderArmorReduction: (entityId) => {
+    const stacks = get().getSunderStacks(entityId);
+    return Math.min(0.4, stacks * (SUNDER_ARMOR_PER_STACK / 100));
+  },
+
+  applyKnockdown: (entityId, durationMs) => {
+    get().addBuff(entityId, {
+      buffId: KNOCKDOWN_BUFF_ID,
+      name: 'Knocked Down',
+      type: 'debuff',
+      stackingBehavior: 'refresh',
+      durationMs,
+      maxDurationMs: durationMs,
+      stacks: 1,
+      maxStacks: 1,
+      icon: 'CircleOff',
+      statModifiers: []
+    });
+  },
+
+  isKnockedDown: (entityId) => {
+    const buffs = get().entityBuffs[entityId] || [];
+    return buffs.some(b => b.buffId === KNOCKDOWN_BUFF_ID);
+  },
+
+  applyStun: (entityId, durationMs) => {
+    get().addBuff(entityId, {
+      buffId: STUN_BUFF_ID,
+      name: 'Stunned',
+      type: 'debuff',
+      stackingBehavior: 'refresh',
+      durationMs,
+      maxDurationMs: durationMs,
+      stacks: 1,
+      maxStacks: 1,
+      icon: 'Sparkles',
+      statModifiers: []
+    });
+  },
+
+  isStunned: (entityId) => {
+    const buffs = get().entityBuffs[entityId] || [];
+    return buffs.some(b => b.buffId === STUN_BUFF_ID);
   }
     }),
     {

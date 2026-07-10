@@ -24,17 +24,19 @@ const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => 
 };
 
 export function CombatOverlay() {
-  const { activeTargetId, setTarget, position, currentEnergy, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore();
+  const { activeTargetId, setTarget, position, currentEnergy, currentAdrenaline, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore();
   const setContent = useTooltipStore(state => state.setContent);
-  const { enemies } = useWorldStore();
-  const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime } = useCombatStore();
+  const { enemies, grid } = useWorldStore();
+  const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime, comboStep, lastComboTime } = useCombatStore();
   const { getStat } = useStatsStore();
   const { entityBuffs } = useBuffStore();
   const { unlockedActives } = useSkillStore();
   const { messages } = useMessageStore();
+  const location = useAppStore(s => s.location);
+  const dungeonSelectOpen = useAppStore(s => s.dungeonSelectOpen);
   
   const playerBuffs = entityBuffs['player'] || [];
-  const visiblePlayerBuffs = playerBuffs.filter(b => b.maxDurationMs !== null && b.maxDurationMs <= 30000 && b.buffId !== 'flask_recovery');
+  const visiblePlayerBuffs = playerBuffs.filter(b => b.maxDurationMs !== null && b.maxDurationMs <= 30000 && b.buffId !== 'flask_recovery' && b.buffId !== 'zealous_blow_ready');
   
   let expectedHealAmount = 0;
   for (const b of playerBuffs) {
@@ -42,11 +44,11 @@ export function CombatOverlay() {
           const ticksRemaining = Math.floor(b.durationMs / b.hotTickRateMs);
           expectedHealAmount += ticksRemaining * b.hotHealPerTick;
       }
-
   }
   
   const maxHealth = getStat('Health');
   const maxEnergy = getStat('Energy');
+  const maxAdrenaline = 100;
   const xpRequired = 100 * Math.pow(level, 2);
 
   const target = enemies.find(e => e.id === activeTargetId && !e.isDead);
@@ -230,7 +232,7 @@ export function CombatOverlay() {
               <X className="w-3 h-3" />
             </button>
             <div className="flex-col justify-center w-[13.1875rem]">
-              <div className="font-bold text-text-primary text-sm mb-1.5 leading-none text-center">{target.name}</div>
+              <div className="font-bold text-text-primary text-sm mb-1.5 leading-none text-center [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">{target.name}</div>
               <div className="relative h-[0.875rem] w-full bg-surface-deep rounded-[0.125rem] overflow-hidden border border-border-subtle shadow-inner">
                 <div 
                   className="absolute top-0 left-0 h-full transition-all duration-150 border-r border-red-950 z-20"
@@ -239,7 +241,7 @@ export function CombatOverlay() {
                     background: 'linear-gradient(to bottom, #dc2626 0%, #dc2626 50%, #991b1b 50%, #991b1b 100%)'
                   }}
                 />
-                <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)] leading-none z-30 font-mono tracking-widest pt-[0.0625rem]">
+                <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-30 font-mono tracking-widest pt-[0.0625rem]">
                   {target.health > 0 ? Math.max(1, Math.floor(target.health)) : 0}/{target.stats.maxHealth}
                 </div>
               </div>
@@ -293,7 +295,7 @@ export function CombatOverlay() {
            const mtClass = hasTopMessage ? '-mt-[15.5rem]' : '-mt-[14rem]';
            return (
              <div key={msg.id} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${mtClass} pointer-events-none z-50 flex flex-col items-center ${isLevelUp ? 'animate-[levelUpFade_3s_ease-in-out_forwards]' : 'animate-in fade-in slide-in-from-bottom-2 duration-500'}`}>
-               <span className={isLevelUp ? "font-sans text-accent font-black text-2xl uppercase tracking-[0.2em] drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]" : "font-sans text-amber-500 font-bold text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
+               <span className={isLevelUp ? "font-sans text-accent font-black text-2xl uppercase tracking-[0.2em] drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]" : "font-sans text-amber-500 font-bold text-sm [text-shadow:2px_2px_1px_rgba(0,0,0,1)]"}>
                  {msg.text}
                </span>
              </div>
@@ -303,7 +305,7 @@ export function CombatOverlay() {
            const isPause = msg.text === 'TACTICAL PAUSE';
            return (
              <div key={msg.id} className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -mt-[14rem] pointer-events-none z-50 flex flex-col items-center animate-in slide-in-from-top-2 fade-in duration-300">
-               <span className={isPause ? "font-sans text-accent font-black text-base uppercase tracking-widest animate-pulse drop-shadow-lg" : "font-sans text-amber-500 font-bold text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)]"}>
+               <span className={isPause ? "font-sans text-accent font-black text-base uppercase tracking-widest animate-pulse drop-shadow-lg" : "font-sans text-amber-500 font-bold text-sm [text-shadow:2px_2px_1px_rgba(0,0,0,1)]"}>
                  {msg.text}
                </span>
              </div>
@@ -313,7 +315,7 @@ export function CombatOverlay() {
            const mtClass = showInteract ? 'mt-[9.5rem]' : 'mt-[11rem]';
            return (
              <div key={msg.id} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${mtClass} pointer-events-none z-50 flex flex-col items-center animate-in slide-in-from-top-2 fade-in duration-300 transition-all`}>
-               <span className="font-sans text-text-primary italic text-sm drop-shadow-[0_2px_2px_rgba(0,0,0,1)] font-normal">
+               <span className="font-sans text-text-primary italic text-sm [text-shadow:2px_2px_1px_rgba(0,0,0,1)] font-normal">
                  {msg.text}
                </span>
              </div>
@@ -333,7 +335,7 @@ export function CombatOverlay() {
           {/* Cast Bar (Top) */}
           {castingSkillId && castEndTime > 0 && (SKILLS[castingSkillId] || castingSkillId === 'portal_skill') && (
             <div className="flex flex-col items-center w-[6.666rem] mb-1">
-              <div className="text-xs text-center whitespace-nowrap text-text-primary mb-0.5 font-bold drop-shadow-[0_1px_3px_rgba(0,0,0,1)] tracking-wide">
+              <div className="text-xs text-center whitespace-nowrap text-text-primary mb-0.5 font-bold [text-shadow:2px_2px_1px_rgba(0,0,0,1)] tracking-wide">
                 {castingSkillId === 'portal_skill' ? 'Forfeiting Dungeon' : SKILLS[castingSkillId].name}
               </div>
               <div className="h-3.5 w-full bg-surface-deep rounded-[0.125rem] border border-border-subtle overflow-hidden shadow-inner">
@@ -473,13 +475,13 @@ export function CombatOverlay() {
                        className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
                        style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.7) 0)` }}
                      >
-                       <span className="text-white font-bold text-[0.625rem] z-30 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+                       <span className="text-white font-bold text-[0.625rem] z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
                          {Math.ceil((30000 - (now - lastFlaskTime)) / 1000)}
                        </span>
                      </div>
                   )}
                </button>
-               <span className="absolute -bottom-1 left-0 text-[0.6875rem] font-bold text-white z-30 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{`R`}</span>
+               <span className="absolute -bottom-1 left-0 text-[0.6875rem] font-bold text-white z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">{`R`}</span>
             </div>
             
 
@@ -500,7 +502,7 @@ export function CombatOverlay() {
                       background: 'linear-gradient(to bottom, #dc2626 0%, #dc2626 50%, #991b1b 50%, #991b1b 100%)'
                     }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
+                  <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
                     {currentHealth > 0 ? Math.max(1, Math.floor(currentHealth)) : 0}/{maxHealth}
                   </div>
                </div>
@@ -513,8 +515,21 @@ export function CombatOverlay() {
                       background: 'linear-gradient(to bottom, #eab308 0%, #eab308 50%, #ca8a04 50%, #ca8a04 100%)'
                     }}
                   />
-                  <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
+                  <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
                     {Math.floor(currentEnergy)}/{maxEnergy}
+                  </div>
+               </div>
+               {/* Adrenaline Bar: floats above the Energy bar, matching its width and styling, without affecting layout */}
+               <div className="absolute right-0 w-[calc(50%-2px)] bottom-[calc(100%+12px)] h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem] z-30">
+                  <div 
+                    className={`absolute top-0 left-0 h-full ${currentAdrenaline > 0 ? 'border-r border-orange-950' : ''}`}
+                    style={{ 
+                      width: `${Math.min(100, (currentAdrenaline / maxAdrenaline) * 100)}%`,
+                      background: 'linear-gradient(to bottom, #f97316 0%, #f97316 50%, #c2410c 50%, #c2410c 100%)'
+                    }}
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
+                    {Math.floor(currentAdrenaline)}/{maxAdrenaline}
                   </div>
                </div>
             </div>
@@ -522,7 +537,7 @@ export function CombatOverlay() {
             {/* XP Bar (Integrated) */}
             <div className="flex items-center w-full relative z-20 mb-[1px]">
                <div className="absolute right-full flex items-center justify-center bg-surface-deep px-1 py-[0.1875rem] rounded top-1/2 -translate-y-1/2 min-w-[1rem]">
-                 <span className="text-[0.65rem] text-white font-bold font-mono drop-shadow-[0_1px_2px_rgba(0,0,0,1)] leading-none mt-[1px]">
+                 <span className="text-[0.65rem] text-white font-bold font-mono [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none mt-[1px]">
                    {level}
                  </span>
                </div>
@@ -693,7 +708,7 @@ export function CombatOverlay() {
                            className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
                            style={{ background: `conic-gradient(transparent ${100 - activePercent}%, rgba(0,0,0,0.7) 0)` }}
                         >
-                            <span className="text-white font-bold text-[0.625rem] z-30 drop-shadow-[0_1px_2px_rgba(0,0,0,1)]">
+                            <span className="text-white font-bold text-[0.625rem] z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
                                {(Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000).toFixed(1)}
                             </span>
                            {isOnGcd && (
@@ -713,7 +728,7 @@ export function CombatOverlay() {
                       )}
                       
                       {/* Keybind */}
-                      <span className="absolute bottom-0 left-0.5 text-xs font-bold text-white drop-shadow-[0_1px_1px_rgba(0,0,0,1)] z-30 pointer-events-none">
+                      <span className="absolute bottom-0 left-0.5 text-xs font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] z-30 pointer-events-none">
                         {index + 1}
                       </span>
                     </button>
@@ -794,8 +809,8 @@ export function CombatOverlay() {
            <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Move Diagonal</span>
          </div>
          <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
-           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">R, T</span>
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Flasks</span>
+           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">R</span>
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Health Potion</span>
          </div>
          <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
            <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">TAB</span>

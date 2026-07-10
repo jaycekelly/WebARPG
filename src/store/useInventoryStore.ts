@@ -181,29 +181,6 @@ export const useInventoryStore = create<InventoryState>()(
         set((s) => ({
           equipment: { ...s.equipment, [slot]: item }
         }));
-
-        // Apply Base Stats
-        const statsStore = useStatsStore.getState();
-        for (const baseStat of item.baseStats) {
-          statsStore.addModifier({
-            id: `${slot}_${item.id}_base_${baseStat.stat}`,
-            sourceId: `equip_${slot}`,
-            stat: baseStat.stat,
-            type: baseStat.type,
-            value: baseStat.value
-          });
-        }
-
-        // Apply Affix Stats
-        for (const affix of item.affixes) {
-          statsStore.addModifier({
-            id: `${slot}_${item.id}_affix_${affix.id}_${affix.stat.stat}`,
-            sourceId: `equip_${slot}`,
-            stat: affix.stat.stat,
-            type: affix.stat.type,
-            value: affix.stat.value
-          });
-        }
         
         get().revalidateEquipment();
       },
@@ -219,9 +196,6 @@ export const useInventoryStore = create<InventoryState>()(
           useMessageStore.getState().addScreenMessage('mouse', "Can't change gear in combat!", 1500);
           return;
         }
-
-        // Remove Stats
-        useStatsStore.getState().removeModifiersBySource(`equip_${slot}`);
 
         // Move to first empty inventory slot and clear equipment slot
         set((state) => {

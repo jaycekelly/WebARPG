@@ -4,6 +4,7 @@ import { StatCalculator } from '../engine/stats/StatCalculator';
 import { useBuffStore } from './useBuffStore';
 import { usePlayerStore } from './usePlayerStore';
 import { useSkillStore } from './useSkillStore';
+import { useInventoryStore } from './useInventoryStore';
 import { SKILL_TREE } from '../data/skillTrees';
 import type { ClassType } from '../engine/player/types';
 
@@ -43,6 +44,48 @@ const getTreeModifiers = (): StatModifier[] => {
     return treeMods;
 };
 
+const getEquipmentModifiers = (): StatModifier[] => {
+    const equipmentMods: StatModifier[] = [];
+    const equipState = useInventoryStore.getState();
+    if (!equipState) return equipmentMods;
+
+    for (const [slot, item] of Object.entries(equipState.equipment)) {
+        if (item) {
+            if (item.baseStats) {
+                for (const baseStat of item.baseStats) {
+                    equipmentMods.push({
+                        ...baseStat,
+                        id: `${slot}_${item.id}_base_${baseStat.stat}_${Math.random()}`,
+                        sourceId: `equip_${slot}`
+                    });
+                }
+            }
+            if (item.affixes) {
+                for (const affix of item.affixes) {
+                    equipmentMods.push({
+                        ...affix.stat,
+                        id: `${slot}_${item.id}_affix_${affix.id}_${affix.stat.stat}_${Math.random()}`,
+                        sourceId: `equip_${slot}`
+                    });
+                }
+            }
+        }
+    }
+    return equipmentMods;
+};
+
+const getBaseAttributeModifiers = (): StatModifier[] => {
+    const mods: StatModifier[] = [];
+    const { allocatedAttributes } = usePlayerStore.getState();
+    if (allocatedAttributes) {
+        if (allocatedAttributes.Strength > 0) mods.push({ id: 'alloc_str', sourceId: 'allocated_attributes', stat: 'Strength', type: 'flat', value: allocatedAttributes.Strength });
+        if (allocatedAttributes.Dexterity > 0) mods.push({ id: 'alloc_dex', sourceId: 'allocated_attributes', stat: 'Dexterity', type: 'flat', value: allocatedAttributes.Dexterity });
+        if (allocatedAttributes.Intelligence > 0) mods.push({ id: 'alloc_int', sourceId: 'allocated_attributes', stat: 'Intelligence', type: 'flat', value: allocatedAttributes.Intelligence });
+        if (allocatedAttributes.Vitality > 0) mods.push({ id: 'alloc_vit', sourceId: 'allocated_attributes', stat: 'Vitality', type: 'flat', value: allocatedAttributes.Vitality });
+    }
+    return mods;
+};
+
 interface StatsState {
   modifiers: StatModifier[];
   
@@ -62,7 +105,7 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     { id: 'base_health', sourceId: 'base_character', stat: 'Health', type: 'flat', value: 80 },
     { id: 'base_energy', sourceId: 'base_character', stat: 'Energy', type: 'flat', value: 30 },
     { id: 'base_damage', sourceId: 'base_character', stat: 'WeaponDamage', type: 'flat', value: 10 },
-    { id: 'base_move', sourceId: 'base_character', stat: 'MoveSpeed', type: 'flat', value: 1.33 },
+    { id: 'base_move', sourceId: 'base_character', stat: 'MoveSpeed', type: 'flat', value: 1.33 }, // 1000/1.33 ≈ 750ms baseline
     { id: 'base_hp_regen', sourceId: 'base_character', stat: 'HealthRegeneration', type: 'flat', value: 0.5 },
     { id: 'base_energy_regen', sourceId: 'base_character', stat: 'EnergyRegeneration', type: 'flat', value: 2.5 },
     { id: 'base_deflect_amount', sourceId: 'base_character', stat: 'DeflectAmount', type: 'flat', value: 40 },
@@ -95,9 +138,11 @@ export const useStatsStore = create<StatsState>((set, get) => ({
   getStat: (stat) => {
     let mods = get().modifiers.filter(m => m.stat === stat);
     
-    // Add tree modifiers
+    // Add tree modifiers, equipment, and attributes
     const treeMods = getTreeModifiers().filter(m => m.stat === stat);
-    mods = mods.concat(treeMods);
+    const equipMods = getEquipmentModifiers().filter(m => m.stat === stat);
+    const attrMods = getBaseAttributeModifiers().filter(m => m.stat === stat);
+    mods = mods.concat(treeMods, equipMods, attrMods);
     
     // Unarmed Weapon Damage fallback
     if (stat === 'WeaponDamage') {
@@ -172,6 +217,16 @@ export const useStatsStore = create<StatsState>((set, get) => ({
            value: vit * 4
          });
        }
+       const level = usePlayerStore.getState().level;
+       if (level > 1) {
+         mods.push({
+           id: 'level_hp_bonus',
+           sourceId: 'base_attributes',
+           stat: 'Health',
+           type: 'flat',
+           value: (level - 1) * 10
+         });
+       }
     }
 
     if (stat === 'Energy') {
@@ -205,7 +260,7 @@ export const useStatsStore = create<StatsState>((set, get) => ({
            sourceId: 'base_attributes',
            stat: 'HealthRegeneration',
            type: 'flat',
-           value: (level - 1) * 0.05
+           value: (level - 1) * 0.075 // 0.05 base + 0.025 from previous leveling loop logic
          });
        }
     }
@@ -253,7 +308,7 @@ export const useStatsStore = create<StatsState>((set, get) => ({
   },
 
   getAllStats: () => {
-    let mods = [...get().modifiers, ...getTreeModifiers()];
+    let mods = [...get().modifiers, ...getTreeModifiers(), ...getEquipmentModifiers(), ...getBaseAttributeModifiers()];
     
     // Unarmed Weapon Damage fallback
     const externalWeaponMods = mods.filter(m => m.stat === 'WeaponDamage' && m.sourceId !== 'base_character');
@@ -294,6 +349,14 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     const vit = stats['Vitality'] || 0;
     if (vit > 0) {
       stats['Health'] = (stats['Health'] || 0) + (vit * 4);
+    }
+
+    const level = usePlayerStore.getState().level;
+    if (level > 1) {
+      stats['Health'] = (stats['Health'] || 0) + ((level - 1) * 10);
+      stats['HealthRegeneration'] = (stats['HealthRegeneration'] || 0) + ((level - 1) * 0.075);
+      stats['Energy'] = (stats['Energy'] || 0) + ((level - 1) * 3);
+      stats['EnergyRegeneration'] = (stats['EnergyRegeneration'] || 0) + ((level - 1) * 0.2);
     }
 
     const intStat = stats['Intelligence'] || 0;

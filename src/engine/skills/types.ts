@@ -9,7 +9,7 @@ export type SkillTag =
 
 export type TargetingType = 'Single' | 'Self' | 'Directional' | 'Ground' | 'Area';
 
-export type EffectType = 'damage' | 'heal' | 'status' | 'buff' | 'summon' | 'charge';
+export type EffectType = 'damage' | 'heal' | 'status' | 'buff' | 'summon' | 'charge' | 'leap';
 
 export type TargetFilter = 'Enemy' | 'Ally' | 'Self' | 'All';
 
@@ -70,6 +70,33 @@ export interface SkillEffect {
 
   // For Summons
   summonParams?: SummonParams;
+
+  // Universal Sunder application (applies to all targets hit by a 'damage' effect)
+  applySunderStacks?: number;
+
+  // Scales this effect's damage up by a flat percent per existing Sunder stack on the target
+  // (e.g. Shield Break: +10% per stack). Read before mitigation, non-destructive to stacks.
+  bonusDamagePerSunderStack?: number;
+
+  // If the target has at least this many Sunder stacks, spawn a T-shape explosion behind them
+  // (relative to the caster's position) dealing tShapeDamageMultiplier% Strike damage.
+  tShapeSunderThreshold?: number;
+  tShapeDamageMultiplier?: number;
+
+  // Universal Knockdown application - only affects targets that currently have Sunder stacks
+  knockdownIfSundered?: boolean;
+  knockdownDurationMs?: number;
+
+  // Flat damage bonus (%) applied if the target currently has at least 1 Sunder stack
+  // (e.g. Ravage: +25% damage vs a Sundered target). Does not scale with stack count.
+  bonusDamageIfSundered?: number;
+
+  // Only generate this effect's skill-level adrenalineGenerate if this specific damage
+  // effect actually connects with at least one valid target (e.g. Onslaught Leap should
+  // not generate Adrenaline if it lands on an empty tile).
+
+  // If this effect successfully interrupts an enemy cast/channel, also stun that enemy.
+  stunOnInterruptMs?: number;
 }
 
 export interface Skill {
@@ -81,6 +108,7 @@ export interface Skill {
   tags: SkillTag[];
   
   energyCost: number;
+  adrenalineCost?: number; // Universal Adrenaline resource cost (Fighter spenders)
   range: number; // 0 for self, >0 for targeted
   cooldownMs?: number; // Specific cooldown for this skill
   gcdDuration: number;
@@ -94,10 +122,37 @@ export interface Skill {
   skillReachScaling?: SkillReachScalingEntry[];
   effects: SkillEffect[];
   
+  // Combo Chain metadata (e.g. Heavy Strike Combo). If set, this skill is a "combo starter":
+  // activating it advances a shared combo counter and swaps in the appropriate chained skill's
+  // effects/targeting for that hit. comboChainIds are ordered [hit1, hit2, hit3, ...].
+  comboChainIds?: string[];
+  comboTimeoutMs?: number;
+  
+  // If true, this skill does not trigger or respect the shared Global Cooldown at all
+  // (e.g. Zealous Blow: instant reaction skill, castable even mid-GCD).
+  offGcd?: boolean;
+  
+  // If set, this skill can only be activated while the given buffId is active on the player
+  // (e.g. Zealous Blow requires the 'zealous_blow_ready' proc window). Fails silently like an
+  // unmet resource cost if the buff isn't present.
+  requiresBuffId?: string;
+  // If true, successfully activating this skill removes requiresBuffId from the player.
+  consumesRequiredBuff?: boolean;
+  
+  // If set on a 'Ground' targeting skill, and the player currently has an active target and
+  // is not in Tactical Pause, the skill automatically resolves its ground position from that
+  // target instead of requiring a manual tile click (e.g. Ground Slam). Manual targeting still
+  // kicks in when there's no current target, or while paused.
+  autoTargetCurrentEnemy?: boolean;
+  
   // The escape hatch for bizarre edge-case skills
   onExecute?: (sourceId: string, targetId: string) => void;
   
   // Unlock Requirements
   requiredLevel?: number;
   classRequirement?: string;
+
+  // Internal skills (e.g. combo chain hits) that shouldn't be listed as their own
+  // entry in skill selection UIs like the Active Skills tab.
+  isHidden?: boolean;
 }

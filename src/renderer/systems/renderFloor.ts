@@ -74,10 +74,14 @@ export function createFloorRenderer(): FloorRenderer {
       rowGridLines.push(gl);
     }
 
+    // Clear all existing grid lines first (in case we downsized from a larger map)
+    for (let i = 0; i < rowGridLines.length; i++) {
+      rowGridLines[i].clear();
+    }
+
     // Draw horizontal grid lines and vertical segments per row boundary
     for (let row = 0; row <= g.height; row++) {
       const gl = rowGridLines[row];
-      gl.clear();
 
       // Horizontal line
       gl.moveTo(

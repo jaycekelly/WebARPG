@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { useStatsStore } from './useStatsStore';
-import { useCombatStore } from './useCombatStore';
+import { useCombatStore, OUT_OF_COMBAT_MOVE_COOLDOWN_MS } from './useCombatStore';
 import { useAppStore } from './useAppStore';
 import { useVisionStore } from './useVisionStore';
 import { useMetaStore } from './useMetaStore';
@@ -14,6 +14,7 @@ interface PlayerState {
   position: { x: number; y: number };
   currentHealth: number;
   currentEnergy: number;
+  currentAdrenaline: number;
   activeTargetId: string | null;
   ignoredTargetIds: string[];
   level: number;
@@ -21,6 +22,7 @@ interface PlayerState {
   passivePoints: number;
   activeSkillPoints: number;
   attributePoints: number;
+  allocatedAttributes: { Strength: number; Dexterity: number; Intelligence: number; Vitality: number };
   gold: number;
   normalPityCount: number;
   magicPityCount: number;
@@ -36,6 +38,9 @@ interface PlayerState {
   heal: (amount: number) => void;
   restoreEnergy: (amount: number) => void;
   useEnergy: (amount: number) => boolean;
+  addAdrenaline: (amount: number) => void;
+  useAdrenaline: (amount: number) => boolean;
+  decayAdrenaline: (amount: number) => void;
   addXp: (amount: number) => { leveledUp: boolean, newLevel: number };
   addGold: (amount: number) => void;
   addPassivePoints: (amount: number) => void;
@@ -56,6 +61,7 @@ export const usePlayerStore = create<PlayerState>()(
   position: { x: 5, y: 5 },
   currentHealth: 100,
   currentEnergy: 35,
+  currentAdrenaline: 0,
   activeTargetId: null,
   ignoredTargetIds: [],
   level: 1,
@@ -63,10 +69,11 @@ export const usePlayerStore = create<PlayerState>()(
   passivePoints: 1,
   activeSkillPoints: 2,
   attributePoints: 0,
+  allocatedAttributes: { Strength: 0, Dexterity: 0, Intelligence: 0, Vitality: 0 },
   gold: 0,
   normalPityCount: 0,
   magicPityCount: 0,
-  boundSkills: ['heavy_strike', 'charge_attack', 'fireball', null, null, null, null, null],
+  boundSkills: ['heavy_strike_combo', 'onslaught_leap', 'shield_break', 'ground_slam', 'zealous_blow', null, null, null],
   lastFlaskTime: 0,
   move: (dx, dy) => {
     let moved = false;
@@ -75,8 +82,14 @@ export const usePlayerStore = create<PlayerState>()(
     set((state) => {
       const now = useAppStore.getState().getGameTime();
       const combatState = useCombatStore.getState();
-      const moveSpeed = useStatsStore.getState().getStat('MoveSpeed');
-      const moveCooldown = 1000 / Math.max(0.1, moveSpeed);
+      const inCombat = combatState.isInCombat();
+      let moveCooldown: number;
+      if (inCombat) {
+        const moveSpeed = useStatsStore.getState().getStat('MoveSpeed');
+        moveCooldown = 1000 / Math.max(0.1, moveSpeed);
+      } else {
+        moveCooldown = OUT_OF_COMBAT_MOVE_COOLDOWN_MS;
+      }
       
       if (now - combatState.lastMoveTime < moveCooldown) return state;
       
@@ -85,8 +98,8 @@ export const usePlayerStore = create<PlayerState>()(
       
       // Cancel any active cast
       if (combatState.castingSkillId) {
+        combatState.refundSkillCooldown(combatState.castingSkillId);
         combatState.setCasting(null);
-        combatState.triggerGcd(0);
         combatState.addLog(`Cast cancelled (interrupted by movement).`, 'system');
       }
       
@@ -154,6 +167,23 @@ export const usePlayerStore = create<PlayerState>()(
     return false;
   },
 
+  addAdrenaline: (amount) => set((state) => ({
+    currentAdrenaline: Math.max(0, Math.min(100, state.currentAdrenaline + amount))
+  })),
+
+  useAdrenaline: (amount) => {
+    const { currentAdrenaline } = get();
+    if (currentAdrenaline >= amount) {
+      set({ currentAdrenaline: currentAdrenaline - amount });
+      return true;
+    }
+    return false;
+  },
+
+  decayAdrenaline: (amount) => set((state) => ({
+    currentAdrenaline: Math.max(0, state.currentAdrenaline - amount)
+  })),
+
   addXp: (amount) => {
     const state = get();
     let newXp = state.currentXp + amount;
@@ -171,21 +201,6 @@ export const usePlayerStore = create<PlayerState>()(
       newActiveSkillPoints += newLevel <= 38 ? 2 : 1;
       newAttrPoints += 5;
       leveledUp = true;
-        
-        useStatsStore.getState().addModifier({
-          id: `lvl_hp_${newLevel}_${Math.random()}`,
-          sourceId: 'base_character_leveling',
-          stat: 'Health',
-          type: 'flat',
-          value: 10
-        });
-        useStatsStore.getState().addModifier({
-          id: `lvl_hpregen_${newLevel}_${Math.random()}`,
-          sourceId: 'base_character_leveling',
-          stat: 'HealthRegeneration',
-          type: 'flat',
-          value: 0.025
-        });
     }
 
     if (newLevel >= 50) {
@@ -223,13 +238,14 @@ export const usePlayerStore = create<PlayerState>()(
     if (state.attributePoints <= 0) return state;
     
     const allocAmount = Math.min(state.attributePoints, amount);
-    const statsStore = useStatsStore.getState();
-    const currentBase = statsStore.modifiers.find(m => m.id === `base_${stat.toLowerCase()}`);
-    if (currentBase) {
-      statsStore.updateModifierValue(`base_${stat.toLowerCase()}`, currentBase.value + allocAmount);
-    }
     
-    return { attributePoints: state.attributePoints - allocAmount };
+    return { 
+       attributePoints: state.attributePoints - allocAmount,
+       allocatedAttributes: {
+          ...state.allocatedAttributes,
+          [stat]: state.allocatedAttributes[stat] + allocAmount
+       }
+    };
   }),
 
   incrementPity: (rarity) => set((state) => {

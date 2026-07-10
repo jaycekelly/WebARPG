@@ -92,6 +92,72 @@ export class LevelGenerator {
     return this.getValidSpawnPoint(grid);
   }
 
+  /**
+   * A small, empty test cave with the Fighter Kit's 3-enemy pack (Cultist Arbalest,
+   * Ironclad Brute, Footman) tethered together via a shared groupId, spawned close
+   * together in the middle of the room. A simple playground for testing the
+   * Level 10 Fighter Prototype Kit against a small tethered pack.
+   */
+  static initializePlaygroundCave(playerLevel: number = 1) {
+    const worldStore = useWorldStore.getState();
+    const playerStore = usePlayerStore.getState();
+
+    // Clear old state
+    useWorldStore.setState({ enemies: [], lootDrops: [] });
+    useVisionStore.getState().resetVision();
+
+    // Small, mostly empty room
+    const width = 15;
+    const height = 15;
+    const grid: GridMap = { width, height, obstacles: [], environment: 'dungeon' };
+    worldStore.setGrid(grid);
+
+    // Spawn player near one edge, facing the pack in the middle
+    const playerSpawn = { x: 3, y: Math.floor(height / 2) };
+    playerStore.setPosition(playerSpawn.x, playerSpawn.y);
+    playerStore.setTarget(null);
+
+    const center = { x: Math.floor(width / 2), y: Math.floor(height / 2) };
+    const groupId = `playground_pack_${Date.now()}`;
+
+    const spawnPackMember = (templateId: string, offset: {x: number, y: number}) => {
+      const template = ENEMY_TEMPLATES[templateId];
+      if (!template) return;
+
+      const level = Math.max(template.minLevel, Math.min(template.maxLevel, playerLevel));
+      const levelDiff = Math.max(0, level - template.minLevel);
+      const scaleFactor = 1 + (levelDiff * 0.10);
+      const health = Math.floor(template.stats.maxHealth * scaleFactor);
+      const spawnPos = { x: center.x + offset.x, y: center.y + offset.y };
+
+      useWorldStore.getState().spawnEnemy({
+        templateId: template.id,
+        name: template.name,
+        level,
+        position: spawnPos,
+        spawnOrigin: { x: spawnPos.x, y: spawnPos.y },
+        rarity: 'Normal',
+        health,
+        aiProfile: template.aiProfile,
+        faction: 'enemy',
+        groupId,
+        scale: template.scale,
+        xpReward: Math.floor(template.baseXpReward * (1 + levelDiff * 0.2)),
+        goldReward: Math.floor((template.baseGoldReward || 0) * (1 + levelDiff * 0.2)),
+        stats: {
+          ...template.stats,
+          maxHealth: health,
+          attackPower: Math.floor(template.stats.attackPower * scaleFactor),
+        }
+      });
+    };
+
+    // Cluster the 3 test-scenario enemies close together in the middle of the room
+    spawnPackMember('cultist_arbalest', { x: 1, y: -1 });
+    spawnPackMember('ironclad_brute', { x: -1, y: 0 });
+    spawnPackMember('footman', { x: 1, y: 1 });
+  }
+
   static initializeDungeon(width: number = 15, height: number = 15, playerLevel: number = 1) {
     const worldStore = useWorldStore.getState();
     const playerStore = usePlayerStore.getState();

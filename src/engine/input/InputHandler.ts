@@ -1,4 +1,4 @@
-import { useCombatStore } from '../../store/useCombatStore';
+import { useCombatStore, OUT_OF_COMBAT_MOVE_COOLDOWN_MS } from '../../store/useCombatStore';
 
 export type InputRequest = 
   | { type: 'skill'; skillId: string; targetPos?: { x: number; y: number }; targetId?: string }
@@ -11,6 +11,7 @@ import { usePlayerStore } from '../../store/usePlayerStore';
 import { RatingCalculator } from '../stats/RatingCalculator';
 import { useWorldStore } from '../../store/useWorldStore';
 import { useAppStore } from '../../store/useAppStore';
+import { useBuffStore } from '../../store/useBuffStore';
 import { SKILLS } from '../../data/skills';
 import type { Skill } from '../skills/types';
 import { SkillExecutor } from '../skills/executor';
@@ -75,10 +76,16 @@ export class InputHandler {
       
       if (action.type === 'skill') {
          const cdEnd = combatState.skillCooldowns[action.skillId];
-         const isCdDoomed = cdEnd && (cdEnd - now > buffer);
-         const isGcdDoomed = (combatState.gcdEndTime - now > buffer);
+         const gcdRemaining = combatState.gcdEndTime - now;
+         const cdRemaining = cdEnd ? cdEnd - now : 0;
          
-         if (isCdDoomed || isGcdDoomed) {
+         // Only show the "On Cooldown" message when the skill's own cooldown is the actual
+         // limiting factor (its remaining time exceeds the GCD's remaining time by more than
+         // the queue buffer). If GCD is the equal/larger blocker, or the skill has no real
+         // cooldown, this is just normal GCD pacing - silently queue instead of erroring.
+         const isCdTheLimitingFactor = !!cdEnd && (cdRemaining - gcdRemaining > buffer);
+         
+         if (isCdTheLimitingFactor) {
             const pos = usePlayerStore.getState().position;
             combatState.addFloatingText(pos.x, pos.y, 'On Cooldown', { colorClass: 'text-red-400' });
             return; // Drop doomed action
@@ -94,14 +101,21 @@ export class InputHandler {
   }
 
   static canExecute(action: InputRequest, now: number, combatState: ReturnType<typeof useCombatStore.getState>) {
-    if (combatState.castingSkillId) return false;
+    // Only block skills while casting. Movement is allowed to pass through so it can interrupt the cast.
+    if (combatState.castingSkillId && action.type !== 'move') return false;
     
     if (action.type === 'move') {
-      const moveSpeed = useStatsStore.getState().getStat('MoveSpeed');
-      const moveCooldown = 1000 / Math.max(0.1, moveSpeed);
+      let moveCooldown: number;
+      if (combatState.isInCombat()) {
+        const moveSpeed = useStatsStore.getState().getStat('MoveSpeed');
+        moveCooldown = 1000 / Math.max(0.1, moveSpeed);
+      } else {
+        moveCooldown = OUT_OF_COMBAT_MOVE_COOLDOWN_MS;
+      }
       return (now - combatState.lastMoveTime) >= moveCooldown;
     } else if (action.type === 'skill') {
-      if (now < combatState.gcdEndTime) return false;
+      const actionSkill = SKILLS[action.skillId];
+      if (!actionSkill?.offGcd && now < combatState.gcdEndTime) return false;
       const cdEnd = combatState.skillCooldowns[action.skillId];
       if (cdEnd && now < cdEnd) return false;
       return true;
@@ -127,9 +141,34 @@ export class InputHandler {
     const combatState = useCombatStore.getState();
     const playerState = usePlayerStore.getState();
     const worldState = useWorldStore.getState();
+
+    // Combo Chain Resolution (e.g. Heavy Strike Combo): resolve which chained hit to actually execute
+    let resolvedSkill = skill;
+    if (skill.comboChainIds && skill.comboChainIds.length > 0) {
+      const now = useAppStore.getState().getGameTime();
+      const timeoutMs = skill.comboTimeoutMs || 3000;
+      const step = combatState.advanceCombo(now, timeoutMs); // 1-based step
+      const chainSkillId = skill.comboChainIds[Math.min(step, skill.comboChainIds.length) - 1];
+      const chainSkill = SKILLS[chainSkillId];
+      if (chainSkill) {
+        resolvedSkill = chainSkill;
+      }
+
+      // Combo hits derive their direction/target from the player's current auto-target
+      // rather than requiring a manual tile click, so the chain isn't broken by targeting UI.
+      if (!tId && !tPos) {
+        const currentTarget = playerState.activeTargetId
+          ? worldState.enemies.find(e => e.id === playerState.activeTargetId && !e.isDead)
+          : undefined;
+        if (currentTarget) {
+          tId = currentTarget.id;
+          tPos = { ...currentTarget.position };
+        }
+      }
+    }
     
     // Auto-snap Ground skills (like Charge) to nearby enemies if they clicked the floor accidentally
-    if (skill.targeting === 'Ground' && tPos && !tId) {
+    if (resolvedSkill.targeting === 'Ground' && tPos && !tId) {
       // Find closest enemy within 1.5 tiles (Chebyshev distance <= 1)
       let bestEnemy = null;
       let bestDist = Infinity;
@@ -146,23 +185,36 @@ export class InputHandler {
       }
     }
 
+    // Auto-target the player's current target for skills like Ground Slam, unless there's no
+    // current target or the game is in Tactical Pause (manual ground targeting takes over then).
+    if (resolvedSkill.autoTargetCurrentEnemy && !tId && !tPos) {
+      const isPaused = useAppStore.getState().isPaused;
+      const currentTarget = (!isPaused && playerState.activeTargetId)
+        ? worldState.enemies.find(e => e.id === playerState.activeTargetId && !e.isDead)
+        : undefined;
+      if (currentTarget) {
+        tId = currentTarget.id;
+        tPos = { ...currentTarget.position };
+      }
+    }
+
     const { addLog, triggerGcd, setCasting } = combatState;
     const { position, currentEnergy } = playerState;
 
     const target = tId ? worldState.enemies.find(e => e.id === tId) : undefined;
 
     // Prevent casting Ground/Directional/Area spells directly on solid obstacles
-    if (tPos && !target && skill.targeting !== 'Self') {
-      if (skill.targeting === 'Single') {
+    if (tPos && !target && resolvedSkill.targeting !== 'Self') {
+      if (resolvedSkill.targeting === 'Single') {
         combatState.addFloatingText(position.x, position.y, 'No Target', { colorClass: 'text-yellow-400' });
-        addLog(`You need a target for ${skill.name}.`, 'system');
+        addLog(`You need a target for ${resolvedSkill.name}.`, 'system');
         combatState.setTargetingSkill(null);
         return;
       }
       const isObstacle = worldState.grid.obstacles.some(o => o.x === tPos!.x && o.y === tPos!.y);
       if (isObstacle) {
         combatState.addFloatingText(position.x, position.y, 'Invalid Target', { colorClass: 'text-yellow-400' });
-        addLog(`Cannot target obstacles with ${skill.name}.`, 'system');
+        addLog(`Cannot target obstacles with ${resolvedSkill.name}.`, 'system');
         combatState.setTargetingSkill(null);
         return;
       }
@@ -176,8 +228,36 @@ export class InputHandler {
       return;
     }
 
+    // Check Adrenaline
+    if (skill.adrenalineCost) {
+      const currentAdrenaline = playerState.currentAdrenaline;
+      if (currentAdrenaline < skill.adrenalineCost) {
+        combatState.addFloatingText(position.x, position.y, 'Not Enough Adrenaline', { colorClass: 'text-yellow-400' });
+        addLog(`Not enough adrenaline for ${skill.name}.`, 'system');
+        return;
+      }
+    }
+
+    // Check Required Buff (e.g. Zealous Blow needs its proc window active on the player)
+    if (skill.requiresBuffId) {
+      const hasRequiredBuff = (useBuffStore.getState().entityBuffs['player'] || []).some(b => b.buffId === skill.requiresBuffId);
+      if (!hasRequiredBuff) {
+        combatState.addFloatingText(position.x, position.y, 'Not Ready', { colorClass: 'text-yellow-400' });
+        addLog(`${skill.name} isn't ready yet.`, 'system');
+        return;
+      }
+    }
+
+    // Combo hits require an active target (they auto-resolve direction from it, not manual clicks)
+    if (skill.comboChainIds && skill.comboChainIds.length > 0 && !tId) {
+      combatState.addFloatingText(position.x, position.y, 'No Target', { colorClass: 'text-yellow-400' });
+      addLog(`You need a target for ${skill.name}.`, 'system');
+      combatState.resetCombo();
+      return;
+    }
+
     // Enter Targeting Mode if required
-    if (!tPos && !tId && (skill.targeting === 'Ground' || skill.targeting === 'Directional' || skill.targeting === 'Area' || skill.targeting === 'Single')) {
+    if (!tPos && !tId && (resolvedSkill.targeting === 'Ground' || resolvedSkill.targeting === 'Directional' || resolvedSkill.targeting === 'Area' || resolvedSkill.targeting === 'Single')) {
       if (combatState.targetingSkillId === skill.id) {
         combatState.setTargetingSkill(null);
         return;
@@ -187,7 +267,7 @@ export class InputHandler {
     }
 
     // Check Range if we have a target
-    const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
+    const effectiveRange = resolvedSkill.range > 0 ? resolvedSkill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
 
     if (target) {
       const dist = getDistance(position, target.position);
@@ -201,9 +281,9 @@ export class InputHandler {
         combatState.addFloatingText(position.x, position.y, 'Out of Range', { colorClass: 'text-yellow-400' });
         return;
       }
-    } else if (skill.targeting === 'Single' && !target) {
+    } else if (resolvedSkill.targeting === 'Single' && !target) {
       combatState.addFloatingText(position.x, position.y, 'Need Target', { colorClass: 'text-yellow-400' });
-      addLog(`You need a target for ${skill.name}.`, 'system');
+      addLog(`You need a target for ${resolvedSkill.name}.`, 'system');
       return;
     }
 
@@ -222,28 +302,41 @@ export class InputHandler {
     }
 
     // Execute Skill or Start Cast
-    const effCastTime = getEffectiveCastTime(skill);
+    const effCastTime = getEffectiveCastTime(resolvedSkill);
     
-    // Always trigger GCD and Cooldowns immediately upon initiating cast or execution
-    triggerGcd(getEffectiveGcd(skill));
+    // Consume the gating buff (e.g. Zealous Blow's proc window) now that all checks passed
+    if (skill.requiresBuffId && skill.consumesRequiredBuff) {
+      const buffs = useBuffStore.getState().entityBuffs['player'] || [];
+      const readyBuff = buffs.find(b => b.buffId === skill.requiresBuffId);
+      if (readyBuff) {
+        useBuffStore.getState().removeBuff('player', readyBuff.id);
+      }
+    }
+    
+    // Always trigger GCD and Cooldowns immediately upon initiating cast or execution.
+    // GCD/cooldown bookkeeping stays keyed on the top-level bound skill (so combo starters
+    // remain free/no-CD regardless of which chained hit was resolved).
+    if (!skill.offGcd) {
+      triggerGcd(getEffectiveGcd(skill));
+    }
     if (skill.cooldownMs) {
        combatState.triggerSkillCooldown(skill.id, skill.cooldownMs);
     }
     combatState.setLastAttackAnimationTime(useAppStore.getState().getGameTime());
 
     if (effCastTime > 0) {
-      setCasting(skill.id, effCastTime, tId, tPos);
-      addLog(`Casting ${skill.name}...`, 'system');
+      setCasting(resolvedSkill.id, effCastTime, tId, tPos);
+      addLog(`Casting ${resolvedSkill.name}...`, 'system');
     } else {
-      SkillExecutor.execute(skill, tId, tPos);
+      SkillExecutor.execute(resolvedSkill, tId, tPos);
     }
 
     // Auto-unpause on successful skill cast
     const appState = useAppStore.getState();
     if (appState.isPaused) {
-      const shouldUnpause = skill.effects.some(e => e.type === 'damage') || 
-                            skill.tags.includes('Attack') || 
-                            skill.tags.includes('Movement');
+      const shouldUnpause = resolvedSkill.effects.some(e => e.type === 'damage') || 
+                            resolvedSkill.tags.includes('Attack') || 
+                            resolvedSkill.tags.includes('Movement');
       if (shouldUnpause) {
         appState.setPaused(false);
       }

@@ -85,7 +85,61 @@ export const hasLineOfSight = (p0: Point, p1: Point, isSolid: (x: number, y: num
   return true;
 };
 
-export type AoeShape = 'square' | 'diamond' | 'cross' | 'line' | 'cone';
+export type AoeShape = 'square' | 'diamond' | 'cross' | 'line' | 'cone' | 'tshape' | 'rect';
+
+/**
+ * Computes the 3 tiles behind a target, relative to the attacker's position, forming a
+ * "T" shape facing away from the attacker.
+ *
+ * - Cardinal attack direction (attacker directly N/S/E/W of target): the "behind" tile
+ *   continues straight past the target, flanked by the two tiles diagonally behind it.
+ * - Diagonal attack direction (attacker directly NE/NW/SE/SW of target): the "behind" tile
+ *   continues the diagonal past the target, flanked by the two CARDINAL tiles adjacent to
+ *   the target that sit between the target and the diagonal "behind" tile - this reads much
+ *   more naturally on a square grid than a further diagonal offset would.
+ *
+ * Used by skills like Shield Break's Sunder-triggered explosion.
+ */
+export const getTShapeTiles = (
+  attackerPos: Point,
+  targetPos: Point,
+  gridWidth: number,
+  gridHeight: number
+): Point[] => {
+  const dx = targetPos.x - attackerPos.x;
+  const dy = targetPos.y - attackerPos.y;
+  const mag = Math.max(Math.abs(dx), Math.abs(dy));
+  if (mag === 0) return [];
+
+  // Normalized direction (rounded to the nearest of the 8 grid directions)
+  const ndx = Math.sign(dx);
+  const ndy = Math.sign(dy);
+
+  // The tile directly behind the target, continuing the attack direction
+  const behind = { x: targetPos.x + ndx, y: targetPos.y + ndy };
+
+  const isDiagonalAttack = ndx !== 0 && ndy !== 0;
+
+  let flank1: Point;
+  let flank2: Point;
+
+  if (isDiagonalAttack) {
+     // The two cardinal neighbors of the target that lie "between" the target and the
+     // diagonal behind-tile (e.g. attacking from the NW: behind is SE of target, flanks
+     // are the tile directly S and the tile directly E of the target).
+     flank1 = { x: targetPos.x + ndx, y: targetPos.y };
+     flank2 = { x: targetPos.x, y: targetPos.y + ndy };
+  } else {
+     // Cardinal attack: flank the behind-tile diagonally, same as before.
+     const perpX = -ndy;
+     const perpY = ndx;
+     flank1 = { x: behind.x + perpX, y: behind.y + perpY };
+     flank2 = { x: behind.x - perpX, y: behind.y - perpY };
+  }
+
+  const tiles = [behind, flank1, flank2];
+  return tiles.filter(pt => pt.x >= 0 && pt.x < gridWidth && pt.y >= 0 && pt.y < gridHeight);
+};
 
 /**
  * Generates an array of Points representing an Area of Effect.
@@ -130,8 +184,19 @@ export const getAoETiles = (
           } 
           const dx = pt.x - center.x;
           const dy = pt.y - center.y;
-          const tdx = target.x - center.x;
-          const tdy = target.y - center.y;
+
+          // Melee AoE Rule: snap the facing to the nearest cardinal (N/S/E/W) instead of the
+          // raw (possibly diagonal) direction to target, so the cone is always a consistent
+          // straight 3-wide wedge no matter which way the target actually is from the caster.
+          const rawTdx = target.x - center.x;
+          const rawTdy = target.y - center.y;
+          let tdx = 0;
+          let tdy = 0;
+          if (Math.abs(rawTdx) >= Math.abs(rawTdy)) {
+             tdx = rawTdx !== 0 ? Math.sign(rawTdx) : 1;
+          } else {
+             tdy = Math.sign(rawTdy);
+          }
           
           const dot = (dx * tdx + dy * tdy);
           const len1 = Math.sqrt(dx * dx + dy * dy);
@@ -172,6 +237,47 @@ export const getAoETiles = (
       }
   } else if (shape === 'line' && !target) {
       tiles.push(center); // fallback if no target
+  }
+
+  // Handle Rect specifically (e.g. Ground Slam: 3 tiles wide x `radius` tiles deep,
+  // anchored one tile in front of `center` (the player) and extending further outward
+  // along the direction towards `target`). Diagonal attack angles are snapped to the
+  // nearest cardinal (N/S/E/W) axis before building the rect - true 8-directional
+  // diagonal rects end up "corner-thin" (each row only touches the next at a single
+  // corner instead of a full edge), which reads as broken/gappy on a square grid.
+  // Anchoring at the player (not the target's tile) keeps this reading as a slam that
+  // radiates outward from the caster, regardless of where the target actually stands.
+  if (shape === 'rect') {
+      const ref = target || center;
+      const dx = ref.x - center.x;
+      const dy = ref.y - center.y;
+
+      // Snap to the dominant cardinal axis instead of using the raw (possibly diagonal) direction
+      let ndx = 0;
+      let ndy = 0;
+      if (Math.abs(dx) >= Math.abs(dy)) {
+         ndx = dx !== 0 ? Math.sign(dx) : 1;
+      } else {
+         ndy = Math.sign(dy);
+      }
+
+      // Perpendicular axis used to give each row width 3 (row center +/- 1 tile)
+      const perpX = -ndy;
+      const perpY = ndx;
+
+      for (let depth = 1; depth <= radius; depth++) {
+          const rowCenter = { x: center.x + ndx * depth, y: center.y + ndy * depth };
+          const rowTiles = [
+              rowCenter,
+              { x: rowCenter.x + perpX, y: rowCenter.y + perpY },
+              { x: rowCenter.x - perpX, y: rowCenter.y - perpY }
+          ];
+          rowTiles.forEach(pt => {
+              if (pt.x >= 0 && pt.x < gridWidth && pt.y >= 0 && pt.y < gridHeight) {
+                  tiles.push(pt);
+              }
+          });
+      }
   }
 
   // 2. Wall Interaction Cull

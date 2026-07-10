@@ -9,8 +9,9 @@ import { useInventoryStore } from '../../store/useInventoryStore';
 // removed unused useMessageStore
 import { useAppStore } from '../../store/useAppStore';
 
-import { getAoETiles, getChebyshevDistance } from '../world/gridMath';
+import { getAoETiles, getChebyshevDistance, getTShapeTiles } from '../world/gridMath';
 import { DamageCalculator } from '../combat/DamageCalculator';
+import { getWeaponSkillDamage } from '../combat/WeaponDPS';
 
 export class SkillExecutor {
   /**
@@ -94,6 +95,13 @@ export class SkillExecutor {
         addLog(`Not enough energy for ${skill.name}.`, 'system');
         return;
       }
+
+      if (skill.adrenalineCost) {
+        if (!playerState.useAdrenaline(skill.adrenalineCost)) {
+          addLog(`Not enough adrenaline for ${skill.name}.`, 'system');
+          return;
+        }
+      }
     }
     
     const weapon1 = inventoryState.equipment['weapon1'];
@@ -124,6 +132,16 @@ export class SkillExecutor {
     const buffEffectMultiplier = this.getBuffEffectMultiplier();
     const buffDurationMultiplier = this.getBuffDurationMultiplier();
     const skillReach = statsState.getStat('SkillReach');
+
+    // Zealous Blow: if the player has the "next skill +25% damage" empowerment active,
+    // this whole cast (all targets/hits within it) benefits, then it's consumed once.
+    const zealousBlowBuff = skill.id !== 'basic_attack'
+      ? (useBuffStore.getState().entityBuffs['player'] || []).find(b => b.buffId === 'zealous_blow_empowered')
+      : undefined;
+    const zealousBlowActive = !!zealousBlowBuff;
+    if (zealousBlowBuff && cascadeDepth === 0) {
+      useBuffStore.getState().removeBuff('player', zealousBlowBuff.id);
+    }
     
     // Build effective AoE config
     let effectiveAoeParams = skill.aoeParams ? {
@@ -201,9 +219,57 @@ export class SkillExecutor {
        } else if (skill.targeting === 'Ground') {
          center = finalTargetPos || playerPos;
        } else if (skill.targeting === 'Directional') {
-         center = playerPos;
-         target = finalTargetPos || playerPos;
-       }
+          center = playerPos;
+          // For melee Directional AoE skills the underlying shapes (cone, rect) already snap
+          // to the nearest cardinal axis, so diagonal target positions produce the same shape
+          // as their dominant-axis cardinal.  Rather than blindly forwarding the raw target
+          // tile, score all 4 cardinals by how many enemies they catch inside the AoE and
+          // choose the best one.  Ties are broken by proximity to where the player actually
+          // aimed so the skill still feels responsive when counts are equal.
+          if (skill.tags.includes('Melee') && skill.tags.includes('AoE') && effectiveAoeParams) {
+            const cardinals = [
+              { x: playerPos.x,     y: playerPos.y - 1 }, // North
+              { x: playerPos.x + 1, y: playerPos.y     }, // East
+              { x: playerPos.x,     y: playerPos.y + 1 }, // South
+              { x: playerPos.x - 1, y: playerPos.y     }, // West
+            ];
+
+            const scoreDirection = (dirTile: {x: number, y: number}): number => {
+              const testTiles = getAoETiles(
+                playerPos,
+                dirTile,
+                effectiveAoeParams!.shape,
+                effectiveAoeParams!.radius,
+                effectiveAoeParams!.respectWalls || false,
+                isSolid,
+                worldState.grid.width,
+                worldState.grid.height
+              );
+              return worldState.enemies.filter(
+                e => !e.isDead && testTiles.some(pt => pt.x === e.position.x && pt.y === e.position.y)
+              ).length;
+            };
+
+            const rawTarget = finalTargetPos || playerPos;
+            let bestDir = cardinals[0];
+            let bestScore = -1;
+            let bestProximity = Infinity;
+
+            for (const dir of cardinals) {
+              const score = scoreDirection(dir);
+              const proximity = Math.abs(dir.x - rawTarget.x) + Math.abs(dir.y - rawTarget.y);
+              if (score > bestScore || (score === bestScore && proximity < bestProximity)) {
+                bestScore = score;
+                bestProximity = proximity;
+                bestDir = dir;
+              }
+            }
+
+            target = bestDir;
+          } else {
+            target = finalTargetPos || playerPos;
+          }
+        }
 
        if (effectiveAoeParams) {
          affectedTiles = getAoETiles(
@@ -216,6 +282,11 @@ export class SkillExecutor {
            worldState.grid.width,
            worldState.grid.height
          );
+
+         // AoE skills should never visually or mechanically affect the player's own tile
+         // (the player isn't a valid 'Enemy' target anyway, but including their tile in the
+         // VFX/eruption pass is confusing - it looks like the skill is striking the caster).
+         affectedTiles = affectedTiles.filter(pt => !(pt.x === playerPos.x && pt.y === playerPos.y));
        }
     }
 
@@ -243,14 +314,20 @@ export class SkillExecutor {
      else if (finalElem === 'Pierce') vfxColor = 0x94a3b8; // Slate-400 (Sharp metal)
      else if (finalElem === 'Physical') vfxColor = 0xd4d4d8; // Zinc-300 (Silver fallback)
 
-     // Dispatch AoE tile effects
-     if (affectedTiles.length > 0) {
-        affectedTiles.forEach(pt => {
-           useCombatStore.getState().addTileEffect(pt.x, pt.y, 'eruption', vfxColor);
-        });
-     } else if (finalTargetPos) {
-        // Single target hit effect on the target's tile
-        useCombatStore.getState().addTileEffect(finalTargetPos.x, finalTargetPos.y, 'eruption', vfxColor);
+     // Dispatch AoE tile effects (skipped here for skills with a 'leap' effect - their AoE
+     // is centered on the actual landing tile, resolved below inside the effects loop, not
+     // the original clicked position)
+     const hasLeapEffect = skill.effects.some(e => e.type === 'leap');
+     if (!hasLeapEffect) {
+        if (affectedTiles.length > 0) {
+           affectedTiles.forEach(pt => {
+              useCombatStore.getState().addTileEffect(pt.x, pt.y, 'eruption', vfxColor);
+           });
+        } else if (finalTargetPos && skill.targeting !== 'Self') {
+           // Single target hit effect on the target's tile (skipped for Self-targeted skills like
+           // buffs, which have no gameplay reason to flash an eruption on the enemy's tile)
+           useCombatStore.getState().addTileEffect(finalTargetPos.x, finalTargetPos.y, 'eruption', vfxColor);
+        }
      }
 
     for (const effect of skill.effects) {
@@ -317,6 +394,111 @@ export class SkillExecutor {
            }
        }
 
+       if (effect.type === 'leap') {
+           if (targetPos) {
+               const isSolidTile = (x: number, y: number) => {
+                 if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
+                 return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
+               };
+               const isOccupiedTile = (x: number, y: number) => worldState.enemies.some(e => !e.isDead && e.position.x === x && e.position.y === y);
+
+               let dest: {x: number, y: number} | null = null;
+
+               if (!isSolidTile(targetPos.x, targetPos.y) && !isOccupiedTile(targetPos.x, targetPos.y)) {
+                  // Destination tile itself is free - leap straight there
+                  dest = { x: targetPos.x, y: targetPos.y };
+               } else {
+                  // Destination is a wall or an enemy (e.g. leaping "onto" a targeted enemy) -
+                  // land on the nearest free tile adjacent to it instead, same as Charge does.
+                  const neighbors = [
+                     { x: targetPos.x, y: targetPos.y - 1 },
+                     { x: targetPos.x + 1, y: targetPos.y - 1 },
+                     { x: targetPos.x + 1, y: targetPos.y },
+                     { x: targetPos.x + 1, y: targetPos.y + 1 },
+                     { x: targetPos.x, y: targetPos.y + 1 },
+                     { x: targetPos.x - 1, y: targetPos.y + 1 },
+                     { x: targetPos.x - 1, y: targetPos.y },
+                     { x: targetPos.x - 1, y: targetPos.y - 1 }
+                  ];
+
+                  let bestNeighbor = null;
+                  let bestDist = Infinity;
+                  for (const n of neighbors) {
+                     if (isSolidTile(n.x, n.y) || isOccupiedTile(n.x, n.y)) continue;
+                     // Must still be within the skill's leap range from the player's current position
+                     if (getChebyshevDistance(playerState.position, n) > skill.range) continue;
+                     const d = (n.x - playerState.position.x) ** 2 + (n.y - playerState.position.y) ** 2;
+                     if (d < bestDist) {
+                        bestDist = d;
+                        bestNeighbor = n;
+                     }
+                  }
+                  if (bestNeighbor) dest = bestNeighbor;
+               }
+
+               if (dest) {
+                   // Bypass the normal 750ms movement cooldown entirely (instant reposition)
+                   playerState.setPosition(dest.x, dest.y);
+                   addLog(`You leap forward!`, 'ability');
+
+                   // The skill's AoE (damage targeting, eruption VFX, hit-effect source position)
+                   // must center on where the player actually LANDED, not the originally clicked
+                   // tile - recompute both now that dest is known.
+                   finalTargetPos = dest;
+                   if (effectiveAoeParams) {
+                      const isSolidForAoe = (x: number, y: number) => {
+                        if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
+                        return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
+                      };
+                      affectedTiles = getAoETiles(
+                        dest,
+                        null,
+                        effectiveAoeParams.shape,
+                        effectiveAoeParams.radius,
+                        effectiveAoeParams.respectWalls || false,
+                        isSolidForAoe,
+                        worldState.grid.width,
+                        worldState.grid.height
+                      ).filter(pt => !(pt.x === playerState.position.x && pt.y === playerState.position.y));
+                   }
+
+                   // Eruption VFX was deferred until landing was resolved (see above) - dispatch
+                   // it now, centered on the real landing zone.
+                   affectedTiles.forEach(pt => {
+                      useCombatStore.getState().addTileEffect(pt.x, pt.y, 'eruption', vfxColor);
+                   });
+
+                   // Interrupt any enemy casts/channels caught in the landing zone (3x3, computed via affectedTiles below)
+                   const landingTiles = getAoETiles(
+                     dest,
+                     null,
+                     'square',
+                     1,
+                     false,
+                     () => false,
+                     worldState.grid.width,
+                     worldState.grid.height
+                   );
+                   const now = useAppStore.getState().getGameTime();
+                   const stunOnInterruptMs = skill.effects.find(e => e.stunOnInterruptMs)?.stunOnInterruptMs;
+                   worldState.enemies.forEach(e => {
+                     if (e.isDead) return;
+                     if (!landingTiles.some(pt => pt.x === e.position.x && pt.y === e.position.y)) return;
+                     if (e.channelingUntil && e.channelingUntil > now) {
+                        worldState.updateEnemy(e.id, { channelingUntil: 0 });
+                        addLog(`${e.name}'s cast was interrupted!`, 'ability');
+                        if (stunOnInterruptMs) {
+                           useBuffStore.getState().applyStun(e.id, stunOnInterruptMs);
+                           addLog(`${e.name} is stunned!`, 'ability');
+                        }
+                     }
+                   });
+               } else {
+                   addLog(`No open tile to leap to!`, 'system');
+               }
+           }
+       }
+
        // 1. Gather all potential targets
        const allEntities = [
          { id: 'player', position: playerState.position, faction: 'player', name: 'You', isDead: playerState.currentHealth <= 0 },
@@ -324,7 +506,7 @@ export class SkillExecutor {
        ];
 
        // Filter by faction
-       const filter = effect.targetFilter || 'Enemy';
+       const filter = effect.targetFilter || (effect.type === 'buff' || effect.type === 'heal' ? 'Ally' : 'Enemy');
        let validEntities = allEntities.filter(e => !e.isDead);
        
        if (filter === 'Enemy') {
@@ -364,6 +546,12 @@ export class SkillExecutor {
        } else if (skill.targeting === 'Self') {
           const selfEntity = validEntities.find(e => e.id === 'player');
           if (selfEntity) finalTargets.push({ enemy: selfEntity, multiplier: 1 });
+       } else if (filter === 'Self' || filter === 'Ally') {
+          // Non-Self-targeting skills (e.g. Single-target enemy attacks) can still carry a
+          // secondary buff/heal effect that should land on the player rather than the enemy
+          // targetId (e.g. Zealous Blow's "next skill +25% damage" self-buff).
+          const selfEntity = validEntities.find(e => e.id === 'player');
+          if (selfEntity) finalTargets.push({ enemy: selfEntity, multiplier: 1 });
        } else if (targetId) {
           const t = validEntities.find(e => e.id === targetId);
           if (t) finalTargets.push({ enemy: t, multiplier: 1 });
@@ -372,8 +560,6 @@ export class SkillExecutor {
         // 3. Apply Effect to targets
        for (const { enemy, multiplier } of finalTargets) {
           let finalElement = effect.element || 'Strike';
-      
-          // If this is a weapon skill and it doesn't hardcode an element, inherit from weapon1
           if (skill.requiredWeaponCategories && skill.requiredWeaponCategories.length > 0) {
              if (weapon1 && weapon1.damageType && !effect.element) {
                 finalElement = weapon1.damageType;
@@ -385,7 +571,11 @@ export class SkillExecutor {
              
              let base = effect.baseValue || 0;
              if (isAttackSkill) {
-                base += statsState.getStat('WeaponDamage'); // Add weapon base damage
+                // Core skill damage formula: Skill_Damage = (Weapon_DPS * 2.0) * Skill_Multiplier.
+                // getWeaponSkillDamage() already includes the DPS scalar; main hand contributes
+                // fully, off hand contributes 50%, so slower/heavier weapons (e.g. 2H) don't
+                // out-damage faster ones on skills.
+                base += getWeaponSkillDamage();
              
                 if (effect.damageMultiplier) {
                     base *= effect.damageMultiplier;
@@ -441,6 +631,20 @@ export class SkillExecutor {
 
              let finalDamage = base * damageMultiplier * multiplier * (1 + tagIncreasedSum);
              
+             if (effect.bonusDamagePerSunderStack) {
+                const sunderStacks = useBuffStore.getState().getSunderStacks(enemy.id);
+                finalDamage *= (1 + (sunderStacks * effect.bonusDamagePerSunderStack / 100));
+             }
+             if (effect.bonusDamageIfSundered) {
+                const hasSunderStack = useBuffStore.getState().getSunderStacks(enemy.id) > 0;
+                if (hasSunderStack) {
+                   finalDamage *= (1 + (effect.bonusDamageIfSundered / 100));
+                }
+             }
+             if (zealousBlowActive) {
+                finalDamage *= 1.25;
+             }
+             
              let defenderHasWeapon = true;
              let defenderHasShield = false;
              let defenderBaseBlockChance = 0;
@@ -457,8 +661,9 @@ export class SkillExecutor {
              } else {
                 const targetObj = worldState.enemies.find(e => e.id === enemy.id);
                 if (targetObj) {
+                  const sunderReduction = useBuffStore.getState().getSunderArmorReduction(enemy.id);
                   enemyDefenderStats = {
-                      'Armor': targetObj.stats.armor,
+                      'Armor': targetObj.stats.armor * (1 - sunderReduction),
                       'FireResist': targetObj.stats.fireResist,
                       'ColdResist': targetObj.stats.coldResist,
                       'LightningResist': targetObj.stats.lightningResist,
@@ -522,6 +727,11 @@ export class SkillExecutor {
                  
                  const actualDamage = finalMitigatedDamage * shockMultiplier;
                  
+                 // Floating combat text renders the source skill's icon + a slightly larger
+                 // font for any real skill cast (not the plain auto-attack basic_attack id).
+                 const isRealSkillCast = skill.id !== 'basic_attack';
+                 const floatingTextSkillOptions = isRealSkillCast ? { skillIcon: skill.icon, isSkillDamage: true } : {};
+                 
                  if (enemy.id === 'player') {
                     playerState.takeDamage(actualDamage);
                     let displayString = actualDamage.toFixed(0);
@@ -529,11 +739,12 @@ export class SkillExecutor {
                     else if (result === 'parry') displayString += ' (Parry)';
                     else if (result === 'deflect') displayString += ' (Deflect)';
                     
-                    useCombatStore.getState().addFloatingText(playerState.position.x, playerState.position.y, displayString, { colorClass: 'text-zinc-100', isCrit: result === 'crit' });
+                    useCombatStore.getState().addFloatingText(playerState.position.x, playerState.position.y, displayString, { colorClass: 'text-red-400', isCrit: result === 'crit', ...floatingTextSkillOptions });
                     useCombatStore.getState().addHitEffect('player', playerState.position.x, playerState.position.y, vfxColor, finalElement);
                     addLog(`You hit yourself for ${actualDamage.toFixed(0)} damage!${resultText}`, 'enemy-attack');
                  } else {
                     worldState.damageEnemy(enemy.id, actualDamage);
+                    useCombatStore.getState().setLastDamageDealtTime(Date.now());
                     
                     let dmgColor = 'text-zinc-200';
                     if (finalElement === 'Pierce') dmgColor = 'text-stone-300';
@@ -546,7 +757,7 @@ export class SkillExecutor {
                     else if (result === 'parry') displayString += ' (Parry)';
                     else if (result === 'deflect') displayString += ' (Deflect)';
 
-                    useCombatStore.getState().addFloatingText(enemy.position.x, enemy.position.y, displayString, { colorClass: dmgColor, isCrit: result === 'crit' });
+                    useCombatStore.getState().addFloatingText(enemy.position.x, enemy.position.y, displayString, { colorClass: dmgColor, isCrit: result === 'crit', ...floatingTextSkillOptions });
                     
                     // For AoE skills, source is the center of the cast. Otherwise, it's the player.
                     const srcX = (skill.targeting === 'Area' || skill.targeting === 'Ground') && finalTargetPos ? finalTargetPos.x : playerState.position.x;
@@ -556,7 +767,80 @@ export class SkillExecutor {
                     
                     addLog(`You hit ${enemy.name} for ${actualDamage.toFixed(0)} ${finalElement} damage.${resultText}`, 'ability');
                     
-                    // Ailment Application removed as per design request
+                    // Universal Sunder application
+                    if (effect.applySunderStacks && effect.applySunderStacks > 0) {
+                       useBuffStore.getState().applySunder(enemy.id, effect.applySunderStacks);
+                    }
+                    
+                    // Zealous Blow Proc: melee skill hits also have a 5% chance to open the
+                    // 6s "Zealous Blow" window (mirrors the auto-attack proc in useGameEngine.ts).
+                    if (skill.tags.includes('Melee') && Math.random() < 0.05) {
+                       const alreadyReady = (useBuffStore.getState().entityBuffs['player'] || []).some(b => b.buffId === 'zealous_blow_ready');
+                       useBuffStore.getState().addBuff('player', {
+                          buffId: 'zealous_blow_ready',
+                          name: 'Zealous Blow Ready',
+                          type: 'buff',
+                          stackingBehavior: 'refresh',
+                          durationMs: 6000,
+                          maxDurationMs: 6000,
+                          stacks: 1,
+                          maxStacks: 1,
+                          icon: 'Sparkles',
+                          statModifiers: []
+                       });
+                       if (!alreadyReady) addLog(`Zealous Blow is ready!`, 'ability');
+                    }
+                    
+                    // Universal Knockdown (only if target currently has Sunder stacks)
+                    if (effect.knockdownIfSundered) {
+                       const hasSunder = useBuffStore.getState().getSunderStacks(enemy.id) > 0;
+                       if (hasSunder) {
+                          useBuffStore.getState().applyKnockdown(enemy.id, effect.knockdownDurationMs || 1500);
+                          addLog(`${enemy.name} is knocked down!`, 'ability');
+                       }
+                    }
+
+                    // T-Shape collateral explosion (e.g. Shield Break at 3+ Sunder stacks)
+                    if (effect.tShapeSunderThreshold && effect.tShapeDamageMultiplier) {
+                       const sunderStacks = useBuffStore.getState().getSunderStacks(enemy.id);
+                       if (sunderStacks >= effect.tShapeSunderThreshold) {
+                          const tShapeTiles = getTShapeTiles(playerState.position, enemy.position, worldState.grid.width, worldState.grid.height);
+                          if (tShapeTiles.length > 0) {
+                             tShapeTiles.forEach(pt => useCombatStore.getState().addTileEffect(pt.x, pt.y, 'eruption', vfxColor));
+                             const collateralTargets = worldState.enemies.filter(e2 => !e2.isDead && e2.id !== enemy.id && tShapeTiles.some(pt => pt.x === e2.position.x && pt.y === e2.position.y));
+                             const tShapeBase = getWeaponSkillDamage() * effect.tShapeDamageMultiplier;
+                             collateralTargets.forEach(target2 => {
+                                const sunderReduction2 = useBuffStore.getState().getSunderArmorReduction(target2.id);
+                                const defenderStats2 = {
+                                   'Armor': target2.stats.armor * (1 - sunderReduction2),
+                                   'FireResist': target2.stats.fireResist,
+                                   'ColdResist': target2.stats.coldResist,
+                                   'LightningResist': target2.stats.lightningResist,
+                                   'StrikeResist': (target2.stats.strikeResist || 0) + (target2.stats.physicalResist || 0),
+                                   'PierceResist': (target2.stats.pierceResist || 0) + (target2.stats.physicalResist || 0),
+                                   'PhysicalResist': target2.stats.physicalResist || 0
+                                };
+                                const { damage: collateralDamage } = DamageCalculator.calculateDamage(
+                                   tShapeBase * damageMultiplier,
+                                   'Strike',
+                                   false,
+                                   playerState.level,
+                                   target2.level,
+                                   statsState.getAllStats(),
+                                   defenderStats2,
+                                   0,
+                                   true,
+                                   false,
+                                   0
+                                );
+                                worldState.damageEnemy(target2.id, collateralDamage);
+                                useCombatStore.getState().addFloatingText(target2.position.x, target2.position.y, collateralDamage.toFixed(0), { colorClass: 'text-zinc-200' });
+                                useCombatStore.getState().addHitEffect(target2.id, enemy.position.x, enemy.position.y, vfxColor, 'Strike');
+                                addLog(`The collateral explosion staggers ${target2.name} for ${collateralDamage.toFixed(0)} damage!`, 'ability');
+                             });
+                          }
+                       }
+                    }
                    
                    // Sustain
                    const lifeOnHit = statsState.getStat('LifeGainOnHit');

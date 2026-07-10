@@ -100,7 +100,12 @@ export const useAppStore = create<AppState>()(
   lastActiveTime: null,
   updateLastActiveTime: () => set({ lastActiveTime: Date.now() }),
   resumeFromBackground: () => set((state) => {
-    if (state.lastActiveTime) {
+    // If the game was already Tactically Paused when the tab was backgrounded, the entire
+    // backgrounded span is already covered by pauseStartTime and will be folded into
+    // pauseTimeOffset once the player unpauses (setPaused/togglePause). Also compensating
+    // for it here would double-count that same window, regressing getGameTime() by up to
+    // 2x the actual time spent away and freezing skill cooldowns/GCD for that long.
+    if (state.lastActiveTime && !state.isPaused) {
       const elapsed = Date.now() - state.lastActiveTime;
       if (elapsed > 0) {
         return { 

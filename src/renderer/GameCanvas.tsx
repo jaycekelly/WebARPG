@@ -253,6 +253,7 @@ export function GameCanvas() {
           const tileSize = BASE_TILE_SIZE * gameScale * DEFAULT_ZOOM;
           const totalTileSize = tileSize + BASE_GAP_SIZE;
 
+          const isOutOfCombat = !useCombatStore.getState().isInCombat();
           const camResult = cam.update(
             p.position,
             app.renderer.width,
@@ -260,6 +261,7 @@ export function GameCanvas() {
             tileSize,
             totalTileSize,
             ticker.deltaMS / 1000,
+            isOutOfCombat,
           );
 
           const focusWorldY = (camResult.focusY + 0.5) * tileSize;

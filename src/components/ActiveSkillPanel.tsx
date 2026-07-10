@@ -27,7 +27,7 @@ export function ActiveSkillPanel() {
     : activeTab === 'secondary' ? (secondaryClass || playerClass) 
     : selectedPreviewClass;
   const classSkills = Object.values(SKILLS)
-    .filter(skill => skill.classRequirement === currentTabClass)
+    .filter(skill => skill.classRequirement === currentTabClass && !skill.isHidden)
     .sort((a, b) => (a.requiredLevel || 0) - (b.requiredLevel || 0));
   
   const handleTabClick = (tab: 'primary' | 'secondary' | 'select_secondary') => {
@@ -48,16 +48,27 @@ export function ActiveSkillPanel() {
   };
 
   const handleMouseEnter = (skill: Skill) => {
+    // Priority order: resource costs first, then cooldown, then range, then cast time.
+    // Entries that don't apply to a skill (no cost, no cooldown, no cast time) are omitted
+    // entirely instead of showing a placeholder like "No CD".
+    const infoParts: string[] = [];
+    const effEnergy = getEffectiveEnergyCost(skill);
+    if (effEnergy > 0) infoParts.push(`${effEnergy} Energy`);
+    if (skill.adrenalineCost) infoParts.push(`${skill.adrenalineCost} Adrenaline`);
+    if (skill.cooldownMs) infoParts.push(`${(skill.cooldownMs / 1000).toFixed(1)} CD`);
+    infoParts.push(skill.range > 0 ? `Range ${skill.range}` : 'Melee');
+    if (skill.castTime) infoParts.push(`${(getEffectiveCastTime(skill) / 1000).toFixed(1)} Cast`);
+
     setContent(
       <div className="w-56 bg-surface-overlay border border-border-strong rounded-lg px-2 py-1.5 shadow-2xl backdrop-blur-md text-left pointer-events-none">
         <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
-        <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
-            <span>{getEffectiveEnergyCost(skill)} Energy</span>
-            <span>{skill.cooldownMs ? `${(skill.cooldownMs / 1000).toFixed(1)} CD` : 'No CD'}</span>
-        </div>
-        <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
-            <span>{skill.range > 0 ? `Range ${skill.range}` : 'Melee'}</span>
-            <span>{skill.castTime ? `${(getEffectiveCastTime(skill) / 1000).toFixed(1)} Cast` : 'Instant'}</span>
+        <div className="text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
+           {Array.from({ length: Math.ceil(infoParts.length / 2) }).map((_, rowIdx) => (
+             <div key={rowIdx} className="flex justify-between">
+               <span>{infoParts[rowIdx * 2]}</span>
+               <span>{infoParts[rowIdx * 2 + 1] || ''}</span>
+             </div>
+           ))}
         </div>
         <div className="text-xs text-text-primary mb-1">{skill.description}</div>
       </div>

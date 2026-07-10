@@ -14,8 +14,8 @@ export function EscapeMenu() {
     const combatState = useCombatStore.getState();
     if (useAppStore.getState().getGameTime() - combatState.lastCombatEventTime < 5000) {
        useMessageStore.getState().addScreenMessage('above', 'Cannot portal in combat', 4000);
-    } else {
-       useCombatStore.getState().setCasting('portal_skill', 4000);
+    } else if (combatState.castingSkillId !== 'portal_skill') {
+       combatState.setCasting('portal_skill', 4000);
     }
     setEscapeMenuOpen(false);
     useAppStore.getState().setPaused(false);

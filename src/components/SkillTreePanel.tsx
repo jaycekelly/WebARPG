@@ -5,8 +5,8 @@ import { useTooltipStore } from '../store/useTooltipStore';
 import { SKILL_TREE, type TalentNode } from '../data/skillTrees';
 import { SKILLS } from '../data/skills';
 import { getEffectiveEnergyCost, getEffectiveCastTime } from '../engine/input/InputHandler';
-import { useStatsStore } from '../store/useStatsStore';
 import { useInventoryStore } from '../store/useInventoryStore';
+import { getWeaponSkillDamage } from '../engine/combat/WeaponDPS';
 import { Flame } from 'lucide-react';
 
 import { ICONS } from './IconLibrary';
@@ -56,7 +56,7 @@ export function SkillTreePanel() {
              <>
                 <div className="font-bold text-sm text-sky-400 mb-1">{activeSkill.name}</div>
                 <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
-                   <span>{getEffectiveEnergyCost(activeSkill)} Energy</span>
+                   <span>{activeSkill.energyCost > 0 ? `${getEffectiveEnergyCost(activeSkill)} Energy` : (activeSkill.adrenalineCost ? `${activeSkill.adrenalineCost} Adrenaline` : 'Free')}</span>
                    <span>{activeSkill.cooldownMs ? `${(activeSkill.cooldownMs / 1000).toFixed(1)} CD` : 'No CD'}</span>
                 </div>
                 <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
@@ -66,7 +66,8 @@ export function SkillTreePanel() {
                 {activeSkill.effects.some(e => e.type === 'damage') && (
                   <div className="mb-1 pb-1 border-b border-border-subtle space-y-0.5">
                     {activeSkill.effects.filter(e => e.type === 'damage').map((effect, i) => {
-                      const weaponDamage = useStatsStore.getState().getStat('Damage');
+                      const isAttackSkill = activeSkill.tags.includes('Attack') || activeSkill.tags.includes('Melee') || activeSkill.tags.includes('Projectile');
+                      const weaponDamage = isAttackSkill ? getWeaponSkillDamage() : 0;
                       const weaponType = (useInventoryStore.getState().equipment['weapon1'] as any)?.damageType || 'Physical';
                       const mult = effect.damageMultiplier || 0;
                       const base = effect.baseValue || 0;
