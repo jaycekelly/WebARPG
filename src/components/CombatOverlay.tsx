@@ -424,14 +424,16 @@ export function CombatOverlay() {
         )}
 
         {/* Main Skill Bar with Docked Flask */}
-        <div className="relative flex items-end pointer-events-auto mt-1 w-max mb-5">
+        <div className="relative flex items-end pointer-events-auto mt-1 w-max">
             
             {/* Docked Flask Slot (Offset to the left of the center skill bar) */}
-            <div className="absolute right-full mr-2 bottom-0 h-12 flex items-center justify-center drop-shadow-2xl gap-2">
-               <div className="relative w-12 h-12 flex flex-col items-center justify-center">
+            <div className="absolute right-full mr-1.5 bottom-0 h-12 flex items-center justify-center drop-shadow-2xl gap-1.5">
+               <div className="relative w-10 h-10">
                   <button 
-                    className={`relative w-full h-full flex items-center justify-center transition-all bg-transparent focus:outline-none focus:ring-0 group
-                      ${now - lastFlaskTime < 30000 ? 'cursor-not-allowed grayscale brightness-50' : ''}
+                    className={`relative w-full h-full rounded-lg border flex items-center justify-center overflow-hidden transition-all focus:outline-none focus:ring-0
+                      ${now - lastFlaskTime >= 30000 
+                         ? 'bg-surface-deep border-border-subtle hover:border-accent'
+                         : 'bg-surface-deep border-border-subtle cursor-not-allowed'}
                     `}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -470,11 +472,11 @@ export function CombatOverlay() {
                    )}
                    onMouseLeave={() => setContent(null)}
                   >
-                     <FlaskConical className="mb-0.5 w-6 h-6 text-red-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] z-10 transition-transform group-hover:scale-110" />
+                     <FlaskConical className="w-5 h-5 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] z-10" />
                      {now - lastFlaskTime < 30000 && (
                         <div 
-                          className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none rounded-full"
-                          style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.8) 0)` }}
+                          className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
+                          style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.7) 0)` }}
                         >
                           <span className="text-white font-bold text-sm z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
                             {Math.ceil((30000 - (now - lastFlaskTime)) / 1000)}
@@ -482,21 +484,13 @@ export function CombatOverlay() {
                         </div>
                      )}
                   </button>
-                  
-                  {/* Floating Hotkey */}
-                  <div className="absolute -bottom-5 w-4 h-4 bg-zinc-900 flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-[0_2px_4px_rgba(0,0,0,0.5)] pointer-events-none">
-                    R
-                  </div>
-                  {/* Underline */}
-                  <div className="absolute bottom-0 left-[20%] w-[60%] h-[4px] bg-zinc-900 drop-shadow-md pointer-events-none" />
+                  <span className="absolute bottom-0.5 left-1 text-xs font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] z-30 pointer-events-none">{`R`}</span>
                </div>
-               {/* Vertical Separator */}
-               <div className="w-[4px] h-5 bg-zinc-900 self-end mr-1" />
+               <div className="w-px h-8 bg-border-subtle" />
             </div>
 
             {/* Main Skill Bar */}
-            <div className="flex gap-1 drop-shadow-2xl relative">
-              
+            <div className="flex gap-1 drop-shadow-2xl">
               {boundSkills.slice(0, 8).map((skillId, index) => {
                 const skill = skillId ? SKILLS[skillId] : null;
                 const IconComponent = skill ? (ICONS[skill.icon] || Flame) : null;
@@ -548,10 +542,12 @@ export function CombatOverlay() {
                 const isProcced = skill?.requiresBuffId && hasRequiredBuff;
 
                 return (
-                  <div key={index} className="relative flex flex-col items-center">
+                  <div key={index} className="relative">
                     <button
-                      className={`relative w-12 h-12 flex items-center justify-center transition-all bg-transparent focus:outline-none focus:ring-0 group
-                        ${isBinding ? 'animate-pulse scale-110' : ''}
+                      className={`relative w-12 h-12 flex items-center justify-center rounded-lg border transition-all overflow-hidden bg-surface-deep focus:outline-none focus:ring-0
+                        ${isBinding ? 'border-accent bg-surface-raised animate-pulse' : 
+                          isProcced ? 'border-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]' :
+                          'border-border-subtle hover:border-accent'}
                         ${(outOfEnergy || missingBuff) && !isBinding ? 'grayscale brightness-50' : ''}
                       `}
                       onClick={(e) => {
@@ -672,41 +668,41 @@ export function CombatOverlay() {
                       }}
                     >
                       {skill && IconComponent ? (
-                        <div className={`relative z-10 w-full h-full flex items-center justify-center transition-transform group-hover:scale-110 ${outOfRange ? 'opacity-50' : ''}`}>
-                          <IconComponent className={`mb-1.5 w-8 h-8 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] ${isProcced ? 'text-teal-400 drop-shadow-[0_0_8px_rgba(45,212,191,0.8)]' : 'text-sky-400'}`} />
+                        <div className={`relative z-10 w-full h-full flex items-center justify-center ${outOfRange ? 'opacity-50' : ''}`}>
+                          <IconComponent className={`w-7 h-7 drop-shadow-md text-sky-400`} />
                         </div>
                       ) : null}
 
                       {/* Cooldown Overlay */}
                       {onCooldown && skill && (
                         <div 
-                           className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none rounded-full"
-                           style={{ background: `conic-gradient(transparent ${100 - activePercent}%, rgba(0,0,0,0.8) 0)` }}
+                           className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
+                           style={{ background: `conic-gradient(transparent ${100 - activePercent}%, rgba(0,0,0,0.7) 0)` }}
                         >
                             <span className="text-white font-bold text-[0.625rem] z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
                                {(Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000).toFixed(1)}
                             </span>
+                           {isOnGcd && (
+                              <div className="absolute inset-0 border-2 border-border-strong/50 rounded-lg animate-pulse pointer-events-none" />
+                           )}
                         </div>
                       )}
                       
                       {/* Casting Overlay */}
                       {isCastingThis && skill && (
-                        <div className="absolute inset-0 bg-sky-900/30 z-20 overflow-hidden pointer-events-none rounded-md">
+                        <div className="absolute inset-0 bg-sky-900/40 z-20 overflow-hidden border border-sky-400/50">
                            <div 
-                             className="absolute bottom-0 left-0 w-full bg-sky-400/50 transition-none" 
+                             className="absolute bottom-0 left-0 w-full bg-sky-400/30 transition-none" 
                              style={{ height: `${castPercent}%` }} 
                            />
                         </div>
                       )}
+                      
+                      {/* Keybind */}
+                      <span className="absolute bottom-0.5 left-1 text-xs font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] z-30 pointer-events-none">
+                        {index + 1}
+                      </span>
                     </button>
-                    
-                    {/* Underline */}
-                    <div className="absolute bottom-0 left-[10%] w-[80%] h-[4px] bg-zinc-900 drop-shadow-md pointer-events-none" />
-                    
-                    {/* Floating Hotkey */}
-                    <div className={`absolute -bottom-5 w-4 h-4 bg-zinc-900 flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-[0_2px_4px_rgba(0,0,0,0.5)] pointer-events-none ${isBinding ? 'border border-accent text-accent' : ''}`}>
-                      {index + 1}
-                    </div>
 
                     {/* Skill Binding Menu */}
                     {isBinding && (
@@ -754,21 +750,24 @@ export function CombatOverlay() {
       </div>
 
           {/* Resources Container (Bottom Left) */}
-          <div className="absolute bottom-3 left-3 flex flex-col gap-[8px] z-40 pointer-events-auto w-[360px]">
+          <div className="absolute bottom-3 left-3 flex flex-col gap-1.5 z-40 pointer-events-auto w-[360px]">
             {/* Vitals Box */}
-            <div className="flex flex-col gap-[8px] drop-shadow-2xl">
+            <div className="flex flex-col gap-1 drop-shadow-2xl">
               {/* Health Bar */}
               <div className="relative flex w-full items-center">
-                 <div className="relative w-full h-[1.25rem] bg-black/40 overflow-hidden">
+                 <div className="relative w-full h-[1.25rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
                     {expectedHealAmount > 0 && (
                       <div 
-                        className="absolute top-0 left-0 h-full bg-red-400/70 transition-all duration-75"
+                        className="absolute top-0 left-0 h-full bg-red-400/70 border-r border-red-300/50 transition-all duration-75"
                         style={{ width: `${Math.min(100, ((currentHealth + expectedHealAmount) / maxHealth) * 100)}%` }}
                       />
                     )}
                     <div 
-                      className="absolute top-0 left-0 h-full bg-[#dc2626] transition-all duration-75"
-                      style={{ width: `${Math.min(100, (currentHealth / maxHealth) * 100)}%` }}
+                      className="absolute top-0 left-0 h-full transition-all duration-75 border-r border-red-950"
+                      style={{ 
+                        width: `${Math.min(100, (currentHealth / maxHealth) * 100)}%`,
+                        background: 'linear-gradient(to bottom, #dc2626 0%, #dc2626 50%, #991b1b 50%, #991b1b 100%)'
+                      }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[1px]">
                       {currentHealth > 0 ? Math.max(1, Math.floor(currentHealth)) : 0}/{maxHealth}
@@ -777,10 +776,13 @@ export function CombatOverlay() {
               </div>
 
               {/* Energy Bar */}
-              <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden">
+              <div className="relative w-full h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
                  <div 
-                   className="absolute top-0 left-0 h-full bg-[#eab308] transition-all duration-300"
-                   style={{ width: `${Math.min(100, (currentEnergy / maxEnergy) * 100)}%` }}
+                   className="absolute top-0 left-0 h-full transition-all duration-300 border-r border-yellow-950"
+                   style={{ 
+                     width: `${Math.min(100, (currentEnergy / maxEnergy) * 100)}%`,
+                     background: 'linear-gradient(to bottom, #eab308 0%, #eab308 50%, #ca8a04 50%, #ca8a04 100%)'
+                   }}
                  />
                  <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
                    {Math.floor(currentEnergy)}/{maxEnergy}
@@ -789,12 +791,13 @@ export function CombatOverlay() {
 
               {/* Adrenaline Bar */}
               {isFighter && (
-                 <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden">
+                 <div className="relative w-full h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
                     <div 
-                      className="absolute top-0 left-0 h-full bg-[#f97316]"
+                      className={`absolute top-0 left-0 h-full ${currentAdrenaline > 0 ? 'border-r border-orange-950' : ''}`}
                       style={{ 
                         display: currentAdrenaline > 0 ? 'block' : 'none',
-                        width: `${Math.min(100, (currentAdrenaline / maxAdrenaline) * 100)}%`
+                        width: `${Math.min(100, (currentAdrenaline / maxAdrenaline) * 100)}%`,
+                        background: 'linear-gradient(to bottom, #f97316 0%, #f97316 50%, #c2410c 50%, #c2410c 100%)'
                       }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
@@ -805,14 +808,19 @@ export function CombatOverlay() {
             </div>
 
             {/* XP Bar & Level */}
-            <div className="flex w-full items-center h-[0.5rem] gap-1">
-               <span className="text-[0.55rem] text-white font-bold font-mono [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none shrink-0">
-                 {level}
-               </span>
-               <div className="relative flex-1 h-[0.5rem] bg-black/40 overflow-hidden opacity-90">
+            <div className="flex w-full items-center h-[0.5rem] -mt-0">
+               <div className="flex items-center justify-center bg-surface-deep w-4 h-4 rounded-full border border-border-subtle shrink-0 z-10">
+                 <span className="text-[0.55rem] text-white font-bold font-mono [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none">
+                   {level}
+                 </span>
+               </div>
+               <div className="relative flex-1 h-[0.5rem] bg-surface-deep overflow-hidden border-y border-r border-border-subtle rounded-r-[0.125rem] w-full shadow-inner opacity-90 -ml-[1px]">
                   <div 
-                    className="absolute top-0 left-0 h-full bg-[#a78bfa] transition-all duration-300"
-                    style={{ width: `${Math.min(100, (currentXp / xpRequired) * 100)}%` }}
+                    className={`absolute top-0 left-0 h-full transition-all duration-300 ${currentXp > 0 ? 'border-r border-[#4c1d95]' : ''}`}
+                    style={{ 
+                      width: `${Math.min(100, (currentXp / xpRequired) * 100)}%`,
+                      background: 'linear-gradient(to bottom, #a78bfa 0%, #a78bfa 50%, #7c3aed 50%, #7c3aed 100%)'
+                    }}
                   />
                </div>
             </div>
@@ -840,22 +848,22 @@ export function CombatOverlay() {
         </div>
       )}
       {/* Keybind Hints */}
-      <div className="absolute bottom-16 right-3 pointer-events-none z-50 flex flex-col gap-1.5 items-end opacity-75">
-         <div className="flex items-center gap-2">
-           <span className="text-[0.65rem] font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Move Diagonal</span>
-           <span className="text-[0.55rem] font-black tracking-widest text-white bg-zinc-900 px-1.5 py-0.5 shadow-md leading-none font-mono">Q E Z C</span>
+      <div className="absolute bottom-16 right-3 pointer-events-none z-50 flex flex-col gap-1 items-end opacity-75">
+         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider text-right">Move Diagonal</span>
+           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">Q E Z C</span>
          </div>
-         <div className="flex items-center gap-2">
-           <span className="text-[0.65rem] font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Health Potion</span>
-           <span className="text-[0.55rem] font-black tracking-widest text-white bg-zinc-900 px-1.5 py-0.5 shadow-md leading-none font-mono">R</span>
+         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider text-right">Health Potion</span>
+           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">R</span>
          </div>
-         <div className="flex items-center gap-2">
-           <span className="text-[0.65rem] font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Cycle Targets</span>
-           <span className="text-[0.55rem] font-black tracking-widest text-white bg-zinc-900 px-1.5 py-0.5 shadow-md leading-none font-mono">TAB</span>
+         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider text-right">Cycle Targets</span>
+           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">TAB</span>
          </div>
-         <div className="flex items-center gap-2">
-           <span className="text-[0.65rem] font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Tactical Pause</span>
-           <span className="text-[0.55rem] font-black tracking-widest text-white bg-zinc-900 px-1.5 py-0.5 shadow-md leading-none font-mono">SPACE</span>
+         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
+           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider text-right">Tactical Pause</span>
+           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">SPACE</span>
          </div>
       </div>
       
@@ -882,7 +890,7 @@ export function CombatOverlay() {
               </div>
             )}
             onMouseLeave={() => setContent(null)}
-            className="w-10 h-10 flex items-center justify-center flex-col gap-0.5 group transition-colors bg-black/60 text-text-secondary hover:text-red-400 hover:bg-zinc-900 shadow-md"
+            className="w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group bg-surface-deep border-border-subtle text-text-secondary hover:text-red-400 hover:border-red-400"
           >
             <IconWhirl className="w-5 h-5" />
           </button>
@@ -905,10 +913,10 @@ export function CombatOverlay() {
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors ${
+          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'inventory')
-              ? 'text-accent bg-zinc-800 shadow-inner'
-              : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-900 shadow-md'
+              ? 'text-accent border-accent bg-surface-deep'
+              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
           }`}
         >
           <Backpack className="w-5 h-5" />
@@ -940,10 +948,10 @@ export function CombatOverlay() {
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors ${
+          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'active_skills')
-              ? 'text-accent bg-zinc-800 shadow-inner'
-              : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-900 shadow-md'
+              ? 'text-accent border-accent bg-surface-deep'
+              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
           }`}
         >
           <Sparkles className="w-5 h-5" />
@@ -975,10 +983,10 @@ export function CombatOverlay() {
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors ${
+          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'skills')
-              ? 'text-accent bg-zinc-800 shadow-inner'
-              : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-900 shadow-md'
+              ? 'text-accent border-accent bg-surface-deep'
+              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
           }`}
         >
           <BookOpen className="w-5 h-5" />
