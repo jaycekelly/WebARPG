@@ -20,6 +20,7 @@ export const heavy_strike_combo_1: Skill = {
   icon: 'Sword',
   tags: ['Attack', 'Melee', 'Physical', 'Strike'],
   energyCost: 0,
+  adrenalineGenerate: 4,
   range: 1,
   gcdDuration: 2000,
   castTime: 0,
@@ -39,6 +40,7 @@ export const heavy_strike_combo_2: Skill = {
   icon: 'Scissors',
   tags: ['Attack', 'Melee', 'Physical', 'Strike'],
   energyCost: 0,
+  adrenalineGenerate: 6,
   range: 1,
   gcdDuration: 2000,
   castTime: 0,
@@ -58,6 +60,7 @@ export const heavy_strike_combo_3: Skill = {
   icon: 'Hammer',
   tags: ['Attack', 'Melee', 'Physical', 'Strike', 'AoE'],
   energyCost: 0,
+  adrenalineGenerate: 10,
   range: 1,
   gcdDuration: 2000,
   castTime: 0,
@@ -139,7 +142,7 @@ export const onslaught_leap: Skill = {
   gcdDuration: 2000,
   castTime: 0,
   targeting: 'Ground',
-  aoeParams: { shape: 'square', radius: 1 },
+  aoeParams: { shape: 'ring', radius: 1 },
   effects: [
     { type: 'leap' },
     { type: 'damage', damageMultiplier: 0.8, element: 'Strike', adrenalineOnlyOnHit: true, stunOnInterruptMs: 1000 }

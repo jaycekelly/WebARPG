@@ -3,6 +3,11 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { useAppStore } from './useAppStore';
 import { dualStorage } from './storage';
 
+export const OUT_OF_COMBAT_MOVE_COOLDOWN_MS = 450;
+export const COMBAT_TIMEOUT_MS = 4000;
+export const DEFAULT_FLOATING_TEXT_DURATION_MS = 1300;
+export const FLOATING_TEXT_THROTTLE_MS = 250;
+
 export interface CombatLogEntry {
   id: string;
   message: string;
@@ -19,6 +24,8 @@ export interface FloatingText {
   expiresAt: number;
   isCrit?: boolean;
   lane?: 'middle' | 'left' | 'right';
+  isSkillDamage?: boolean;
+  skillIcon?: string;
 }
 
 export interface TileEffect {
@@ -56,6 +63,12 @@ interface CombatState {
   hitEffects: HitEffect[];
   tileEffects: TileEffect[];
   isAutoAttacking: boolean;
+  isInCombat: () => boolean;
+  
+  comboStep: number;
+  lastComboTime: number;
+  advanceCombo: (now: number, timeoutMs: number) => number;
+  resetCombo: () => void;
   
   lastSideLanes: Record<string, 'left' | 'right'>;
   
@@ -85,7 +98,7 @@ interface CombatState {
   queuedAction: QueuedAction | null;
 
   addLog: (message: string, type: CombatLogEntry['type']) => void;
-  addFloatingText: (x: number, y: number, text: string, options?: { colorClass?: string, isCrit?: boolean, duration?: number }) => void;
+  addFloatingText: (x: number, y: number, text: string, options?: { colorClass?: string, isCrit?: boolean, duration?: number, isSkillDamage?: boolean, skillIcon?: string }) => void;
   addHitEffect: (targetId: string, sourceX: number, sourceY: number, color: number, damageType?: string) => void;
   addTileEffect: (x: number, y: number, type: string, color: number) => void;
   clearExpiredFloatingTexts: (now: number) => void;
@@ -107,6 +120,7 @@ interface CombatState {
   
   // Specific Cooldown
   triggerSkillCooldown: (skillId: string, durationMs: number) => void;
+  refundSkillCooldown: (skillId: string) => void;
 
   // Queue methods
   queueAction: (action: QueuedAction) => void;
@@ -115,12 +129,30 @@ interface CombatState {
 
 export const useCombatStore = create<CombatState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
   logs: [],
   floatingTexts: [],
   hitEffects: [],
   tileEffects: [],
   isAutoAttacking: false,
+  isInCombat: () => {
+    const state = get();
+    const now = useAppStore.getState().getGameTime();
+    return (now - state.lastCombatEventTime) < COMBAT_TIMEOUT_MS;
+  },
+  comboStep: 0,
+  lastComboTime: 0,
+  advanceCombo: (now, timeoutMs) => {
+    let newStep = 1;
+    set((state) => {
+      if (now - state.lastComboTime < timeoutMs) {
+        newStep = state.comboStep + 1;
+      }
+      return { comboStep: newStep, lastComboTime: now };
+    });
+    return newStep;
+  },
+  resetCombo: () => set({ comboStep: 0, lastComboTime: 0 }),
   lastSideLanes: {},
   gcdEndTime: 0,
   lastMoveTime: 0,
@@ -142,17 +174,17 @@ export const useCombatStore = create<CombatState>()(
   
   addFloatingText: (x, y, text, options) => {
     const now = useAppStore.getState().getGameTime();
-    const duration = options?.duration || 1300;
+    const duration = options?.duration || DEFAULT_FLOATING_TEXT_DURATION_MS;
     const expiresAt = now + duration;
     const color = options?.colorClass || 'text-zinc-100';
     const isCrit = options?.isCrit || false;
     
     set((state) => {
-      // Throttle exact same error messages (only allow 1 every 250ms globally)
+      // Throttle exact same error messages (only allow 1 every FLOATING_TEXT_THROTTLE_MS globally)
       const isCombatText = text === 'Miss' || text === 'Dodge' || text === 'Block' || text.includes('Crit') || !isNaN(Number(text));
       if (!isCombatText) {
           const existing = state.floatingTexts.find(f => f.text === text);
-          if (existing && existing.expiresAt - now > 1050) { // 1300 - 1050 = 250ms cooldown
+          if (existing && existing.expiresAt - now > duration - FLOATING_TEXT_THROTTLE_MS) {
             return state;
           }
       }
@@ -162,7 +194,7 @@ export const useCombatStore = create<CombatState>()(
       // Lane assignment logic
       // Find active texts at this exact coordinate spawned in the last 500ms
       const recentAtCoord = state.floatingTexts.filter(
-        f => f.x === x && f.y === y && now - (f.expiresAt - 1300) < 500
+        f => f.x === x && f.y === y && now - (f.expiresAt - duration) < 500
       );
       
       const occupiedLanes = new Set(recentAtCoord.map(f => f.lane));
@@ -187,7 +219,7 @@ export const useCombatStore = create<CombatState>()(
       return {
         floatingTexts: [
           ...state.floatingTexts,
-          { id, x, y, text, color, expiresAt, isCrit, lane: assignedLane }
+          { id, x, y, text, color, expiresAt, isCrit, lane: assignedLane, isSkillDamage: options?.isSkillDamage, skillIcon: options?.skillIcon }
         ]
       };
     });
@@ -257,6 +289,11 @@ export const useCombatStore = create<CombatState>()(
   triggerSkillCooldown: (skillId, durationMs) => set((state) => ({
     skillCooldowns: { ...state.skillCooldowns, [skillId]: useAppStore.getState().getGameTime() + durationMs }
   })),
+  refundSkillCooldown: (skillId) => set((state) => {
+    const newCooldowns = { ...state.skillCooldowns };
+    delete newCooldowns[skillId];
+    return { skillCooldowns: newCooldowns };
+  }),
 
   queueAction: (action) => set({ queuedAction: action }),
   clearQueue: () => set({ queuedAction: null })

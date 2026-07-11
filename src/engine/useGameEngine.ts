@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
-import { useCombatStore } from '../store/useCombatStore';
+import { useCombatStore, COMBAT_TIMEOUT_MS } from '../store/useCombatStore';
 import { useMessageStore } from '../store/useMessageStore';
 import { InputHandler, getMainHandAttackCooldown, getOffHandAttackCooldown } from './input/InputHandler';
 import { useStatsStore } from '../store/useStatsStore';
@@ -96,7 +96,7 @@ export function useGameEngine() {
       const totalHpRegen = baseHpRegen * (1 + (hpRegenPercent / 100));
       
       const timeSinceCombat = now - combatState.lastCombatEventTime;
-      const isOutOfCombat = timeSinceCombat > 5000;
+      const isOutOfCombat = timeSinceCombat > COMBAT_TIMEOUT_MS;
       
       const finalHpRegen = isOutOfCombat ? totalHpRegen * 3 : totalHpRegen;
       accumulatedHpRegen += finalHpRegen * dtSec;
@@ -122,16 +122,15 @@ export function useGameEngine() {
         lastRegenFlushTime = currentTime;
       }
 
-      // Adrenaline Decay: no decay in-combat, 20/sec after 4s out of combat
-      const timeSinceCombat = now - combatState.lastCombatEventTime;
-      if (timeSinceCombat > 4000 && playerState.currentAdrenaline > 0) {
+      // Adrenaline Decay: no decay in-combat
+      if (isOutOfCombat && playerState.currentAdrenaline > 0) {
         const decayAmount = 20 * dtSec;
         usePlayerStore.getState().decayAdrenaline(decayAmount);
       }
 
-      // Adrenaline Generation: Passively generate 5 per second, ONLY IF player dealt damage within last 3 seconds
+      // Adrenaline Generation: Passively generate 5 per second, ONLY IF player dealt damage within last 2 seconds
       const timeSinceDamageDealt = now - combatState.lastDamageDealtTime;
-      if (timeSinceDamageDealt <= 3000 && playerState.currentAdrenaline < 100) {
+      if (timeSinceDamageDealt <= 2000 && playerState.currentAdrenaline < 100) {
         const generationAmount = 5 * dtSec;
         usePlayerStore.getState().addAdrenaline(generationAmount);
       }

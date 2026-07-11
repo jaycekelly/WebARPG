@@ -94,6 +94,7 @@ export interface SkillEffect {
   // Only generate this effect's skill-level adrenalineGenerate if this specific damage
   // effect actually connects with at least one valid target (e.g. Onslaught Leap should
   // not generate Adrenaline if it lands on an empty tile).
+  adrenalineOnlyOnHit?: boolean;
 
   // If this effect successfully interrupts an enemy cast/channel, also stun that enemy.
   stunOnInterruptMs?: number;
@@ -109,6 +110,7 @@ export interface Skill {
   
   energyCost: number;
   adrenalineCost?: number; // Universal Adrenaline resource cost (Fighter spenders)
+  adrenalineGenerate?: number; // Universal Adrenaline resource generation on hit
   range: number; // 0 for self, >0 for targeted
   cooldownMs?: number; // Specific cooldown for this skill
   gcdDuration: number;

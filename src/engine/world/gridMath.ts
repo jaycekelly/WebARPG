@@ -85,7 +85,7 @@ export const hasLineOfSight = (p0: Point, p1: Point, isSolid: (x: number, y: num
   return true;
 };
 
-export type AoeShape = 'square' | 'diamond' | 'cross' | 'line' | 'cone' | 'tshape' | 'rect';
+export type AoeShape = 'square' | 'diamond' | 'cross' | 'line' | 'cone' | 'tshape' | 'rect' | 'ring';
 
 /**
  * Computes the 3 tiles behind a target, relative to the attacker's position, forming a
@@ -167,6 +167,9 @@ export const getAoETiles = (
       switch (shape) {
         case 'square':
           inShape = getChebyshevDistance(center, pt) <= radius;
+          break;
+        case 'ring':
+          inShape = getChebyshevDistance(center, pt) <= radius && getChebyshevDistance(center, pt) > 0;
           break;
         case 'diamond':
           inShape = getManhattanDistance(center, pt) <= radius;

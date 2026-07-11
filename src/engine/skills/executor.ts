@@ -330,6 +330,9 @@ export class SkillExecutor {
         }
      }
 
+    let anyHitRequired = skill.effects.some(e => e.adrenalineOnlyOnHit);
+    let anyTargetHit = false;
+
     for (const effect of skill.effects) {
        if (effect.type === 'charge') {
            let dest: {x: number, y: number} | null = null;
@@ -558,6 +561,10 @@ export class SkillExecutor {
        }
 
         // 3. Apply Effect to targets
+       if (finalTargets.length > 0) {
+          anyTargetHit = true;
+       }
+
        for (const { enemy, multiplier } of finalTargets) {
           let finalElement = effect.element || 'Strike';
           if (skill.requiredWeaponCategories && skill.requiredWeaponCategories.length > 0) {
@@ -987,6 +994,12 @@ export class SkillExecutor {
 
     if (skill.onExecute) {
       skill.onExecute('player', targetId || '');
+    }
+
+    if (skill.adrenalineGenerate) {
+       if (!anyHitRequired || anyTargetHit) {
+          playerState.addAdrenaline(skill.adrenalineGenerate);
+       }
     }
   }
 }

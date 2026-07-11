@@ -40,7 +40,7 @@ export function ItemTooltip({ item }: Props) {
       {item.itemType.startsWith('weapon-') && (
         <div className="flex justify-between items-center text-[0.625rem] text-text-secondary border-b border-border-subtle pb-1 mb-1 uppercase tracking-widest">
            <span>{item.damageType || 'Physical'}</span>
-           <span>{item.weaponRange !== undefined ? `Range ${item.weaponRange}` : 'Melee'}</span>
+           <span>{item.weaponRange !== undefined && item.weaponRange > 1 ? `Range ${item.weaponRange}` : 'Melee'}</span>
         </div>
       )}
 

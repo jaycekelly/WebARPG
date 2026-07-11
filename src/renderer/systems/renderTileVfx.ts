@@ -96,8 +96,7 @@ export function createTileVfxRenderer(): TileVfxRenderer {
             
             const tiles = getAoETiles(center, target, skill.aoeParams.shape, skill.aoeParams.radius, skill.aoeParams.respectWalls ?? false, isSolid, w, h);
             for (const pt of tiles) {
-              // Never preview-highlight the player's own tile as a hit space (matches the
-              // same exclusion applied when the skill actually resolves damage).
+              // Never preview-highlight the player's own tile as a hit space.
               if (pt.x === playerPos.x && pt.y === playerPos.y) continue;
               aoeSet.add(`${pt.x},${pt.y}`);
             }

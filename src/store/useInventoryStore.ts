@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { Item, EquipmentSlot, ItemType } from '../engine/items/types';
 import { useStatsStore } from './useStatsStore';
-import { useCombatStore } from './useCombatStore';
+import { useCombatStore, COMBAT_TIMEOUT_MS } from './useCombatStore';
 import { useMessageStore } from './useMessageStore';
 import { usePlayerStore } from './usePlayerStore';
 import { useAppStore } from './useAppStore';
@@ -131,7 +131,7 @@ export const useInventoryStore = create<InventoryState>()(
 
         // Global Combat Lockout Check
         const combatState = useCombatStore.getState();
-        if (useAppStore.getState().getGameTime() - combatState.lastCombatEventTime < 5000) {
+        if (useAppStore.getState().getGameTime() - combatState.lastCombatEventTime < COMBAT_TIMEOUT_MS) {
           useMessageStore.getState().addScreenMessage('mouse', "Can't change gear in combat!", 1500);
           return;
         }
@@ -192,7 +192,7 @@ export const useInventoryStore = create<InventoryState>()(
 
         // Global Combat Lockout Check
         const combatState = useCombatStore.getState();
-        if (useAppStore.getState().getGameTime() - combatState.lastCombatEventTime < 5000) {
+        if (useAppStore.getState().getGameTime() - combatState.lastCombatEventTime < COMBAT_TIMEOUT_MS) {
           useMessageStore.getState().addScreenMessage('mouse', "Can't change gear in combat!", 1500);
           return;
         }

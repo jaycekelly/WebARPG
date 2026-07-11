@@ -156,7 +156,9 @@ export class InputHandler {
 
       // Combo hits derive their direction/target from the player's current auto-target
       // rather than requiring a manual tile click, so the chain isn't broken by targeting UI.
-      if (!tId && !tPos) {
+      // However, if the game is paused, we force manual targeting.
+      const isPaused = useAppStore.getState().isPaused;
+      if (!tId && !tPos && !isPaused) {
         const currentTarget = playerState.activeTargetId
           ? worldState.enemies.find(e => e.id === playerState.activeTargetId && !e.isDead)
           : undefined;
@@ -167,28 +169,12 @@ export class InputHandler {
       }
     }
     
-    // Auto-snap Ground skills (like Charge) to nearby enemies if they clicked the floor accidentally
-    if (resolvedSkill.targeting === 'Ground' && tPos && !tId) {
-      // Find closest enemy within 1.5 tiles (Chebyshev distance <= 1)
-      let bestEnemy = null;
-      let bestDist = Infinity;
-      for (const e of worldState.enemies) {
-        if (e.isDead) continue;
-        const dist = Math.max(Math.abs(tPos.x - e.position.x), Math.abs(tPos.y - e.position.y));
-        if (dist <= 1 && dist < bestDist) {
-          bestDist = dist;
-          bestEnemy = e;
-        }
-      }
-      if (bestEnemy) {
-        tPos = { ...bestEnemy.position };
-      }
-    }
+    // Removed overly-aggressive auto-snap for Ground skills in manual targeting mode.
+    // If the user clicks the floor in manual targeting (no tId), they want to aim exactly at the floor.
 
     // Auto-target the player's current target for skills like Ground Slam, unless there's no
     // current target or the game is in Tactical Pause (manual ground targeting takes over then).
     if (resolvedSkill.autoTargetCurrentEnemy && !tId && !tPos) {
-      const isPaused = useAppStore.getState().isPaused;
       const currentTarget = (!isPaused && playerState.activeTargetId)
         ? worldState.enemies.find(e => e.id === playerState.activeTargetId && !e.isDead)
         : undefined;

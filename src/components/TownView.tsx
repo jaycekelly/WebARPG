@@ -56,24 +56,6 @@ export function TownView() {
                </div>
                <ArrowRight className="w-5 h-5 text-text-muted group-hover:text-accent group-hover:translate-x-1 transition-all" />
              </button>
-
-             <button 
-               onClick={handleEnterPlaygroundCave}
-               className="flex items-center gap-4 p-4 bg-surface-base hover:bg-surface-raised border border-border-strong rounded-lg transition-colors group text-left"
-             >
-               <div className="bg-orange-500/20 p-3 rounded-lg border border-orange-500/30 group-hover:border-orange-500/50 transition-colors">
-                  <Swords className="w-6 h-6 text-orange-500" />
-               </div>
-               <div className="flex flex-col flex-1">
-                 <div className="text-text-primary font-bold uppercase tracking-wider text-sm">
-                   Test Cave
-                 </div>
-                 <div className="text-text-muted text-xs uppercase tracking-widest">
-                   Fighter Kit Playground
-                 </div>
-               </div>
-               <ArrowRight className="w-5 h-5 text-text-muted group-hover:text-accent group-hover:translate-x-1 transition-all" />
-             </button>
           </div>
        </div>
     </div>

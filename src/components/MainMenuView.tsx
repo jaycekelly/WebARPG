@@ -52,7 +52,7 @@ export const MainMenuView = () => {
                 <div className="flex flex-col gap-3 w-64">
                     {characters.length > 0 && (
                         <button 
-                            className="bg-surface-base hover:bg-surface-raised border border-border-subtle hover:border-border-strong text-text-secondary hover:text-text-primary py-2 px-4 rounded-lg text-base font-bold transition-all"
+                            className="bg-surface-base hover:bg-surface-raised border border-border-subtle hover:border-accent text-text-secondary hover:text-accent py-2 px-4 rounded-lg text-base font-bold transition-all"
                             onClick={handleContinue}
                         >
                             Continue
@@ -61,7 +61,7 @@ export const MainMenuView = () => {
                     
                     {characters.length > 0 && (
                         <button 
-                            className="bg-surface-base hover:bg-surface-raised border border-border-subtle hover:border-border-strong text-text-secondary hover:text-text-primary py-2 px-4 rounded-lg text-base font-bold transition-all"
+                            className="bg-surface-base hover:bg-surface-raised border border-border-subtle hover:border-accent text-text-secondary hover:text-accent py-2 px-4 rounded-lg text-base font-bold transition-all"
                             onClick={() => setView('select')}
                         >
                             Choose Character
@@ -69,7 +69,7 @@ export const MainMenuView = () => {
                     )}
                     
                     <button 
-                        className="bg-surface-base hover:bg-surface-raised border border-border-subtle hover:border-border-strong text-text-secondary hover:text-text-primary py-2 px-4 rounded-lg text-base font-bold transition-all"
+                        className="bg-surface-base hover:bg-surface-raised border border-border-subtle hover:border-accent text-text-secondary hover:text-accent py-2 px-4 rounded-lg text-base font-bold transition-all"
                         onClick={() => setView('create')}
                     >
                         New Character
@@ -86,7 +86,7 @@ export const MainMenuView = () => {
                     <div className="absolute -top-12 left-0 w-full flex justify-between items-center">
                         <h2 className="text-xl font-bold text-text-primary">Select Character</h2>
                         <button 
-                            className="bg-surface-base hover:bg-surface-raised border border-border-subtle text-text-secondary hover:text-text-primary py-1 px-3 rounded-lg transition-all text-xs font-bold mr-2"
+                            className="bg-surface-base hover:bg-surface-raised border border-border-subtle hover:border-accent text-text-secondary hover:text-accent py-1 px-3 rounded-lg transition-all text-xs font-bold mr-2"
                             onClick={() => setView('main')}
                         >
                             Back
@@ -101,7 +101,7 @@ export const MainMenuView = () => {
                                 onClick={() => handleSelectChar(char.id)}
                             >
                                 <div className="w-16 h-16 bg-zinc-800 rounded-md flex items-center justify-center border border-border-subtle group-hover:border-accent transition-colors flex-shrink-0">
-                                    <PlayerIcon size={48} className="text-text-secondary group-hover:text-text-primary" />
+                                    <PlayerIcon size={48} className="text-text-secondary group-hover:text-accent" />
                                 </div>
                                 <div className="flex flex-col overflow-hidden">
                                     <span className="text-base font-bold text-text-primary truncate">{char.name}</span>
@@ -142,7 +142,7 @@ export const MainMenuView = () => {
                                         key={cls}
                                         disabled={!isEnabled}
                                         onClick={() => setSelectedClass(cls)}
-                                        className={`py-2 px-2 rounded-lg border text-sm font-bold transition-all ${!isEnabled ? 'opacity-30 cursor-not-allowed bg-surface-deep border-border-subtle text-text-muted' : isSelected ? 'bg-accent/10 border-accent text-accent shadow-[0_0_10px_rgba(56,189,248,0.2)]' : 'bg-surface-base hover:bg-surface-raised border-border-subtle hover:border-border-strong text-text-secondary hover:text-text-primary'}`}
+                                        className={`py-2 px-2 rounded-lg border text-sm font-bold transition-all ${!isEnabled ? 'opacity-30 cursor-not-allowed bg-surface-deep border-border-subtle text-text-muted' : isSelected ? 'bg-accent/10 border-accent text-accent shadow-[0_0_10px_rgba(56,189,248,0.2)]' : 'bg-surface-base hover:bg-surface-raised border-border-subtle hover:border-accent text-text-secondary hover:text-accent'}`}
                                     >
                                         {cls}
                                     </button>
@@ -153,7 +153,7 @@ export const MainMenuView = () => {
                     
                     <div className="flex gap-2 mt-4">
                         <button 
-                            className="flex-1 bg-surface-base hover:bg-surface-raised border border-border-subtle text-text-secondary hover:text-text-primary py-2 rounded-lg transition-all font-bold text-sm"
+                            className="flex-1 bg-surface-base hover:bg-surface-raised border border-border-subtle hover:border-accent text-text-secondary hover:text-accent py-2 rounded-lg transition-all font-bold text-sm"
                             onClick={() => setView('main')}
                         >
                             Cancel

@@ -24,16 +24,17 @@ const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => 
 };
 
 export function CombatOverlay() {
-  const { activeTargetId, setTarget, position, currentEnergy, currentAdrenaline, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore();
+  const { playerClass, secondaryClass, activeTargetId, setTarget, position, currentEnergy, currentAdrenaline, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore();
   const setContent = useTooltipStore(state => state.setContent);
-  const { enemies, grid } = useWorldStore();
-  const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime, comboStep, lastComboTime } = useCombatStore();
+  const { enemies } = useWorldStore();
+  const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime } = useCombatStore();
   const { getStat } = useStatsStore();
   const { entityBuffs } = useBuffStore();
   const { unlockedActives } = useSkillStore();
   const { messages } = useMessageStore();
-  const location = useAppStore(s => s.location);
-  const dungeonSelectOpen = useAppStore(s => s.dungeonSelectOpen);
+  
+  const isFighter = playerClass === 'Fighter' || secondaryClass === 'Fighter';
+  
   
   const playerBuffs = entityBuffs['player'] || [];
   const visiblePlayerBuffs = playerBuffs.filter(b => b.maxDurationMs !== null && b.maxDurationMs <= 30000 && b.buffId !== 'flask_recovery' && b.buffId !== 'zealous_blow_ready');
@@ -116,7 +117,9 @@ export function CombatOverlay() {
             useMessageStore.getState().addScreenMessage('above', 'Cannot portal in combat', 4000);
             return;
           }
-          combatState.setCasting('portal_skill', 4000);
+          if (combatState.castingSkillId !== 'portal_skill') {
+            combatState.setCasting('portal_skill', 4000);
+          }
         }
       }
 
@@ -169,7 +172,7 @@ export function CombatOverlay() {
           targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId);
         }
         
-        if (targetEntity) {
+        if (targetEntity && !useAppStore.getState().isPaused) {
           InputHandler.requestAction({ type: 'skill', skillId: boundId, targetPos: targetEntity.position, targetId: targetEntity.id });
         } else {
           InputHandler.requestAction({ type: 'skill', skillId: boundId });
@@ -223,9 +226,9 @@ export function CombatOverlay() {
   const healthPercent = target ? (target.health / target.stats.maxHealth) * 100 : 0;
 
   return (
-    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between px-8 py-4 z-10">
+    <div className="absolute inset-0 pointer-events-none flex flex-col justify-between z-10">
       {/* Target Frame (Top Center) */}
-      <div className="flex justify-center pointer-events-none">
+      <div className="flex justify-center pointer-events-none pt-4">
         {target && (
           <div className="bg-surface-deep border-2 border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.15)] rounded-lg pt-1.5 pb-2.5 px-2 flex flex-col items-center w-fit relative pointer-events-auto animate-[fadeIn_0.3s_ease-out]">
             <button onClick={() => setTarget(null, true)} className="absolute top-1 right-1 text-text-secondary hover:text-text-primary transition-colors z-40">
@@ -328,54 +331,57 @@ export function CombatOverlay() {
       })()}
 
       {/* HUD & Action Bar (Bottom Center) */}
-      <div className="flex flex-col items-center pointer-events-none gap-1.5 relative">
-        {/* Dynamic Floating Bars (Cast Bar, Swing Timers) */}
-        <div className="absolute bottom-[calc(100%+5rem)] left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 pointer-events-none" style={{ width: '10rem' }}>
+      <div className="flex flex-col items-center pointer-events-none gap-1.5 relative w-full h-full">
+        {/* Center Action Stack */}
+        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex flex-col items-center justify-end gap-2 pointer-events-none z-40">
           
-          {/* Cast Bar (Top) */}
-          {castingSkillId && castEndTime > 0 && (SKILLS[castingSkillId] || castingSkillId === 'portal_skill') && (
-            <div className="flex flex-col items-center w-[6.666rem] mb-1">
-              <div className="text-xs text-center whitespace-nowrap text-text-primary mb-0.5 font-bold [text-shadow:2px_2px_1px_rgba(0,0,0,1)] tracking-wide">
-                {castingSkillId === 'portal_skill' ? 'Forfeiting Dungeon' : SKILLS[castingSkillId].name}
+          {/* Dynamic Floating Bars (Cast Bar, Swing Timers) */}
+          <div className="flex flex-col items-center gap-1 pointer-events-none w-[12.75rem]">
+            
+            {/* Cast Bar (Top) */}
+            {castingSkillId && castEndTime > 0 && (SKILLS[castingSkillId] || castingSkillId === 'portal_skill') && (
+              <div className="flex flex-col items-center w-[9.5625rem] mb-1">
+                <div className="text-xs text-center whitespace-nowrap text-text-primary mb-0.5 font-bold [text-shadow:2px_2px_1px_rgba(0,0,0,1)] tracking-wide">
+                  {castingSkillId === 'portal_skill' ? 'Forfeiting' : SKILLS[castingSkillId].name}
+                </div>
+                <div className="h-3.5 w-full bg-surface-deep rounded-none border border-border-subtle overflow-hidden shadow-inner">
+                  <div
+                    className="h-full transition-all duration-75 border-r border-[#6b21a8]"
+                    style={{ 
+                      width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, castingSkillId === 'portal_skill' ? 4000 : getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%`,
+                      background: 'linear-gradient(to bottom, #a855f7 0%, #a855f7 50%, #9333ea 50%, #9333ea 100%)'
+                    }}
+                  />
+                </div>
               </div>
-              <div className="h-3.5 w-full bg-surface-deep rounded-[0.125rem] border border-border-subtle overflow-hidden shadow-inner">
-                <div
-                  className="h-full transition-all duration-75 border-r border-[#6b21a8]"
+            )}
+
+            {/* Main Hand Swing Timer (Middle) */}
+            {isMainTimerActive && (
+              <div className="h-1.5 w-full bg-surface-deep rounded-none border border-border-subtle overflow-hidden shadow-inner">
+                <div 
+                  className="h-full transition-all duration-75 border-r border-amber-950"
                   style={{ 
-                    width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, castingSkillId === 'portal_skill' ? 4000 : getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%`,
-                    background: 'linear-gradient(to bottom, #a855f7 0%, #a855f7 50%, #9333ea 50%, #9333ea 100%)'
+                    width: `${Math.max(0, 100 - (timeSinceMainAttack / mainHandCooldown) * 100)}%`,
+                    background: 'linear-gradient(to bottom, #f59e0b 0%, #f59e0b 50%, #d97706 50%, #d97706 100%)'
                   }}
                 />
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Main Hand Swing Timer (Middle) */}
-          {isMainTimerActive && (
-            <div className="h-1.5 w-full bg-surface-deep rounded-[0.125rem] border border-border-subtle overflow-hidden shadow-inner">
-              <div 
-                className="h-full transition-all duration-75 border-r border-amber-950"
-                style={{ 
-                  width: `${Math.max(0, 100 - (timeSinceMainAttack / mainHandCooldown) * 100)}%`,
-                  background: 'linear-gradient(to bottom, #f59e0b 0%, #f59e0b 50%, #d97706 50%, #d97706 100%)'
-                }}
-              />
-            </div>
-          )}
-
-          {/* Off-Hand Swing Timer (Bottom) */}
-          {isOffTimerActive && (
-            <div className="h-1.5 w-full bg-surface-deep rounded-[0.125rem] border border-border-subtle overflow-hidden shadow-inner opacity-80">
-              <div 
-                className="h-full transition-all duration-75 border-r border-amber-950"
-                style={{ 
-                  width: `${Math.max(0, 100 - (timeSinceOffAttack / offHandCooldown) * 100)}%`,
-                  background: 'linear-gradient(to bottom, #f59e0b 0%, #f59e0b 50%, #d97706 50%, #d97706 100%)'
-                }}
-              />
-            </div>
-          )}
-        </div>
+            {/* Off-Hand Swing Timer (Bottom) */}
+            {isOffTimerActive && (
+              <div className="h-1.5 w-full bg-surface-deep rounded-none border border-border-subtle overflow-hidden shadow-inner opacity-80">
+                <div 
+                  className="h-full transition-all duration-75 border-r border-amber-950"
+                  style={{ 
+                    width: `${Math.max(0, 100 - (timeSinceOffAttack / offHandCooldown) * 100)}%`,
+                    background: 'linear-gradient(to bottom, #f59e0b 0%, #f59e0b 50%, #d97706 50%, #d97706 100%)'
+                  }}
+                />
+              </div>
+            )}
+          </div>
 
         {/* Active Buffs */}
         {visiblePlayerBuffs.length > 0 && (
@@ -417,143 +423,80 @@ export function CombatOverlay() {
           </div>
         )}
 
-        {/* HUD Assembly (Flat Minimalist) */}
-        <div className="flex flex-col items-center justify-end pointer-events-auto z-40 gap-2.5">
-          
-
-
-          {/* Center Console (XP + Action Bar + Hotkeys) */}
-          <div className="flex flex-col mx-auto z-30 w-fit gap-[0.4375rem] relative bg-surface-deep p-1.5 rounded-lg shadow-2xl">
-
-            {/* Flask Button (Moved to absolute left of Health Bar) */}
-            <div className="absolute -top-[0.1875rem] -left-10 z-30">
-               <button 
-                 className={`relative w-8 h-8 rounded-full border flex items-center justify-center overflow-hidden transition-all focus:outline-none focus:ring-0
-                   ${now - lastFlaskTime >= 30000 
-                      ? 'bg-surface-deep border-border-subtle hover:border-accent'
-                      : 'bg-surface-deep border-border-subtle cursor-not-allowed opacity-80'}
-                 `}
-                 onClick={() => {
-                   if (currentHealth < maxHealth && useFlask()) {
-                      useBuffStore.getState().addBuff('player', {
-                        buffId: 'flask_recovery',
-                        name: 'Flask Recovery',
-                        type: 'buff',
-                        stackingBehavior: 'refresh',
-                        durationMs: 3000,
-                        maxDurationMs: 3000,
-                        stacks: 1,
-                        maxStacks: 1,
-                        icon: 'FlaskConical',
-                        statModifiers: [],
-                        isHoT: true,
-                        hotTickRateMs: 50,
-                        hotHealPerTick: (maxHealth * 0.5) / (3000 / 50)
-                      });
-                      
-                      useCombatStore.getState().addLog('Used Healing Flask.', 'system');
-                   }
-                 }}
-                 onMouseEnter={() => setContent(
-                  <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none backdrop-blur-md">
-                    <div className="font-bold text-red-400 mb-1">
-                      Healing Flask
-                    </div>
-                    <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-border-subtle uppercase tracking-widest">
-                      30.0 CD
-                    </div>
-                    <div className="text-xs text-text-primary leading-snug mb-1">
-                      Restores <span className="text-red-400 font-bold">50%</span> of your maximum health over <span className="text-text-primary font-bold">3 seconds</span>.
-                    </div>
-                  </div>
-                )}
-                onMouseLeave={() => setContent(null)}
-               >
-                  <FlaskConical className="w-4 h-4 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] z-10" />
-                  {now - lastFlaskTime < 30000 && (
-                     <div 
-                       className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
-                       style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.7) 0)` }}
-                     >
-                       <span className="text-white font-bold text-[0.625rem] z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
-                         {Math.ceil((30000 - (now - lastFlaskTime)) / 1000)}
-                       </span>
-                     </div>
-                  )}
-               </button>
-               <span className="absolute -bottom-1 left-0 text-[0.6875rem] font-bold text-white z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">{`R`}</span>
-            </div>
+        {/* Main Skill Bar with Docked Flask */}
+        <div className="relative flex items-end pointer-events-auto mt-1 w-max mb-5">
             
-
-            {/* Health & Mana Bars */}
-            <div className="flex w-full gap-1 relative z-20 mb-0">
-               {/* Health Bar (slots 1-4) */}
-               <div className="relative flex-1 h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
-                  {expectedHealAmount > 0 && (
-                    <div 
-                      className="absolute top-0 left-0 h-full bg-red-400/70 border-r border-red-300/50 transition-all duration-75"
-                      style={{ width: `${Math.min(100, ((currentHealth + expectedHealAmount) / maxHealth) * 100)}%` }}
-                    />
-                  )}
-                  <div 
-                    className="absolute top-0 left-0 h-full transition-all duration-75 border-r border-red-950"
-                    style={{ 
-                      width: `${Math.min(100, (currentHealth / maxHealth) * 100)}%`,
-                      background: 'linear-gradient(to bottom, #dc2626 0%, #dc2626 50%, #991b1b 50%, #991b1b 100%)'
+            {/* Docked Flask Slot (Offset to the left of the center skill bar) */}
+            <div className="absolute right-full mr-2 bottom-0 h-12 flex items-center justify-center drop-shadow-2xl gap-2">
+               <div className="relative w-12 h-12 flex flex-col items-center justify-center">
+                  <button 
+                    className={`relative w-full h-full flex items-center justify-center transition-all bg-transparent focus:outline-none focus:ring-0 group
+                      ${now - lastFlaskTime < 30000 ? 'cursor-not-allowed grayscale brightness-50' : ''}
+                    `}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (currentHealth < maxHealth && useFlask()) {
+                         useBuffStore.getState().addBuff('player', {
+                           buffId: 'flask_recovery',
+                           name: 'Flask Recovery',
+                           type: 'buff',
+                           stackingBehavior: 'refresh',
+                           durationMs: 2000,
+                           maxDurationMs: 2000,
+                           stacks: 1,
+                           maxStacks: 1,
+                           icon: 'FlaskConical',
+                           statModifiers: [],
+                           isHoT: true,
+                           hotTickRateMs: 50,
+                           hotHealPerTick: (maxHealth * 0.3) / (2000 / 50)
+                         });
+                         
+                         useCombatStore.getState().addLog('Used Healing Flask.', 'system');
+                      }
                     }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
-                    {currentHealth > 0 ? Math.max(1, Math.floor(currentHealth)) : 0}/{maxHealth}
+                    onMouseEnter={() => setContent(
+                     <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none backdrop-blur-md">
+                       <div className="font-bold text-red-400 mb-1">
+                         Healing Flask
+                       </div>
+                       <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-border-subtle uppercase tracking-widest">
+                         30.0 CD
+                       </div>
+                       <div className="text-xs text-text-primary leading-snug mb-1">
+                         Restores <span className="text-red-400 font-bold">30%</span> of your maximum health over <span className="text-text-primary font-bold">2 seconds</span>.
+                       </div>
+                     </div>
+                   )}
+                   onMouseLeave={() => setContent(null)}
+                  >
+                     <FlaskConical className="mb-0.5 w-6 h-6 text-red-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] z-10 transition-transform group-hover:scale-110" />
+                     {now - lastFlaskTime < 30000 && (
+                        <div 
+                          className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none rounded-full"
+                          style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.8) 0)` }}
+                        >
+                          <span className="text-white font-bold text-sm z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
+                            {Math.ceil((30000 - (now - lastFlaskTime)) / 1000)}
+                          </span>
+                        </div>
+                     )}
+                  </button>
+                  
+                  {/* Floating Hotkey */}
+                  <div className="absolute -bottom-5 w-4 h-4 bg-zinc-900 flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-[0_2px_4px_rgba(0,0,0,0.5)] pointer-events-none">
+                    R
                   </div>
+                  {/* Underline */}
+                  <div className="absolute bottom-0 left-[20%] w-[60%] h-[4px] bg-zinc-900 drop-shadow-md pointer-events-none" />
                </div>
-               {/* Energy Bar (slots 5-8) */}
-               <div className="relative flex-1 h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
-                  <div 
-                    className="absolute top-0 left-0 h-full transition-all duration-300 border-r border-yellow-950"
-                    style={{ 
-                      width: `${Math.min(100, (currentEnergy / maxEnergy) * 100)}%`,
-                      background: 'linear-gradient(to bottom, #eab308 0%, #eab308 50%, #ca8a04 50%, #ca8a04 100%)'
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
-                    {Math.floor(currentEnergy)}/{maxEnergy}
-                  </div>
-               </div>
-               {/* Adrenaline Bar: floats above the Energy bar, matching its width and styling, without affecting layout */}
-               <div className="absolute right-0 w-[calc(50%-2px)] bottom-[calc(100%+12px)] h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem] z-30">
-                  <div 
-                    className={`absolute top-0 left-0 h-full ${currentAdrenaline > 0 ? 'border-r border-orange-950' : ''}`}
-                    style={{ 
-                      width: `${Math.min(100, (currentAdrenaline / maxAdrenaline) * 100)}%`,
-                      background: 'linear-gradient(to bottom, #f97316 0%, #f97316 50%, #c2410c 50%, #c2410c 100%)'
-                    }}
-                  />
-                  <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
-                    {Math.floor(currentAdrenaline)}/{maxAdrenaline}
-                  </div>
-               </div>
+               {/* Vertical Separator */}
+               <div className="w-[4px] h-5 bg-zinc-900 self-end mr-1" />
             </div>
 
-            {/* XP Bar (Integrated) */}
-            <div className="flex items-center w-full relative z-20 mb-[1px]">
-               <div className="absolute right-full flex items-center justify-center bg-surface-deep px-1 py-[0.1875rem] rounded top-1/2 -translate-y-1/2 min-w-[1rem]">
-                 <span className="text-[0.65rem] text-white font-bold font-mono [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none mt-[1px]">
-                   {level}
-                 </span>
-               </div>
-               <div className="relative flex-1 h-[0.375rem] bg-surface-deep overflow-hidden border border-border-subtle rounded-[0.125rem] w-full shadow-inner opacity-90">
-                  <div 
-                    className={`absolute top-0 left-0 h-full transition-all duration-300 ${currentXp > 0 ? 'border-r border-[#4c1d95]' : ''}`}
-                    style={{ 
-                      width: `${Math.min(100, (currentXp / xpRequired) * 100)}%`,
-                      background: 'linear-gradient(to bottom, #a78bfa 0%, #a78bfa 50%, #7c3aed 50%, #7c3aed 100%)'
-                    }}
-                  />
-               </div>
-            </div>
-
-            {/* Action Bar Container (Only wraps skills) */}
-            <div className="flex gap-1.5 relative">
+            {/* Main Skill Bar */}
+            <div className="flex gap-1 drop-shadow-2xl relative">
+              
               {boundSkills.slice(0, 8).map((skillId, index) => {
                 const skill = skillId ? SKILLS[skillId] : null;
                 const IconComponent = skill ? (ICONS[skill.icon] || Flame) : null;
@@ -575,12 +518,19 @@ export function CombatOverlay() {
                 let activePercent = 0;
                 let onCooldown = false;
                 
-                if (timeUntilSkillFree > timeUntilGcdFree) {
-                    activePercent = skill && skill.cooldownMs ? (timeUntilSkillFree / skill.cooldownMs) * 100 : 0;
-                    onCooldown = true;
-                } else if (timeUntilGcdFree > 0) {
-                    activePercent = skill ? (timeUntilGcdFree / getEffectiveGcd(skill)) * 100 : 0;
-                    onCooldown = true;
+                if (skill?.offGcd) {
+                   if (timeUntilSkillFree > 0) {
+                      activePercent = skill.cooldownMs ? (timeUntilSkillFree / skill.cooldownMs) * 100 : 0;
+                      onCooldown = true;
+                   }
+                } else {
+                   if (timeUntilSkillFree > timeUntilGcdFree) {
+                       activePercent = skill && skill.cooldownMs ? (timeUntilSkillFree / skill.cooldownMs) * 100 : 0;
+                       onCooldown = true;
+                   } else if (timeUntilGcdFree > 0) {
+                       activePercent = skill ? (timeUntilGcdFree / getEffectiveGcd(skill)) * 100 : 0;
+                       onCooldown = true;
+                   }
                 }
 
                 const isOnGcd = timeUntilGcdFree > 0 && timeUntilGcdFree >= timeUntilSkillFree;
@@ -592,14 +542,17 @@ export function CombatOverlay() {
                    castPercent = Math.min(100, (elapsed / skill.castTime) * 100);
                 }
 
-                const outOfEnergy = skill ? currentEnergy < getEffectiveEnergyCost(skill) : false;
+                const outOfEnergy = skill ? (currentEnergy < getEffectiveEnergyCost(skill) || (!!skill.adrenalineCost && currentAdrenaline < skill.adrenalineCost)) : false;
+                const hasRequiredBuff = skill?.requiresBuffId ? playerBuffs.some(b => b.buffId === skill.requiresBuffId) : false;
+                const missingBuff = skill?.requiresBuffId ? !hasRequiredBuff : false;
+                const isProcced = skill?.requiresBuffId && hasRequiredBuff;
 
                 return (
-                  <div key={index} className="relative">
+                  <div key={index} className="relative flex flex-col items-center">
                     <button
-                      className={`relative w-12 h-12 flex items-center justify-center rounded-lg border transition-all overflow-hidden bg-surface-base focus:outline-none focus:ring-0
-                        ${isBinding ? 'border-accent bg-surface-raised animate-pulse' : 'border-border-subtle hover:border-border-strong hover:bg-surface-raised'}
-                        ${outOfEnergy && !isBinding ? 'opacity-50 grayscale' : ''}
+                      className={`relative w-12 h-12 flex items-center justify-center transition-all bg-transparent focus:outline-none focus:ring-0 group
+                        ${isBinding ? 'animate-pulse scale-110' : ''}
+                        ${(outOfEnergy || missingBuff) && !isBinding ? 'grayscale brightness-50' : ''}
                       `}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -648,13 +601,35 @@ export function CombatOverlay() {
                           setContent(
                             <div className="w-56 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 text-left pointer-events-none backdrop-blur-md">
                               <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
-                              <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
-                                 <span>{getEffectiveEnergyCost(skill)} Energy</span>
-                                 <span>{skill.cooldownMs ? `${(skill.cooldownMs / 1000).toFixed(1)} CD` : 'No CD'}</span>
-                              </div>
-                              <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
-                                 <span>{skill.range > 0 ? `Range ${skill.range}` : 'Melee'}</span>
-                                 <span>{skill.castTime ? `${(getEffectiveCastTime(skill) / 1000).toFixed(1)} Cast` : 'Instant'}</span>
+                              <div className="flex flex-col text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest gap-1">
+                                {(() => {
+                                  const stats = [];
+                                  if (getEffectiveEnergyCost(skill) > 0) stats.push({ val: getEffectiveEnergyCost(skill), lbl: 'Energy' });
+                                  if (skill.adrenalineCost) stats.push({ val: skill.adrenalineCost, lbl: 'Adrenaline' });
+                                  if (skill.cooldownMs) stats.push({ val: (skill.cooldownMs / 1000).toFixed(1), lbl: 'CD' });
+                                  if (skill.castTime) stats.push({ val: (getEffectiveCastTime(skill) / 1000).toFixed(1) + 's', lbl: 'Cast' });
+                                  stats.push({ val: skill.range > 1 ? skill.range : 'Melee', lbl: skill.range > 1 ? 'Range' : '' });
+                                  
+                                  const rows = [];
+                                  for (let i = 0; i < stats.length; i += 2) {
+                                    rows.push(stats.slice(i, i + 2));
+                                  }
+                                  
+                                  return rows.map((row, i) => (
+                                    <div key={i} className="flex justify-between items-center border-b border-border-subtle/50 pb-0.5 last:border-0 last:pb-0">
+                                      <div className="flex items-center gap-1">
+                                        <span>{row[0].val}</span>
+                                        {row[0].lbl && <span>{row[0].lbl}</span>}
+                                      </div>
+                                      {row[1] && (
+                                        <div className="flex items-center gap-1 text-right">
+                                          <span>{row[1].val}</span>
+                                          {row[1].lbl && <span>{row[1].lbl}</span>}
+                                        </div>
+                                      )}
+                                    </div>
+                                  ));
+                                })()}
                               </div>
                               {skill.effects.some(e => e.type === 'damage') && (
                                 <div className="mb-1 pb-1 border-b border-border-subtle space-y-0.5">
@@ -670,11 +645,11 @@ export function CombatOverlay() {
                                       const min = Math.floor(totalAvg * 0.75);
                                       const max = Math.ceil(totalAvg * 1.25);
                                       return (
-                                        <div key={i} className="text-xs text-text-secondary">
-                                          {min} - {max} {el} Damage
-                                        </div>
-                                      );
-                                    }
+                                      <div key={i} className="text-xs text-text-secondary">
+                                        {min} - {max} {el} Damage
+                                      </div>
+                                    );
+                                  }
                                     
                                     return (
                                       <div key={i} className="text-xs text-text-secondary">
@@ -697,41 +672,41 @@ export function CombatOverlay() {
                       }}
                     >
                       {skill && IconComponent ? (
-                        <div className={`relative z-10 w-full h-full flex items-center justify-center ${outOfRange ? 'opacity-50' : ''}`}>
-                          <IconComponent className={`w-7 h-7 drop-shadow-md text-sky-400`} />
+                        <div className={`relative z-10 w-full h-full flex items-center justify-center transition-transform group-hover:scale-110 ${outOfRange ? 'opacity-50' : ''}`}>
+                          <IconComponent className={`mb-1.5 w-8 h-8 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] ${isProcced ? 'text-teal-400 drop-shadow-[0_0_8px_rgba(45,212,191,0.8)]' : 'text-sky-400'}`} />
                         </div>
                       ) : null}
 
                       {/* Cooldown Overlay */}
                       {onCooldown && skill && (
                         <div 
-                           className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
-                           style={{ background: `conic-gradient(transparent ${100 - activePercent}%, rgba(0,0,0,0.7) 0)` }}
+                           className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none rounded-full"
+                           style={{ background: `conic-gradient(transparent ${100 - activePercent}%, rgba(0,0,0,0.8) 0)` }}
                         >
                             <span className="text-white font-bold text-[0.625rem] z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
                                {(Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000).toFixed(1)}
                             </span>
-                           {isOnGcd && (
-                              <div className="absolute inset-0 border-2 border-border-strong/50 rounded-lg animate-pulse pointer-events-none" />
-                           )}
                         </div>
                       )}
                       
                       {/* Casting Overlay */}
                       {isCastingThis && skill && (
-                        <div className="absolute inset-0 bg-sky-900/40 z-20 overflow-hidden border border-sky-400/50">
+                        <div className="absolute inset-0 bg-sky-900/30 z-20 overflow-hidden pointer-events-none rounded-md">
                            <div 
-                             className="absolute bottom-0 left-0 w-full bg-sky-400/30 transition-none" 
+                             className="absolute bottom-0 left-0 w-full bg-sky-400/50 transition-none" 
                              style={{ height: `${castPercent}%` }} 
                            />
                         </div>
                       )}
-                      
-                      {/* Keybind */}
-                      <span className="absolute bottom-0 left-0.5 text-xs font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] z-30 pointer-events-none">
-                        {index + 1}
-                      </span>
                     </button>
+                    
+                    {/* Underline */}
+                    <div className="absolute bottom-0 left-[10%] w-[80%] h-[4px] bg-zinc-900 drop-shadow-md pointer-events-none" />
+                    
+                    {/* Floating Hotkey */}
+                    <div className={`absolute -bottom-5 w-4 h-4 bg-zinc-900 flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-[0_2px_4px_rgba(0,0,0,0.5)] pointer-events-none ${isBinding ? 'border border-accent text-accent' : ''}`}>
+                      {index + 1}
+                    </div>
 
                     {/* Skill Binding Menu */}
                     {isBinding && (
@@ -774,17 +749,77 @@ export function CombatOverlay() {
                   </div>
                  );
                })}
-            </div>
-
-
-
           </div>
-
-          {/* MP Globe Removed */}
         </div>
       </div>
-      {/* Control Hints (Bottom Left) */}
-      <div className="absolute bottom-3 left-3 pointer-events-none z-50 flex flex-col gap-1 items-start opacity-75">
+
+          {/* Resources Container (Bottom Left) */}
+          <div className="absolute bottom-3 left-3 flex flex-col gap-[8px] z-40 pointer-events-auto w-[360px]">
+            {/* Vitals Box */}
+            <div className="flex flex-col gap-[8px] drop-shadow-2xl">
+              {/* Health Bar */}
+              <div className="relative flex w-full items-center">
+                 <div className="relative w-full h-[1.25rem] bg-black/40 overflow-hidden">
+                    {expectedHealAmount > 0 && (
+                      <div 
+                        className="absolute top-0 left-0 h-full bg-red-400/70 transition-all duration-75"
+                        style={{ width: `${Math.min(100, ((currentHealth + expectedHealAmount) / maxHealth) * 100)}%` }}
+                      />
+                    )}
+                    <div 
+                      className="absolute top-0 left-0 h-full bg-[#dc2626] transition-all duration-75"
+                      style={{ width: `${Math.min(100, (currentHealth / maxHealth) * 100)}%` }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[1px]">
+                      {currentHealth > 0 ? Math.max(1, Math.floor(currentHealth)) : 0}/{maxHealth}
+                    </div>
+                 </div>
+              </div>
+
+              {/* Energy Bar */}
+              <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden">
+                 <div 
+                   className="absolute top-0 left-0 h-full bg-[#eab308] transition-all duration-300"
+                   style={{ width: `${Math.min(100, (currentEnergy / maxEnergy) * 100)}%` }}
+                 />
+                 <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
+                   {Math.floor(currentEnergy)}/{maxEnergy}
+                 </div>
+              </div>
+
+              {/* Adrenaline Bar */}
+              {isFighter && (
+                 <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden">
+                    <div 
+                      className="absolute top-0 left-0 h-full bg-[#f97316]"
+                      style={{ 
+                        display: currentAdrenaline > 0 ? 'block' : 'none',
+                        width: `${Math.min(100, (currentAdrenaline / maxAdrenaline) * 100)}%`
+                      }}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
+                      {Math.floor(currentAdrenaline)}/{maxAdrenaline}
+                    </div>
+                 </div>
+              )}
+            </div>
+
+            {/* XP Bar & Level */}
+            <div className="flex w-full items-center h-[0.5rem] gap-1">
+               <span className="text-[0.55rem] text-white font-bold font-mono [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none shrink-0">
+                 {level}
+               </span>
+               <div className="relative flex-1 h-[0.5rem] bg-black/40 overflow-hidden opacity-90">
+                  <div 
+                    className="absolute top-0 left-0 h-full bg-[#a78bfa] transition-all duration-300"
+                    style={{ width: `${Math.min(100, (currentXp / xpRequired) * 100)}%` }}
+                  />
+               </div>
+            </div>
+          </div>
+          {/* MP Globe Removed */}
+        </div>
+      {/* Death Screen */}
 
       {/* Death Screen */}
       {currentHealth <= 0 && (
@@ -804,21 +839,23 @@ export function CombatOverlay() {
            </button>
         </div>
       )}
-         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
-           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">Q E Z C</span>
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Move Diagonal</span>
+      {/* Keybind Hints */}
+      <div className="absolute bottom-16 right-3 pointer-events-none z-50 flex flex-col gap-1.5 items-end opacity-75">
+         <div className="flex items-center gap-2">
+           <span className="text-[0.65rem] font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Move Diagonal</span>
+           <span className="text-[0.55rem] font-black tracking-widest text-white bg-zinc-900 px-1.5 py-0.5 shadow-md leading-none font-mono">Q E Z C</span>
          </div>
-         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
-           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">R</span>
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Health Potion</span>
+         <div className="flex items-center gap-2">
+           <span className="text-[0.65rem] font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Health Potion</span>
+           <span className="text-[0.55rem] font-black tracking-widest text-white bg-zinc-900 px-1.5 py-0.5 shadow-md leading-none font-mono">R</span>
          </div>
-         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
-           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">TAB</span>
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Cycle Targets</span>
+         <div className="flex items-center gap-2">
+           <span className="text-[0.65rem] font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Cycle Targets</span>
+           <span className="text-[0.55rem] font-black tracking-widest text-white bg-zinc-900 px-1.5 py-0.5 shadow-md leading-none font-mono">TAB</span>
          </div>
-         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
-           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">SPACE</span>
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider">Tactical Pause</span>
+         <div className="flex items-center gap-2">
+           <span className="text-[0.65rem] font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Tactical Pause</span>
+           <span className="text-[0.55rem] font-black tracking-widest text-white bg-zinc-900 px-1.5 py-0.5 shadow-md leading-none font-mono">SPACE</span>
          </div>
       </div>
       
@@ -832,7 +869,9 @@ export function CombatOverlay() {
                 useMessageStore.getState().addScreenMessage('above', 'Cannot portal in combat', 4000);
                 return;
               }
-              combatState.setCasting('portal_skill', 4000);
+              if (combatState.castingSkillId !== 'portal_skill') {
+                combatState.setCasting('portal_skill', 4000);
+              }
             }}
             onMouseEnter={() => setContent(
               <div className="w-52 bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none mb-2">
@@ -843,7 +882,7 @@ export function CombatOverlay() {
               </div>
             )}
             onMouseLeave={() => setContent(null)}
-            className="w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group bg-surface-deep border-border-subtle text-text-secondary hover:text-red-400 hover:border-red-400"
+            className="w-10 h-10 flex items-center justify-center flex-col gap-0.5 group transition-colors bg-black/60 text-text-secondary hover:text-red-400 hover:bg-zinc-900 shadow-md"
           >
             <IconWhirl className="w-5 h-5" />
           </button>
@@ -866,17 +905,20 @@ export function CombatOverlay() {
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'inventory')
-              ? 'text-accent border-accent bg-surface-deep'
-              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
+              ? 'text-accent bg-zinc-800 shadow-inner'
+              : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-900 shadow-md'
           }`}
         >
           <Backpack className="w-5 h-5" />
           {attributePoints > 0 && (
-             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse z-50">
-               {usePlayerStore.getState().attributePoints}
-             </span>
+             <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-950 rounded-full z-50 flex items-center justify-center">
+                <div className="absolute w-4 h-4 bg-red-600 rounded-full animate-pulse transform-gpu"></div>
+                <span className="relative text-white text-[0.6rem] font-bold leading-none mt-[1px]">
+                  {attributePoints}
+                </span>
+             </div>
           )}
         </button>
 
@@ -898,17 +940,20 @@ export function CombatOverlay() {
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'active_skills')
-              ? 'text-accent border-accent bg-surface-deep'
-              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
+              ? 'text-accent bg-zinc-800 shadow-inner'
+              : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-900 shadow-md'
           }`}
         >
           <Sparkles className="w-5 h-5" />
           {activeSkillPoints > 0 && (
-             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse z-50">
-               {usePlayerStore.getState().activeSkillPoints}
-             </span>
+             <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-950 rounded-full z-50 flex items-center justify-center">
+                <div className="absolute w-4 h-4 bg-red-600 rounded-full animate-pulse transform-gpu"></div>
+                <span className="relative text-white text-[0.6rem] font-bold leading-none mt-[1px]">
+                  {activeSkillPoints}
+                </span>
+             </div>
           )}
         </button>
 
@@ -930,17 +975,20 @@ export function CombatOverlay() {
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'skills')
-              ? 'text-accent border-accent bg-surface-deep'
-              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
+              ? 'text-accent bg-zinc-800 shadow-inner'
+              : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-900 shadow-md'
           }`}
         >
           <BookOpen className="w-5 h-5" />
           {passivePoints > 0 && (
-             <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-600 text-white rounded-full text-[0.625rem] font-bold flex items-center justify-center border-2 border-zinc-950 animate-pulse z-50">
-               {usePlayerStore.getState().passivePoints}
-             </span>
+             <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-950 rounded-full z-50 flex items-center justify-center">
+                <div className="absolute w-4 h-4 bg-red-600 rounded-full animate-pulse transform-gpu"></div>
+                <span className="relative text-white text-[0.6rem] font-bold leading-none mt-[1px]">
+                  {passivePoints}
+                </span>
+             </div>
           )}
         </button>
       </div>

@@ -119,11 +119,10 @@ export function SkillTreePanel() {
           }
         }}
       >
-        <div className={`relative w-8 h-8 flex items-center justify-center border transition-all
+        <div className={`relative w-8 h-8 flex items-center justify-center transition-all
            ${canAfford && isUnlocked && !isMaxed 
-             ? 'border-accent bg-surface-deep shadow-[0_0_8px_rgba(56,189,248,0.5)] animate-pulse' 
-             : 'border-border-subtle bg-surface-base'}
-           ${node.type === 'active' ? 'rounded' : 'rounded-full'}
+             ? 'bg-zinc-800 ring-1 ring-accent ring-inset shadow-inner animate-pulse' 
+             : 'bg-black/40'}
         `}>
            <Icon className={`w-5 h-5 ${node.type === 'active' ? 'text-blue-500' : 'text-sky-400'}`} />
 
@@ -144,20 +143,20 @@ export function SkillTreePanel() {
         <div className="flex gap-2">
           <button 
             onClick={() => setActiveTab('primary')}
-            className={`px-2 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'primary' ? 'bg-surface-deep text-accent border border-accent shadow-[0_0_8px_rgba(56,189,248,0.15)]' : 'bg-surface-deep text-text-secondary border border-border-subtle hover:text-text-primary'}`}
+            className={`px-2 py-1 text-xs font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'primary' ? 'bg-zinc-800 text-accent shadow-inner' : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-800'}`}
           >
             <span>{playerClass}</span>
-            <span className={`text-[0.625rem] px-1.5 py-0.5 rounded-full ${activeTab === 'primary' ? 'bg-surface-base text-accent' : 'bg-surface-base text-text-secondary'}`}>
+            <span className={`text-[0.625rem] px-1.5 py-0.5 ${activeTab === 'primary' ? 'bg-black/40 text-accent' : 'bg-black/40 text-text-secondary'}`}>
               {getTotalPointsSpent(playerClass)}
             </span>
           </button>
           {secondaryClass ? (
             <button 
               onClick={() => setActiveTab('secondary')}
-              className={`px-2 py-1 rounded text-xs font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'secondary' ? 'bg-surface-deep text-accent border border-accent shadow-[0_0_8px_rgba(56,189,248,0.15)]' : 'bg-surface-deep text-text-secondary border border-border-subtle hover:text-text-primary'}`}
+              className={`px-2 py-1 text-xs font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'secondary' ? 'bg-zinc-800 text-accent shadow-inner' : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-800'}`}
             >
               <span>{secondaryClass}</span>
-              <span className={`text-[0.625rem] px-1.5 py-0.5 rounded-full ${activeTab === 'secondary' ? 'bg-surface-base text-accent' : 'bg-surface-base text-text-secondary'}`}>
+              <span className={`text-[0.625rem] px-1.5 py-0.5 ${activeTab === 'secondary' ? 'bg-black/40 text-accent' : 'bg-black/40 text-text-secondary'}`}>
                 {getTotalPointsSpent(secondaryClass)}
               </span>
             </button>
@@ -165,7 +164,7 @@ export function SkillTreePanel() {
             level >= 5 && (
                 <button 
                   onClick={() => setActiveTab('select_secondary')}
-                  className={`px-2 py-1 rounded text-xs font-bold transition-colors border shadow-[0_0_8px_rgba(56,189,248,0.15)] animate-pulse hover:animate-none ${activeTab === 'select_secondary' ? 'bg-surface-deep text-accent border-accent' : 'bg-surface-deep text-text-secondary border-border-subtle hover:text-text-primary'}`}
+                  className={`px-2 py-1 text-xs font-bold transition-colors shadow-[0_0_8px_rgba(56,189,248,0.15)] animate-pulse hover:animate-none ${activeTab === 'select_secondary' ? 'bg-zinc-800 text-accent shadow-inner' : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-800'}`}
                 >
                   Select 2nd Class
                 </button>
@@ -180,7 +179,7 @@ export function SkillTreePanel() {
       </div>
 
       {/* Tree Content */}
-      <div className="flex-1 overflow-hidden border border-border-subtle rounded-xl shadow-sm relative bg-surface-deep/20 flex flex-col">
+      <div className="flex-1 overflow-hidden relative bg-black/20 flex flex-col">
          
          {activeTab === 'select_secondary' && (
              <div className="absolute top-0 left-0 right-0 z-40 bg-surface-deep/95 border-b border-border-subtle p-3 flex flex-col items-center animate-in slide-in-from-top-4 shadow-xl">
@@ -190,21 +189,21 @@ export function SkillTreePanel() {
                          <button 
                              key={cls}
                              onClick={() => setPreviewClass(cls)}
-                             className={`px-3 py-1.5 rounded border font-bold text-xs transition-all ${selectedPreviewClass === cls ? 'bg-accent/20 border-accent text-accent shadow-[0_0_10px_rgba(56,189,248,0.2)]' : 'bg-surface-base border-border-subtle text-text-secondary hover:text-text-primary hover:bg-surface-raised'}`}
+                             className={`px-3 py-1.5 font-bold text-xs transition-all ${selectedPreviewClass === cls ? 'bg-zinc-800 text-accent shadow-inner' : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-800'}`}
                          >
                              {cls}
                          </button>
                      ))}
                  </div>
                  <div className="flex gap-2 mt-3">
-                     <button 
-                         className="px-4 py-1.5 bg-surface-base hover:bg-surface-raised border border-border-subtle rounded text-text-secondary font-bold text-xs"
+                         <button 
+                             className="px-4 py-1.5 bg-black/60 hover:bg-zinc-800 text-text-secondary font-bold text-xs"
                          onClick={() => setActiveTab('primary')}
                      >
                          Cancel
                      </button>
-                     <button 
-                         className="px-4 py-1.5 bg-accent/20 hover:bg-accent/30 border border-accent rounded text-accent font-bold text-xs animate-pulse hover:animate-none shadow-[0_0_10px_rgba(56,189,248,0.2)]"
+                         <button 
+                             className="px-4 py-1.5 bg-zinc-800 text-accent font-bold text-xs animate-pulse hover:animate-none shadow-inner"
                          onClick={() => {
                              usePlayerStore.getState().setSecondaryClass(selectedPreviewClass);
                              setActiveTab('secondary');
@@ -232,7 +231,7 @@ export function SkillTreePanel() {
                        <div className="absolute top-0 bottom-0 w-[2px] bg-gradient-to-b from-transparent via-white/10 to-transparent -z-10" />
                        
                        {/* Tier Marker */}
-                       <div className="absolute bottom-0 flex flex-col items-center bg-surface-deep/90 px-2 rounded-md py-0.5 z-30 border border-border-subtle shadow-sm">
+                       <div className="absolute bottom-0 flex flex-col items-center bg-black/60 px-2 py-0.5 z-30 shadow-sm">
                           <div className={`text-[10px] font-black tracking-widest whitespace-nowrap ${unlocked ? 'text-text-primary' : 'text-text-secondary'}`}>
                              T{tier} <span className={unlocked ? 'opacity-60' : 'text-red-500 opacity-100'}>({req})</span>
                           </div>
@@ -246,8 +245,8 @@ export function SkillTreePanel() {
          </div>
 
          {/* Class Rank Badge Footer */}
-         <div className="border-t border-border-subtle bg-surface-deep/80 py-2 flex justify-center items-center rounded-b-xl z-20">
-            <div className="flex items-center bg-surface-base border border-border-strong rounded-md px-3 py-1 shadow-[0_0_10px_rgba(56,189,248,0.1)] ring-1 ring-accent/20">
+         <div className="bg-black/60 py-2 flex justify-center items-center z-20">
+            <div className="flex items-center px-3 py-1">
                <span className="text-xs font-bold text-text-primary mr-2 flex items-baseline gap-1">
                   {currentClass} <span className="text-accent text-sm font-black">{mastery}</span>
                </span>
