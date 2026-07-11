@@ -27,7 +27,7 @@ export async function getPixiApp(canvas: HTMLCanvasElement): Promise<Application
     const instance = new Application();
     await instance.init({
       canvas,
-      background: 0x000000,
+      background: 0x060606,
       width: 800,
       height: 600,
       antialias: true,
@@ -44,6 +44,16 @@ export async function getPixiApp(canvas: HTMLCanvasElement): Promise<Application
   })();
 
   return initPromise;
+}
+
+export function setPixiAppBackground(color: number) {
+  if (app && app.renderer) {
+    app.renderer.background.color = color;
+  } else if (initPromise) {
+    initPromise.then((instance) => {
+      instance.renderer.background.color = color;
+    });
+  }
 }
 
 export function destroyPixiApp() {

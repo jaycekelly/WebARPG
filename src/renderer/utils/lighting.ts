@@ -1,5 +1,4 @@
-import { useWorldStore, type GridMap } from '../../store/useWorldStore';
-import { useLightingStore } from '../../store/useLightingStore';
+import type { GridMap } from '../../store/useWorldStore';
 
 export interface PointLight {
   x: number;
@@ -46,16 +45,20 @@ export function extractLights(grid: GridMap): PointLight[] {
   return lights;
 }
 
+export interface LightingContext {
+  isTown: boolean;
+  playerLightRadius: number;
+  minBrightness: number;
+  entityAmbient: { r: number; g: number; b: number };
+}
+
 export function getTileLighting(
   x: number,
   y: number,
   playerPos: { x: number; y: number },
-  pointLights: PointLight[]
+  pointLights: PointLight[],
+  ctx: LightingContext
 ): TileLighting {
-  const isTown = useWorldStore.getState().grid.environment === 'town';
-  const lighting = useLightingStore.getState();
-  const playerLightRadius = lighting.playerLightRadiusDungeon;
-
   let totalIntensity = 0;
   
   // Base white light (Player + Ambient)
@@ -63,7 +66,7 @@ export function getTileLighting(
 
   // 1. Player Light (White)
   const distToPlayer = Math.sqrt(Math.pow(x - playerPos.x, 2) + Math.pow(y - playerPos.y, 2));
-  const playerNorm = Math.max(0, 1.0 - (distToPlayer / playerLightRadius));
+  const playerNorm = Math.max(0, 1.0 - (distToPlayer / ctx.playerLightRadius));
   const pIntensity = Math.pow(playerNorm, 1.2) * 1.0;
   
   if (pIntensity > 0) {
@@ -82,7 +85,7 @@ export function getTileLighting(
   }
 
   // 3. Ambient Baseline
-  if (isTown) {
+  if (ctx.isTown) {
     const ambient = 0.45;
     totalIntensity = Math.max(totalIntensity, ambient);
     whiteIntensity = Math.max(whiteIntensity, ambient);
@@ -90,13 +93,16 @@ export function getTileLighting(
 
   // Calculate Entity Tint
   const ent = Math.min(1.0, whiteIntensity);
-  const { minBrightness } = lighting;
-  
-  // Interpolate between minBrightness and the received light
-  const finalVal = minBrightness + (1.0 - minBrightness) * ent;
-  const rgb = Math.floor(finalVal * 255);
+  const minR = ctx.entityAmbient.r;
+  const minG = ctx.entityAmbient.g;
+  const minB = ctx.entityAmbient.b;
 
-  const entityTint = (rgb << 16) | (rgb << 8) | rgb;
+  // Interpolate between the ambient color and pure white light
+  const finalR = Math.floor(minR + (255 - minR) * ent);
+  const finalG = Math.floor(minG + (255 - minG) * ent);
+  const finalB = Math.floor(minB + (255 - minB) * ent);
+
+  const entityTint = (finalR << 16) | (finalG << 8) | finalB;
 
   return {
     intensity: Math.min(1.0, totalIntensity),

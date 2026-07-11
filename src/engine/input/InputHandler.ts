@@ -143,6 +143,8 @@ export class InputHandler {
     const worldState = useWorldStore.getState();
 
     // Combo Chain Resolution (e.g. Heavy Strike Combo): resolve which chained hit to actually execute
+    const isPaused = useAppStore.getState().isPaused;
+
     let resolvedSkill = skill;
     if (skill.comboChainIds && skill.comboChainIds.length > 0) {
       const now = useAppStore.getState().getGameTime();
@@ -157,7 +159,6 @@ export class InputHandler {
       // Combo hits derive their direction/target from the player's current auto-target
       // rather than requiring a manual tile click, so the chain isn't broken by targeting UI.
       // However, if the game is paused, we force manual targeting.
-      const isPaused = useAppStore.getState().isPaused;
       if (!tId && !tPos && !isPaused) {
         const currentTarget = playerState.activeTargetId
           ? worldState.enemies.find(e => e.id === playerState.activeTargetId && !e.isDead)

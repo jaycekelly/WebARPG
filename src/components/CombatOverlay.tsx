@@ -473,7 +473,7 @@ export function CombatOverlay() {
                      <FlaskConical className="mb-0.5 w-6 h-6 text-red-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] z-10 transition-transform group-hover:scale-110" />
                      {now - lastFlaskTime < 30000 && (
                         <div 
-                          className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none rounded-full"
+                          className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none rounded-none"
                           style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.8) 0)` }}
                         >
                           <span className="text-white font-bold text-sm z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
@@ -533,7 +533,7 @@ export function CombatOverlay() {
                    }
                 }
 
-                const isOnGcd = timeUntilGcdFree > 0 && timeUntilGcdFree >= timeUntilSkillFree;
+                // const isOnGcd = timeUntilGcdFree > 0 && timeUntilGcdFree >= timeUntilSkillFree;
                 
                 const isCastingThis = castingSkillId === skillId;
                 let castPercent = 0;
@@ -680,8 +680,8 @@ export function CombatOverlay() {
                       {/* Cooldown Overlay */}
                       {onCooldown && skill && (
                         <div 
-                           className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none rounded-full"
-                           style={{ background: `conic-gradient(transparent ${100 - activePercent}%, rgba(0,0,0,0.8) 0)` }}
+                           className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none rounded-none shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]"
+                           style={{ background: `conic-gradient(transparent ${100 - activePercent}%, rgba(255,255,255,0.8) ${100 - activePercent}%, rgba(0,0,0,0.7) ${100 - activePercent + 3}%, rgba(0,0,0,0.7) 100%)` }}
                         >
                             <span className="text-white font-bold text-[0.625rem] z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
                                {(Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000).toFixed(1)}
@@ -759,7 +759,7 @@ export function CombatOverlay() {
             <div className="flex flex-col gap-[8px] drop-shadow-2xl">
               {/* Health Bar */}
               <div className="relative flex w-full items-center">
-                 <div className="relative w-full h-[1.25rem] bg-black/40 overflow-hidden">
+                 <div className="relative w-full h-[1.25rem] bg-black/40 overflow-hidden backdrop-blur-md border border-white/10 rounded-none">
                     {expectedHealAmount > 0 && (
                       <div 
                         className="absolute top-0 left-0 h-full bg-red-400/70 transition-all duration-75"
@@ -777,7 +777,7 @@ export function CombatOverlay() {
               </div>
 
               {/* Energy Bar */}
-              <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden">
+              <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden backdrop-blur-md border border-white/10 rounded-none">
                  <div 
                    className="absolute top-0 left-0 h-full bg-[#eab308] transition-all duration-300"
                    style={{ width: `${Math.min(100, (currentEnergy / maxEnergy) * 100)}%` }}
@@ -789,7 +789,7 @@ export function CombatOverlay() {
 
               {/* Adrenaline Bar */}
               {isFighter && (
-                 <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden">
+                 <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden backdrop-blur-md border border-white/10 rounded-none">
                     <div 
                       className="absolute top-0 left-0 h-full bg-[#f97316]"
                       style={{ 
@@ -809,7 +809,7 @@ export function CombatOverlay() {
                <span className="text-[0.55rem] text-white font-bold font-mono [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none shrink-0">
                  {level}
                </span>
-               <div className="relative flex-1 h-[0.5rem] bg-black/40 overflow-hidden opacity-90">
+               <div className="relative flex-1 h-[0.5rem] bg-black/40 overflow-hidden opacity-90 backdrop-blur-md border border-white/10 rounded-none">
                   <div 
                     className="absolute top-0 left-0 h-full bg-[#a78bfa] transition-all duration-300"
                     style={{ width: `${Math.min(100, (currentXp / xpRequired) * 100)}%` }}

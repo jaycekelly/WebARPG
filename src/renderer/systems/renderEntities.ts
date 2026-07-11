@@ -8,6 +8,8 @@ import type { Enemy, LootDrop, Obstacle } from '../../store/useWorldStore';
 import type { HitEffect } from '../../store/useCombatStore';
 import { useWorldStore } from '../../store/useWorldStore';
 import { useLightingStore } from '../../store/useLightingStore';
+import { getBiome } from '../../data/biomes';
+import type { LightingContext } from '../utils/lighting';
 
 // ---- Constants ---------------------------------------------------------------
 const HEALTH_BAR_WIDTH = 90;
@@ -234,7 +236,8 @@ export function createEntityRenderer(): EntityRenderer {
     playerPos: { x: number; y: number },
     pointLights: PointLight[],
     visibleTiles: Set<string>,
-    exploredTiles: Set<string>
+    exploredTiles: Set<string>,
+    ctx: LightingContext
   ) {
     const sx = projected.screenX;
     const sy = projected.screenY;
@@ -245,11 +248,11 @@ export function createEntityRenderer(): EntityRenderer {
     entry.container.zIndex = projected.zDepth + (ENTITY_Z[entry.category] ?? 0);
     
     // Lighting tint
-    let lighting = getTileLighting(wx, wy, playerPos, pointLights);
+    let lighting = getTileLighting(wx, wy, playerPos, pointLights, ctx);
     
     // If in memory fog (explored but not visible), it receives no direct light
     if (!visibleTiles.has(`${wx},${wy}`) && exploredTiles.has(`${wx},${wy}`)) {
-       const minB = Math.floor(useLightingStore.getState().minBrightness * 255);
+       const minB = Math.floor(ctx.minBrightness * 255);
        const darkTint = (minB << 16) | (minB << 8) | minB;
        lighting = { intensity: 0.0, entityTint: darkTint };
     }
@@ -322,7 +325,15 @@ export function createEntityRenderer(): EntityRenderer {
     const activeKeys = new Set<string>();
     const visibleTilesSet = visibleTiles ?? new Set<string>();
     const exploredTilesSet = exploredTiles ?? new Set<string>();
-    const pointLights = extractLights(useWorldStore.getState().grid);
+    const worldStore = useWorldStore.getState();
+    const pointLights = extractLights(worldStore.grid);
+    
+    const ctx: LightingContext = {
+      isTown: worldStore.grid.environment === 'town',
+      playerLightRadius: useLightingStore.getState().playerLightRadiusDungeon,
+      minBrightness: useLightingStore.getState().minBrightness,
+      entityAmbient: getBiome(worldStore.grid.environment).entityAmbient,
+    };
     
     const hitsMap = new Map<string, HitEffect>();
     for (const h of hitEffects) hitsMap.set(h.targetId, h);
@@ -402,7 +413,7 @@ export function createEntityRenderer(): EntityRenderer {
     
     playerEntry.container.zIndex = projPlayer.zDepth;
 
-    setPosition(playerEntry, projPlayer, hopPlayer, playerEntry.currentX, playerEntry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
+    setPosition(playerEntry, projPlayer, hopPlayer, playerEntry.currentX, playerEntry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
     updateFlash(playerEntry, playerKey, playerHit);
     }
 
@@ -481,7 +492,7 @@ export function createEntityRenderer(): EntityRenderer {
          projEnemy.screenY = jitterProj.screenY;
       }
       
-      setPosition(entry, projEnemy, hopEnemy, entry.currentX, entry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
+      setPosition(entry, projEnemy, hopEnemy, entry.currentX, entry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
       
       if (eHit) {
         entry.icon.tint = eHit.color;
@@ -615,7 +626,7 @@ export function createEntityRenderer(): EntityRenderer {
       showEntry(entry);
       {
         const projLoot = projectTileToScreen(drop.position.x, drop.position.y, params);
-        setPosition(entry, projLoot, 0, drop.position.x, drop.position.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
+        setPosition(entry, projLoot, 0, drop.position.x, drop.position.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
 
         const time = Date.now();
         const floatY = Math.sin(time / 400 + drop.position.x) * 4;
@@ -673,7 +684,7 @@ export function createEntityRenderer(): EntityRenderer {
       showEntry(entry);
       {
         const projObs = projectTileToScreen(obs.x, obs.y, params);
-        setPosition(entry, projObs, 0, obs.x, obs.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
+        setPosition(entry, projObs, 0, obs.x, obs.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
       }
     }
 

@@ -1,7 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { createElement } from 'react';
 import { Container, Graphics } from 'pixi.js';
-import { getPixiApp, destroyPixiApp } from './pixiApp';
+import { getPixiApp, destroyPixiApp, setPixiAppBackground } from './pixiApp';
 import { createCamera } from './camera';
 import { createFloorRenderer } from './systems/renderFloor';
 import { createEntityRenderer } from './systems/renderEntities';
@@ -21,8 +21,7 @@ import { useTooltipStore } from '../store/useTooltipStore';
 import { ItemTooltip } from '../components/ItemTooltip';
 import { InputHandler } from '../engine/input/InputHandler';
 import type { ProjectionParams } from '../engine/world/screenProjection';
-
-
+import { getBiome } from '../data/biomes';
 const BASE_TILE_SIZE = 72;
 const BASE_GAP_SIZE = 0;
 const DEFAULT_ZOOM = 1.0;
@@ -74,6 +73,24 @@ export function GameCanvas() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
+  }, []);
+
+  // ---- PixiJS app background sync --------------------------------------------
+  useEffect(() => {
+    let lastEnv = useWorldStore.getState().grid.environment;
+    
+    const unsub = useWorldStore.subscribe((state) => {
+      if (state.grid.environment !== lastEnv) {
+        lastEnv = state.grid.environment;
+        const biome = getBiome(lastEnv);
+        setPixiAppBackground(biome.voidColor);
+      }
+    });
+    
+    // Trigger immediately to set initial color
+    setPixiAppBackground(getBiome(lastEnv).voidColor);
+    
+    return unsub;
   }, []);
 
   // ---- PixiJS setup ---------------------------------------------------------

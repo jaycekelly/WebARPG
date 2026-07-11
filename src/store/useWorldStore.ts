@@ -62,7 +62,7 @@ export interface GridMap {
   width: number;
   height: number;
   obstacles: Obstacle[];
-  environment?: 'town' | 'dungeon';
+  environment?: string;
 }
 
 interface WorldState {

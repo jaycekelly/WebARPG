@@ -3,9 +3,10 @@ import type { GridMap, Obstacle } from '../../store/useWorldStore';
 import { usePlayerStore } from '../../store/usePlayerStore';
 import { useVisionStore } from '../../store/useVisionStore';
 import { ENEMY_TEMPLATES } from '../../data/enemies';
+import { DUNGEON_BIOMES } from '../../data/biomes';
 
 export class LevelGenerator {
-  static generateScatteredLevel(width: number, height: number) {
+  static generateScatteredLevel(width: number, height: number, biomeId?: string) {
     const obstacles: Obstacle[] = [];
     const density = 0.15; // 15% of the map is obstacles
     
@@ -22,7 +23,8 @@ export class LevelGenerator {
       }
     }
 
-    const grid: GridMap = { width, height, obstacles, environment: 'dungeon' };
+    const finalBiome = biomeId || DUNGEON_BIOMES[Math.floor(Math.random() * DUNGEON_BIOMES.length)];
+    const grid: GridMap = { width, height, obstacles, environment: finalBiome };
     return grid;
   }
 
@@ -109,7 +111,7 @@ export class LevelGenerator {
     // Small, mostly empty room
     const width = 15;
     const height = 15;
-    const grid: GridMap = { width, height, obstacles: [], environment: 'dungeon' };
+    const grid: GridMap = { width, height, obstacles: [], environment: 'dungeon_slate' };
     worldStore.setGrid(grid);
 
     // Spawn player near one edge, facing the pack in the middle
@@ -158,7 +160,7 @@ export class LevelGenerator {
     spawnPackMember('footman', { x: 1, y: 1 });
   }
 
-  static initializeDungeon(width: number = 15, height: number = 15, playerLevel: number = 1) {
+  static initializeDungeon(width: number = 15, height: number = 15, playerLevel: number = 1, biomeId?: string) {
     const worldStore = useWorldStore.getState();
     const playerStore = usePlayerStore.getState();
     
@@ -167,7 +169,7 @@ export class LevelGenerator {
     useVisionStore.getState().resetVision();
 
     // Generate Grid
-    const grid = this.generateScatteredLevel(width, height);
+    const grid = this.generateScatteredLevel(width, height, biomeId);
     worldStore.setGrid(grid);
 
     // Determine Progression Vector
