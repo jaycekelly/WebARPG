@@ -197,7 +197,7 @@ export function CharacterSheet() {
             <h3 className="text-[15px] font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 mb-1">
               {category.title}
             </h3>
-            <div className="bg-surface-base rounded-xl border border-border-subtle overflow-hidden shadow-inner py-0.5">
+            <div className="bg-[#0e0f11] rounded-none overflow-hidden py-0.5">
               {category.stats.map((statDef, index) => {
                 const isRegen = statDef.id === 'HealthRegeneration' || statDef.id === 'EnergyRegeneration';
                 let rawVal = isRegen ? computeTotalRegen(getStat, statDef.id) : getStat(statDef.id);
@@ -259,7 +259,7 @@ export function CharacterSheet() {
                  return (
                    <div 
                      key={index} 
-                     className="flex justify-between items-center py-1.5 px-3 hover:bg-surface-raised transition-colors group cursor-default"
+                     className="flex justify-between items-center py-1.5 px-3 hover:bg-[#202227] transition-colors rounded-none group cursor-default"
                      onMouseEnter={() => {
                         let desc = '';
                         if (statDef.id === 'Armor') {
@@ -276,7 +276,7 @@ export function CharacterSheet() {
                         
                         if (desc) {
                            setContent(
-                             <div className="w-60 bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none">
+                             <div className="w-60 bg-[#0e0f11] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
                                <div className="text-xs text-text-secondary leading-relaxed">
                                  {desc}
                                </div>

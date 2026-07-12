@@ -73,8 +73,8 @@ export function InventoryPanel() {
         onMouseLeave={() => setHoveredEqSlot(null)}
         className={`flex items-center gap-2 py-1 px-1.5 pr-2 transition-all w-full text-left shrink-0 rounded-none ${
           item 
-            ? 'bg-[#202227]/45 hover:bg-[#202227]/70' 
-            : 'bg-[#0e0f11]/30 opacity-65 hover:opacity-100 hover:bg-[#0e0f11]/60'
+            ? 'bg-[#1c1c21]/45 hover:bg-[#1c1c21]/70' 
+            : 'bg-[#0c0c0f]/30 opacity-65 hover:opacity-100 hover:bg-[#0c0c0f]/60'
         }`}
       >
         <div className={`w-9 h-9 shrink-0 flex items-center justify-center ${
@@ -105,10 +105,10 @@ export function InventoryPanel() {
         <div className="w-[8rem] flex flex-col gap-2 shrink-0">
           {/* Attributes Panel */}
           <div className="flex flex-col">
-            <div className="flex items-center justify-center w-full mb-3 mt-1 select-none">
+            <div className="flex items-center justify-center w-full mb-3 mt-1 select-none px-4">
               <div className="flex-1 h-px bg-black" />
               <div className="relative flex items-center justify-center w-7 h-7 mx-2 shrink-0 group" title="Character Level">
-                <div className="absolute inset-0 bg-[#0e0f11] border border-accent/40 rotate-45 rounded-none transition-all group-hover:border-accent" />
+                <div className="absolute inset-0 bg-[#0c0c0f] border border-accent/40 rotate-45 rounded-none transition-all group-hover:border-accent" />
                 <span className="relative text-[24px] font-black text-accent drop-shadow-[0_0_5px_rgba(56,189,248,0.6)] z-10 leading-none">{level}</span>
               </div>
               <div className="flex-1 h-px bg-black" />
@@ -117,7 +117,7 @@ export function InventoryPanel() {
               {(['Strength', 'Dexterity', 'Intelligence', 'Vitality'] as const).map(attr => (
                 <div 
                   key={attr} 
-                  className="bg-[#0e0f11] overflow-hidden flex items-center justify-between px-1.5 h-8 w-full"
+                  className="bg-[#0c0c0f] overflow-hidden flex items-center justify-between px-1.5 h-8 w-full"
                   onMouseEnter={() => {
                     const desc = 
                       attr === 'Strength' ? 'Gives 1 armor per point' :
@@ -125,7 +125,7 @@ export function InventoryPanel() {
                       attr === 'Intelligence' ? 'Gives 1 energy per point' :
                       'Gives 4 hp per point';
                     setHoveredCustom(
-                      <div className="w-60 bg-surface-overlay border border-border-strong shadow-2xl rounded-none px-2 py-1.5 text-left backdrop-blur-md pointer-events-none">
+                      <div className="w-60 bg-[#0c0c0f] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none border-none">
                         <div className="text-xs text-text-secondary leading-relaxed">
                           {desc}
                         </div>
@@ -135,9 +135,9 @@ export function InventoryPanel() {
                   onMouseLeave={() => setHoveredCustom(null)}
                 >
                    <div className="flex flex-row items-center flex-1 px-1 overflow-hidden min-w-0">
-                     <span className="text-text-secondary text-[12px] uppercase tracking-wide leading-none truncate flex-1">{attr}</span>
-                     <div className="h-3.5 w-px bg-[#202227]/40 mx-1.5 shrink-0" />
-                     <span className="font-semibold text-text-primary text-[16px] leading-none shrink-0 w-6 text-center">{getStat(attr).toFixed(0)}</span>
+                      <span className="text-text-secondary text-[12px] uppercase tracking-wide leading-none truncate flex-1">{attr}</span>
+                      <div className="h-3.5 w-px bg-[#1c1c21]/40 mx-1.5 shrink-0" />
+                      <span className="font-semibold text-text-primary text-[16px] leading-none shrink-0 w-6 text-center">{getStat(attr).toFixed(0)}</span>
                    </div>
                    {attributePoints > 0 && (
                      <button 
@@ -158,7 +158,7 @@ export function InventoryPanel() {
                 className={`flex items-center gap-1 py-1.5 pl-1.5 pr-3.5 transition-all rounded-none group ${
                   statsPopoutOpen 
                     ? 'bg-accent/15 text-accent font-bold' 
-                    : 'bg-[#0e0f11] hover:bg-[#202227] text-text-secondary hover:text-text-primary'
+                    : 'bg-[#0c0c0f] hover:bg-[#1c1c21] text-text-secondary hover:text-text-primary'
                 }`}
               >
                 <ChevronLeft className={`w-3.5 h-3.5 transition-transform ${statsPopoutOpen ? 'rotate-180 text-accent' : 'text-accent group-hover:-translate-x-0.5'}`} />
@@ -190,9 +190,9 @@ export function InventoryPanel() {
                 
                 {/* Weapon Swap Button */}
                 <div 
-                  className="absolute right-[-9px] top-1/2 -translate-y-1/2 bg-surface-deep rounded-none z-20"
+                  className="absolute right-[-9px] top-1/2 -translate-y-1/2 bg-transparent z-20"
                   onMouseEnter={() => setHoveredCustom(
-                    <div className="bg-surface-overlay border border-border-strong shadow-2xl rounded-none px-2 py-1.5 text-left backdrop-blur-md pointer-events-none whitespace-nowrap">
+                    <div className="bg-[#0c0c0f] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none whitespace-nowrap border-none">
                       <div className="text-xs text-text-secondary leading-relaxed">
                         Swap weapon set
                       </div>
@@ -202,7 +202,7 @@ export function InventoryPanel() {
                 >
                   <button
                     onClick={() => swapWeaponSet()}
-                    className="w-[1.4rem] h-[1.4rem] bg-black/60 hover:bg-zinc-800 rounded-none flex items-center justify-center transition-all group shadow-md"
+                    className="w-[1.4rem] h-[1.4rem] bg-[#0c0c0f] hover:bg-[#1c1c21] text-accent border border-[#1c1c21]/50 rounded-none flex items-center justify-center transition-all group shadow-md"
                   >
                     <ArrowRightLeft className="w-3.5 h-3.5 text-accent transition-transform group-hover:scale-110" />
                   </button>

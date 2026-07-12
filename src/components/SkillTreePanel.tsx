@@ -51,20 +51,20 @@ export function SkillTreePanel() {
       }
 
       return (
-        <div className="w-56 bg-surface-overlay border border-border-strong rounded-lg px-2 py-1.5 shadow-2xl backdrop-blur-md text-left pointer-events-none">
+        <div className="w-56 bg-[#0e0f11] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
            {activeSkill ? (
              <>
                 <div className="font-bold text-sm text-sky-400 mb-1">{activeSkill.name}</div>
-                <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
+                <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#202227]/40 uppercase tracking-widest">
                    <span>{activeSkill.energyCost > 0 ? `${getEffectiveEnergyCost(activeSkill)} Energy` : (activeSkill.adrenalineCost ? `${activeSkill.adrenalineCost} Adrenaline` : 'Free')}</span>
                    <span>{activeSkill.cooldownMs ? `${(activeSkill.cooldownMs / 1000).toFixed(1)} CD` : 'No CD'}</span>
                 </div>
-                <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest">
+                <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#202227]/40 uppercase tracking-widest">
                    <span>{activeSkill.range > 0 ? `Range ${activeSkill.range}` : 'Melee'}</span>
                    <span>{activeSkill.castTime ? `${(getEffectiveCastTime(activeSkill) / 1000).toFixed(1)} Cast` : 'Instant'}</span>
                 </div>
                 {activeSkill.effects.some(e => e.type === 'damage') && (
-                  <div className="mb-1 pb-1 border-b border-border-subtle space-y-0.5">
+                  <div className="mb-1 pb-1 border-b border-[#202227]/40 space-y-0.5">
                     {activeSkill.effects.filter(e => e.type === 'damage').map((effect, i) => {
                       const isAttackSkill = activeSkill.tags.includes('Attack') || activeSkill.tags.includes('Melee') || activeSkill.tags.includes('Projectile');
                       const weaponDamage = isAttackSkill ? getWeaponSkillDamage() : 0;
@@ -88,7 +88,7 @@ export function SkillTreePanel() {
            ) : (
              <>
                <h3 className={`font-bold text-sm mb-1 ${node.type === 'active' ? 'text-sky-400' : 'text-blue-500'}`}>{node.name}</h3>
-               <p className="text-xs text-text-secondary pb-1 mb-1 border-b border-border-subtle leading-snug">{node.description}</p>
+               <p className="text-xs text-text-secondary pb-1 mb-1 border-b border-[#202227]/40 leading-snug">{node.description}</p>
                {node.statModifiers && (
                  <div className="mt-1 flex flex-col gap-0.5">
                    {node.statModifiers.map((mod, i) => {
@@ -119,10 +119,10 @@ export function SkillTreePanel() {
           }
         }}
       >
-        <div className={`relative w-8 h-8 flex items-center justify-center transition-all
+        <div className={`relative w-8 h-8 flex items-center justify-center transition-all rounded-none border border-transparent
            ${canAfford && isUnlocked && !isMaxed 
-             ? 'bg-zinc-800 ring-1 ring-accent ring-inset shadow-inner animate-pulse' 
-             : 'bg-black/40'}
+             ? 'bg-[#202227] border-accent/40 animate-pulse' 
+             : 'bg-[#0e0f11]'}
         `}>
            <Icon className={`w-5 h-5 ${node.type === 'active' ? 'text-blue-500' : 'text-sky-400'}`} />
 
@@ -143,20 +143,20 @@ export function SkillTreePanel() {
         <div className="flex gap-2">
           <button 
             onClick={() => setActiveTab('primary')}
-            className={`px-2 py-1 text-xs font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'primary' ? 'bg-zinc-800 text-accent shadow-inner' : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-800'}`}
+            className={`px-2 py-1 text-xs font-bold transition-colors flex items-center gap-1.5 rounded-none ${activeTab === 'primary' ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227]'}`}
           >
             <span>{playerClass}</span>
-            <span className={`text-[0.625rem] px-1.5 py-0.5 ${activeTab === 'primary' ? 'bg-black/40 text-accent' : 'bg-black/40 text-text-secondary'}`}>
+            <span className={`text-[0.625rem] px-1.5 py-0.5 rounded-none ${activeTab === 'primary' ? 'bg-[#0e0f11] text-accent' : 'bg-[#16171a]/50 text-text-secondary'}`}>
               {getTotalPointsSpent(playerClass)}
             </span>
           </button>
           {secondaryClass ? (
             <button 
               onClick={() => setActiveTab('secondary')}
-              className={`px-2 py-1 text-xs font-bold transition-colors flex items-center gap-1.5 ${activeTab === 'secondary' ? 'bg-zinc-800 text-accent shadow-inner' : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-800'}`}
+              className={`px-2 py-1 text-xs font-bold transition-colors flex items-center gap-1.5 rounded-none ${activeTab === 'secondary' ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227]'}`}
             >
               <span>{secondaryClass}</span>
-              <span className={`text-[0.625rem] px-1.5 py-0.5 ${activeTab === 'secondary' ? 'bg-black/40 text-accent' : 'bg-black/40 text-text-secondary'}`}>
+              <span className={`text-[0.625rem] px-1.5 py-0.5 rounded-none ${activeTab === 'secondary' ? 'bg-[#0e0f11] text-accent' : 'bg-[#16171a]/50 text-text-secondary'}`}>
                 {getTotalPointsSpent(secondaryClass)}
               </span>
             </button>
@@ -164,7 +164,7 @@ export function SkillTreePanel() {
             level >= 5 && (
                 <button 
                   onClick={() => setActiveTab('select_secondary')}
-                  className={`px-2 py-1 text-xs font-bold transition-colors shadow-[0_0_8px_rgba(56,189,248,0.15)] animate-pulse hover:animate-none ${activeTab === 'select_secondary' ? 'bg-zinc-800 text-accent shadow-inner' : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-800'}`}
+                  className={`px-2 py-1 text-xs font-bold transition-colors rounded-none ${activeTab === 'select_secondary' ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227]'}`}
                 >
                   Select 2nd Class
                 </button>
@@ -182,14 +182,14 @@ export function SkillTreePanel() {
       <div className="flex-1 overflow-hidden relative bg-black/20 flex flex-col">
          
          {activeTab === 'select_secondary' && (
-             <div className="absolute top-0 left-0 right-0 z-40 bg-surface-deep/95 border-b border-border-subtle p-3 flex flex-col items-center animate-in slide-in-from-top-4 shadow-xl">
+             <div className="absolute top-0 left-0 right-0 z-40 bg-[#0e0f11] p-3 flex flex-col items-center animate-in slide-in-from-top-4 shadow-2xl rounded-none">
                  <div className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-2">Select Secondary Class</div>
                  <div className="flex gap-2">
                      {availableClasses.map(cls => (
                          <button 
                              key={cls}
                              onClick={() => setPreviewClass(cls)}
-                             className={`px-3 py-1.5 font-bold text-xs transition-all ${selectedPreviewClass === cls ? 'bg-zinc-800 text-accent shadow-inner' : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-800'}`}
+                             className={`px-3 py-1.5 font-bold text-xs transition-all rounded-none ${selectedPreviewClass === cls ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227]'}`}
                          >
                              {cls}
                          </button>
@@ -197,22 +197,22 @@ export function SkillTreePanel() {
                  </div>
                  <div className="flex gap-2 mt-3">
                          <button 
-                             className="px-4 py-1.5 bg-black/60 hover:bg-zinc-800 text-text-secondary font-bold text-xs"
-                         onClick={() => setActiveTab('primary')}
-                     >
-                         Cancel
-                     </button>
-                         <button 
-                             className="px-4 py-1.5 bg-zinc-800 text-accent font-bold text-xs animate-pulse hover:animate-none shadow-inner"
-                         onClick={() => {
-                             usePlayerStore.getState().setSecondaryClass(selectedPreviewClass);
-                             setActiveTab('secondary');
-                         }}
-                     >
-                         Confirm {selectedPreviewClass}
-                     </button>
+                             className="px-4 py-1.5 bg-[#0e0f11] hover:bg-[#202227] text-text-secondary font-bold text-xs rounded-none"
+                             onClick={() => setActiveTab('primary')}
+                         >
+                             Cancel
+                         </button>
+                             <button 
+                                 className="px-4 py-1.5 bg-accent/15 text-accent font-bold text-xs rounded-none hover:bg-accent/25"
+                             onClick={() => {
+                                 usePlayerStore.getState().setSecondaryClass(selectedPreviewClass);
+                                 setActiveTab('secondary');
+                             }}
+                         >
+                             Confirm {selectedPreviewClass}
+                         </button>
+                     </div>
                  </div>
-             </div>
          )}
          
          {/* Node Area */}
@@ -245,16 +245,16 @@ export function SkillTreePanel() {
          </div>
 
          {/* Class Rank Badge Footer */}
-         <div className="bg-black/60 py-2 flex justify-center items-center z-20">
-            <div className="flex items-center px-3 py-1">
-               <span className="text-xs font-bold text-text-primary mr-2 flex items-baseline gap-1">
-                  {currentClass} <span className="text-accent text-sm font-black">{mastery}</span>
-               </span>
-               <div className="w-px h-3 bg-border-subtle mr-2" />
-               <span className="text-sky-400 font-black text-xs mr-1">+{mastery * 3}</span>
-               <span className="text-[10px] text-text-secondary font-bold tracking-widest">{currentClass === 'Fighter' ? 'STR' : currentClass === 'Rogue' ? 'DEX' : 'INT'}</span>
-            </div>
-         </div>   
+          <div className="bg-[#0e0f11] py-2 flex justify-center items-center z-20">
+             <div className="flex items-center px-3 py-1">
+                <span className="text-xs font-bold text-text-primary mr-2 flex items-baseline gap-1">
+                   {currentClass} <span className="text-accent text-sm font-black">{mastery}</span>
+                </span>
+                <div className="w-px h-3 bg-[#202227]/40 mr-2" />
+                <span className="text-sky-400 font-black text-xs mr-1">+{mastery * 3}</span>
+                <span className="text-[10px] text-text-secondary font-bold tracking-widest">{currentClass === 'Fighter' ? 'STR' : currentClass === 'Rogue' ? 'DEX' : 'INT'}</span>
+             </div>
+          </div>   
       </div>
     </div>
   );

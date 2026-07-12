@@ -284,8 +284,8 @@ export function CombatOverlay() {
           <>
           {showInteract && (
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-[11rem] pointer-events-none z-50 flex flex-col items-center animate-in fade-in duration-300">
-               <div className="bg-surface-deep/80 border border-border-subtle rounded-md pl-2 pr-2.5 py-1.5 backdrop-blur-sm flex items-center gap-2.5 shadow-md">
-                  <span className="text-[0.65rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded w-5 h-5 flex items-center justify-center shadow-sm leading-none font-mono">F</span>
+               <div className="bg-[#0e0f11] rounded-none pl-2 pr-2.5 py-1.5 flex items-center gap-2.5 shadow-md border-none">
+                  <span className="text-[0.65rem] font-black tracking-widest text-text-primary bg-[#202227] rounded-none w-5 h-5 flex items-center justify-center shadow-sm leading-none font-mono">F</span>
                   <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">{interactText}</span>
                </div>
             </div>
@@ -459,11 +459,11 @@ export function CombatOverlay() {
                       }
                     }}
                     onMouseEnter={() => setContent(
-                     <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none backdrop-blur-md">
+                     <div className="w-52 bg-[#0e0f11] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
                        <div className="font-bold text-red-400 mb-1">
                          Healing Flask
                        </div>
-                       <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-border-subtle uppercase tracking-widest">
+                       <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-[#202227]/40 uppercase tracking-widest">
                          30.0 CD
                        </div>
                        <div className="text-xs text-text-primary leading-snug mb-1">
@@ -620,9 +620,9 @@ export function CombatOverlay() {
                       onMouseEnter={() => {
                         if (!isBinding && skill) {
                           setContent(
-                            <div className="w-56 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 text-left pointer-events-none backdrop-blur-md">
+                            <div className="w-56 bg-[#0e0f11] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
                               <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
-                              <div className="flex flex-col text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest gap-1">
+                              <div className="flex flex-col text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#202227]/40 uppercase tracking-widest gap-1">
                                 {(() => {
                                   const stats = [];
                                   if (getEffectiveEnergyCost(skill) > 0) stats.push({ val: getEffectiveEnergyCost(skill), lbl: 'Energy' });
@@ -637,7 +637,7 @@ export function CombatOverlay() {
                                   }
                                   
                                   return rows.map((row, i) => (
-                                    <div key={i} className="flex justify-between items-center border-b border-border-subtle/50 pb-0.5 last:border-0 last:pb-0">
+                                    <div key={i} className="flex justify-between items-center border-b border-[#202227]/40 pb-0.5 last:border-0 last:pb-0">
                                       <div className="flex items-center gap-1">
                                         <span>{row[0].val}</span>
                                         {row[0].lbl && <span>{row[0].lbl}</span>}
@@ -653,7 +653,7 @@ export function CombatOverlay() {
                                 })()}
                               </div>
                               {skill.effects.some(e => e.type === 'damage') && (
-                                <div className="mb-1 pb-1 border-b border-border-subtle space-y-0.5">
+                                <div className="mb-1 pb-1 border-b border-[#202227]/40 space-y-0.5">
                                   {skill.effects.filter(e => e.type === 'damage').map((effect, i) => {
                                     const weaponDamage = useStatsStore.getState().getStat('WeaponDamage');
                                     const weaponType = (useInventoryStore.getState().equipment['weapon1'] as any)?.damageType || 'Physical';
@@ -740,8 +740,8 @@ export function CombatOverlay() {
 
                     {/* Skill Binding Menu */}
                     {isBinding && (
-                      <div className="skill-bind-menu absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-surface-deep border border-border-strong rounded-lg shadow-2xl z-[100]">
-                        <div className="p-2 border-b border-border-subtle bg-surface-deep rounded-t-lg">
+                      <div className="skill-bind-menu absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-[#16171a] shadow-2xl z-[100] rounded-none border-none">
+                        <div className="p-2 border-b border-[#202227]/40 bg-[#0e0f11] rounded-none">
                           <h3 className="text-xs font-bold text-accent">Bind Skill to Slot {index + 1}</h3>
                         </div>
                         <div className="p-1 max-h-48 overflow-y-auto">
@@ -752,8 +752,8 @@ export function CombatOverlay() {
                             return (
                               <button
                                 key={act.id}
-                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors
-                                  hover:bg-surface-raised text-text-secondary hover:text-text-primary
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-none text-xs transition-colors
+                                  hover:bg-[#202227] text-text-secondary hover:text-text-primary
                                 `}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -766,9 +766,9 @@ export function CombatOverlay() {
                               </button>
                             );
                           })}
-                          <div className="h-px w-full bg-border-subtle my-1" />
+                          <div className="h-px w-full bg-[#202227]/40 my-1" />
                           <button
-                            className="w-full text-left px-2 py-1.5 rounded text-xs text-text-secondary hover:bg-surface-raised hover:text-text-secondary transition-colors"
+                            className="w-full text-left px-2 py-1.5 rounded-none text-xs text-text-secondary hover:bg-[#202227] hover:text-text-primary transition-colors"
                             onClick={(e) => { e.stopPropagation(); bindSkill(index, null); setBindingSlotIndex(null); }}
                           >
                             (Clear Slot)
@@ -904,7 +904,7 @@ export function CombatOverlay() {
               }
             }}
             onMouseEnter={() => setContent(
-              <div className="w-52 bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none mb-2">
+              <div className="w-52 bg-[#0e0f11] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
                 <div className="font-bold text-sm text-text-primary mb-1 tracking-tight">Town Portal (B)</div>
                 <div className="text-xs text-text-secondary leading-relaxed">
                   Forfeit dungeon and return to town
@@ -912,7 +912,7 @@ export function CombatOverlay() {
               </div>
             )}
             onMouseLeave={() => setContent(null)}
-            className="w-10 h-10 flex items-center justify-center flex-col gap-0.5 group transition-colors bg-black/60 text-text-secondary hover:text-red-400 hover:bg-zinc-900 shadow-md"
+            className="w-10 h-10 flex items-center justify-center flex-col gap-0.5 group transition-colors bg-[#0e0f11] text-text-secondary hover:text-red-400 hover:bg-[#202227] shadow-md rounded-none border-none"
           >
             <IconWhirl className="w-5 h-5" />
           </button>
@@ -928,17 +928,17 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1 text-left backdrop-blur-md pointer-events-none mb-2">
+            <div className="w-auto bg-[#0e0f11] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Inventory (I)
               </div>
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors rounded-none border-none ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'inventory')
-              ? 'text-accent bg-zinc-800 shadow-inner'
-              : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-900 shadow-md'
+              ? 'text-accent bg-[#202227]'
+              : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227] shadow-md'
           }`}
         >
           <Backpack className="w-5 h-5" />
@@ -958,17 +958,17 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1 text-left backdrop-blur-md pointer-events-none mb-2">
+            <div className="w-auto bg-[#0e0f11] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Skills (K)
               </div>
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors rounded-none border-none ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'active_skills')
-              ? 'text-accent bg-zinc-800 shadow-inner'
-              : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-900 shadow-md'
+              ? 'text-accent bg-[#202227]'
+              : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227] shadow-md'
           }`}
         >
           <Sparkles className="w-5 h-5" />
@@ -988,17 +988,17 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1 text-left backdrop-blur-md pointer-events-none mb-2">
+            <div className="w-auto bg-[#0e0f11] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Passives (P)
               </div>
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-colors rounded-none border-none ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'skills')
-              ? 'text-accent bg-zinc-800 shadow-inner'
-              : 'bg-black/60 text-text-secondary hover:text-text-primary hover:bg-zinc-900 shadow-md'
+              ? 'text-accent bg-[#202227]'
+              : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227] shadow-md'
           }`}
         >
           <BookOpen className="w-5 h-5" />

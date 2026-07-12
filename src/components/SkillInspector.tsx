@@ -27,9 +27,9 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
     const cost = RANK_COSTS[rankIdx - 1];
 
     return (
-      <div key={rankIdx} className={`relative flex flex-col pl-6 ${rankIdx !== 6 ? 'pb-6 border-l border-border-subtle ml-3' : 'pb-2 ml-3'}`}>
+      <div key={rankIdx} className={`relative flex flex-col pl-6 ${rankIdx !== 6 ? 'pb-6 border-l border-[#202227]/40 ml-3' : 'pb-2 ml-3'}`}>
         {/* Timeline Node */}
-        <div className={`absolute -left-[12px] -top-0.5 w-4 h-4 z-10 flex items-center justify-center ${isUnlocked ? 'bg-zinc-800 text-accent' : isNext ? 'bg-zinc-800 text-accent animate-pulse' : 'bg-black/60 text-text-muted'}`}>
+        <div className={`absolute -left-[12px] -top-0.5 w-4 h-4 z-10 flex items-center justify-center rounded-none ${isUnlocked ? 'bg-[#202227] text-accent' : isNext ? 'bg-[#202227] text-accent animate-pulse' : 'bg-[#0e0f11] text-text-muted'}`}>
           {isUnlocked && <Check className="w-2.5 h-2.5" />}
           {!isUnlocked && !isNext && <Lock className="w-2 h-2 opacity-50" />}
         </div>
@@ -55,11 +55,11 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
             return (
               <div
                 key={dial.id}
-                className={`flex flex-col p-2 transition-all h-max ${
-                  isChosen ? 'bg-zinc-800 shadow-inner' : 
-                  notChosenButUnlocked ? 'bg-black/40 opacity-50 grayscale' : 
-                  isNext ? 'bg-black/60' : 
-                  'bg-black/20 opacity-60'
+                className={`flex flex-col p-2 transition-all h-max rounded-none ${
+                  isChosen ? 'bg-[#202227]' : 
+                  notChosenButUnlocked ? 'bg-[#0e0f11] opacity-50 grayscale' : 
+                  isNext ? 'bg-[#0e0f11]/60' : 
+                  'bg-[#0e0f11]/30 opacity-65'
                 }`}
               >
                 <div className="flex justify-between items-center mb-1">
@@ -82,11 +82,11 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
             return (
               <div
                 key={morph.id}
-                className={`flex flex-col p-2 transition-all h-max ${
-                  isChosen ? 'bg-zinc-800 shadow-inner' : 
-                  notChosenButUnlocked ? 'bg-black/40 opacity-50 grayscale' : 
-                  isNext ? 'bg-black/60' : 
-                  'bg-black/20 opacity-60'
+                className={`flex flex-col p-2 transition-all h-max rounded-none ${
+                  isChosen ? 'bg-[#202227]' : 
+                  notChosenButUnlocked ? 'bg-[#0e0f11] opacity-50 grayscale' : 
+                  isNext ? 'bg-[#0e0f11]/60' : 
+                  'bg-[#0e0f11]/30 opacity-65'
                 }`}
               >
                 <div className="flex justify-between items-center mb-1">
@@ -111,7 +111,7 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
       <div className="flex items-center gap-2 mb-2 shrink-0 px-2 pt-0">
         <button 
           onClick={onBack}
-          className="p-1 bg-black/40 hover:bg-zinc-800 transition-colors text-text-secondary hover:text-text-primary"
+          className="p-1 bg-[#0e0f11] hover:bg-[#202227] transition-colors rounded-none text-text-secondary hover:text-text-primary"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -125,9 +125,8 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
         </div>
       </div>
 
-      {/* Timeline Container */}
       <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4">
-        <div className="bg-black/20 p-4 pb-0 pt-4">
+        <div className="bg-transparent p-4 pb-0 pt-4">
           {[1, 2, 3, 4, 5, 6].map(r => renderRankRow(r))}
         </div>
       </div>

@@ -33,16 +33,16 @@ export function CharacterWindow() {
       >
         {/* Stats Popout */}
         {statsPopoutOpen && characterWindowTab === 'inventory' && (
-          <div className="absolute right-[calc(100%+0.5rem)] w-[15rem] h-[34rem] bg-[#16171a] rounded-none z-30 overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] animate-in slide-in-from-right-8 fade-in duration-[400ms]">
+          <div className="absolute right-[calc(100%+0.5rem)] w-[15rem] h-[34rem] bg-[#141417] rounded-none z-30 overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] animate-in slide-in-from-right-8 fade-in duration-[400ms]">
             <CharacterSheet />
           </div>
         )}
 
         {/* Main Window */}
-        <div className="absolute inset-0 bg-[#16171a] rounded-none flex flex-col z-40 overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)]">
+        <div className="absolute inset-0 bg-[#141417] rounded-none flex flex-col z-40 overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)]">
       
       {/* Header & Tabs */}
-      <div className="flex items-center justify-start bg-[#0e0f11] flex-shrink-0 relative h-[1.375rem] select-none">
+      <div className="flex items-center justify-start bg-[#0c0c0f] flex-shrink-0 relative h-[1.375rem] select-none">
         <div className="flex gap-0 h-full ml-3">
           <button 
             onClick={() => setCharacterWindowTab('inventory')}
