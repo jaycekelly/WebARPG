@@ -93,9 +93,11 @@ export class InputHandler {
       }
 
       // Queue it
+      const isPaused = useAppStore.getState().isPaused;
+      const expiresAt = isPaused ? Infinity : (now + buffer);
       combatState.queueAction({
         ...action,
-        expiresAt: now + buffer
+        expiresAt
       });
     }
   }
@@ -135,12 +137,15 @@ export class InputHandler {
     const skill = SKILLS[skillId];
     if (!skill) return;
 
+    const worldState = useWorldStore.getState();
+    const preTarget = targetId ? worldState.enemies.find(e => e.id === targetId) : undefined;
+    if (preTarget && preTarget.isDead) return; // Drop action if target died in queue
+
     let tId = targetId;
     let tPos = targetPos;
 
     const combatState = useCombatStore.getState();
     const playerState = usePlayerStore.getState();
-    const worldState = useWorldStore.getState();
 
     // Combo Chain Resolution (e.g. Heavy Strike Combo): resolve which chained hit to actually execute
     const isPaused = useAppStore.getState().isPaused;
@@ -149,8 +154,8 @@ export class InputHandler {
     if (skill.comboChainIds && skill.comboChainIds.length > 0) {
       const now = useAppStore.getState().getGameTime();
       const timeoutMs = skill.comboTimeoutMs || 3000;
-      const step = combatState.advanceCombo(now, timeoutMs); // 1-based step
-      const chainSkillId = skill.comboChainIds[Math.min(step, skill.comboChainIds.length) - 1];
+      const step = combatState.advanceCombo(now, timeoutMs, skill.comboChainIds.length); // 1-based step
+      const chainSkillId = skill.comboChainIds[step - 1];
       const chainSkill = SKILLS[chainSkillId];
       if (chainSkill) {
         resolvedSkill = chainSkill;
@@ -317,6 +322,9 @@ export class InputHandler {
     } else {
       SkillExecutor.execute(resolvedSkill, tId, tPos);
     }
+
+    const isCombo = !!(skill.comboChainIds && skill.comboChainIds.length > 0);
+    combatState.recordSkillCast(isCombo);
 
     // Auto-unpause on successful skill cast
     const appState = useAppStore.getState();

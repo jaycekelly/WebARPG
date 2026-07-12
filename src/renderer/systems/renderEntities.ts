@@ -250,10 +250,11 @@ export function createEntityRenderer(): EntityRenderer {
     // Lighting tint
     let lighting = getTileLighting(wx, wy, playerPos, pointLights, ctx);
     
-    // If in memory fog (explored but not visible), it receives no direct light
+    // If in memory fog (explored but not visible), it receives no direct light.
+    // Use a subtle, dark gray tint (20% brightness) so they are visible but not too bright.
     if (!visibleTiles.has(`${wx},${wy}`) && exploredTiles.has(`${wx},${wy}`)) {
-       const minB = Math.floor(ctx.minBrightness * 255);
-       const darkTint = (minB << 16) | (minB << 8) | minB;
+       const memoryB = Math.floor(0.20 * 255);
+       const darkTint = (memoryB << 16) | (memoryB << 8) | memoryB;
        lighting = { intensity: 0.0, entityTint: darkTint };
     }
     

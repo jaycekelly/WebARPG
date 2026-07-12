@@ -304,7 +304,7 @@ function drawIcon(
   ctx: CanvasRenderingContext2D,
   kind: string,
   color: string,
-  fillBackground: boolean = false
+  _fillBackground: boolean = false
 ) {
   const def = ICON_PATHS[kind];
   if (!def) {
@@ -333,18 +333,7 @@ function drawIcon(
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  if (fillBackground) {
-    // First pass: fill paths to give the icon a solid body
-    ctx.fillStyle = '#18181b'; // Dark surface color
-    for (const item of paths) {
-      const d = typeof item === 'string' ? item : item.d;
-      const shouldFill = typeof item === 'string' ? true : item.fill !== false;
-      if (shouldFill) {
-        const p = new Path2D(d);
-        ctx.fill(p);
-      }
-    }
-  }
+
 
   // Second pass: stroke all paths to draw the icon's colored lines over the filled body
   for (let i = 0; i < paths.length; i++) {

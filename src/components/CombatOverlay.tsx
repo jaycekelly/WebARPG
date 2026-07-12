@@ -2,7 +2,6 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
 import { InputHandler, getEffectiveCastTime, getEffectiveEnergyCost, getEffectiveGcd, getMainHandAttackCooldown, getOffHandAttackCooldown } from '../engine/input/InputHandler';
-import { hasLineOfSight, getChebyshevDistance } from '../engine/world/gridMath';
 import { useStatsStore } from '../store/useStatsStore';
 import { useBuffStore } from '../store/useBuffStore';
 import { useSkillStore } from '../store/useSkillStore';
@@ -27,7 +26,7 @@ export function CombatOverlay() {
   const { playerClass, secondaryClass, activeTargetId, setTarget, position, currentEnergy, currentAdrenaline, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore();
   const setContent = useTooltipStore(state => state.setContent);
   const { enemies } = useWorldStore();
-  const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime } = useCombatStore();
+  const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime, comboStep, lastComboTime } = useCombatStore();
   const { getStat } = useStatsStore();
   const { entityBuffs } = useBuffStore();
   const { unlockedActives } = useSkillStore();
@@ -172,7 +171,7 @@ export function CombatOverlay() {
           targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId);
         }
         
-        if (targetEntity && !useAppStore.getState().isPaused) {
+        if (targetEntity) {
           InputHandler.requestAction({ type: 'skill', skillId: boundId, targetPos: targetEntity.position, targetId: targetEntity.id });
         } else {
           InputHandler.requestAction({ type: 'skill', skillId: boundId });
@@ -201,15 +200,15 @@ export function CombatOverlay() {
              name: 'Flask Recovery',
              type: 'buff',
              stackingBehavior: 'refresh',
-             durationMs: 3000,
-             maxDurationMs: 3000,
+             durationMs: 2000,
+             maxDurationMs: 2000,
              stacks: 1,
              maxStacks: 1,
-             icon: 'Droplet',
+             icon: 'FlaskConical',
              statModifiers: [],
              isHoT: true,
              hotTickRateMs: 50,
-             hotHealPerTick: (maxHp * 0.5) / (3000 / 50)
+             hotHealPerTick: (maxHp * 0.3) / (2000 / 50)
            });
            
            useCombatStore.getState().addLog('Used Healing Flask.', 'system');
@@ -383,45 +382,49 @@ export function CombatOverlay() {
             )}
           </div>
 
-        {/* Active Buffs */}
-        {visiblePlayerBuffs.length > 0 && (
-          <div className="flex gap-1.5 justify-center mb-1">
-            {visiblePlayerBuffs.map(buff => {
-              const BuffIcon = ICONS[buff.icon] || ArrowUpCircle;
-              return (
-                <div key={buff.id} className="relative group">
-                  <div className={`w-8 h-8 rounded-sm border flex flex-col items-center justify-center bg-surface-base overflow-hidden shadow-lg ${buff.type === 'buff' ? 'border-sky-400/50 text-sky-400' : 'border-red-500/50 text-red-500'}`}>
-                    <BuffIcon className="w-4 h-4 opacity-80" />
-                    {buff.stacks > 1 && (
-                      <span className="absolute bottom-0 right-0 text-[0.5rem] font-bold bg-surface-base/80 px-1 rounded-tl">{buff.stacks}</span>
-                    )}
-                    {/* Visual duration wipe */}
-                    {buff.durationMs && buff.maxDurationMs && (
-                      <div 
-                        className="absolute bottom-0 left-0 w-full bg-black/50 origin-bottom"
-                        style={{ height: `${(buff.durationMs / buff.maxDurationMs) * 100}%` }}
-                      />
-                    )}
-                  </div>
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-surface-overlay border border-border-strong rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-2xl">
-                    <div className={`font-bold mb-1 ${buff.type === 'buff' ? 'text-sky-400' : 'text-red-500'}`}>{buff.name}</div>
-                    {buff.durationMs ? (
-                       <div className="text-text-secondary mb-1 font-mono">{(buff.durationMs / 1000).toFixed(1)}s remaining</div>
-                    ) : (
-                       <div className="text-text-secondary mb-1 italic">Permanent</div>
-                    )}
-                    {buff.statModifiers.map((mod, i) => {
-                      const sign = mod.value > 0 ? '+' : '';
-                      const suffix = mod.type === 'increased' ? '%' : '';
-                      return <div key={i} className="text-text-primary">{sign}{mod.value * buff.stacks}{suffix} {mod.stat}</div>;
-                    })}
-                  </div>
+        {/* Active Buffs (fixed h-8 container to prevent bar bouncing) */}
+        <div className="flex gap-1.5 justify-center h-8 mb-1">
+          {visiblePlayerBuffs.map(buff => {
+            const BuffIcon = ICONS[buff.icon] || ArrowUpCircle;
+            return (
+              <div key={buff.id} className="relative group">
+                <div className={`w-8 h-8 rounded-sm border flex flex-col items-center justify-center bg-surface-base overflow-hidden shadow-lg ${buff.type === 'buff' ? 'border-sky-400/50 text-sky-400' : 'border-red-500/50 text-red-500'}`}>
+                  <BuffIcon className="w-4 h-4 opacity-80" />
+                  {buff.stacks > 1 && (
+                    <span className="absolute bottom-0 right-0 text-[0.5rem] font-bold bg-surface-base/80 px-1 rounded-tl z-20">{buff.stacks}</span>
+                  )}
+                  {/* Visual duration wipe */}
+                  {buff.durationMs && buff.maxDurationMs && (
+                    <div 
+                      className="absolute bottom-0 left-0 w-full bg-black/50 origin-bottom"
+                      style={{ height: `${(buff.durationMs / buff.maxDurationMs) * 100}%` }}
+                    />
+                  )}
+                  {/* Duration Text Overlay */}
+                  {buff.durationMs && (
+                    <span className="absolute text-[0.625rem] font-bold text-white z-10 [text-shadow:1px_1px_1px_rgba(0,0,0,1)] pointer-events-none">
+                      {Math.ceil(buff.durationMs / 1000)}
+                    </span>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-surface-overlay border border-border-strong rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-2xl">
+                  <div className={`font-bold mb-1 ${buff.type === 'buff' ? 'text-sky-400' : 'text-red-500'}`}>{buff.name}</div>
+                  {buff.durationMs ? (
+                     <div className="text-text-secondary mb-1 font-mono">{(buff.durationMs / 1000).toFixed(1)}s remaining</div>
+                  ) : (
+                     <div className="text-text-secondary mb-1 italic">Permanent</div>
+                  )}
+                  {buff.statModifiers.map((mod, i) => {
+                    const sign = mod.value > 0 ? '+' : '';
+                    const suffix = mod.type === 'increased' ? '%' : '';
+                    return <div key={i} className="text-text-primary">{sign}{mod.value * buff.stacks}{suffix} {mod.stat}</div>;
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
         {/* Main Skill Bar with Docked Flask */}
         <div className="relative flex items-end pointer-events-auto mt-1 w-max mb-5">
@@ -470,17 +473,30 @@ export function CombatOverlay() {
                    )}
                    onMouseLeave={() => setContent(null)}
                   >
-                     <FlaskConical className="mb-0.5 w-6 h-6 text-red-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] z-10 transition-transform group-hover:scale-110" />
-                     {now - lastFlaskTime < 30000 && (
-                        <div 
-                          className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none rounded-none"
-                          style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.8) 0)` }}
-                        >
-                          <span className="text-white font-bold text-sm z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
-                            {Math.ceil((30000 - (now - lastFlaskTime)) / 1000)}
-                          </span>
-                        </div>
-                     )}
+                     <FlaskConical className="mt-1 w-6 h-6 text-red-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] z-10 transition-transform group-hover:scale-110" />
+                     {now - lastFlaskTime < 30000 && (() => {
+                         const timeRemaining = 30000 - (now - lastFlaskTime);
+                         const activePercent = (timeRemaining / 30000) * 100;
+                         return (
+                           <div className="absolute inset-0 z-20 pointer-events-none">
+                             {/* Dim the square slot corners */}
+                             <div className="absolute inset-0 bg-black/20 rounded-none" />
+                             
+                             {/* Centered circular sweep window */}
+                             <div 
+                                className="absolute w-9 h-9 top-[0.125rem] left-[0.125rem] rounded-full overflow-hidden"
+                                style={{ background: `conic-gradient(from 0deg, transparent ${100 - activePercent}%, rgba(255,255,255,0.95) ${100 - activePercent}%, rgba(0,0,0,0.50) ${Math.min(100, 100 - activePercent + 2)}%, rgba(0,0,0,0.50) 100%)` }}
+                             />
+                             
+                             {/* Countdown Text */}
+                             <div className="absolute inset-0 flex items-center justify-center z-30">
+                               <span className="text-white font-bold text-[0.625rem] [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
+                                 {Math.ceil(timeRemaining / 1000)}
+                               </span>
+                             </div>
+                           </div>
+                         );
+                      })()}
                   </button>
                   
                   {/* Floating Hotkey */}
@@ -498,7 +514,26 @@ export function CombatOverlay() {
             <div className="flex gap-1 drop-shadow-2xl relative">
               
               {boundSkills.slice(0, 8).map((skillId, index) => {
-                const skill = skillId ? SKILLS[skillId] : null;
+                let skill = skillId ? SKILLS[skillId] : null;
+
+                // Resolve dynamic combo chain steps for active displaying
+                if (skill && skill.comboChainIds && skill.comboChainIds.length > 0) {
+                  const timeoutMs = skill.comboTimeoutMs || 5000;
+                  const isComboActive = now - lastComboTime < timeoutMs;
+                  const activeStep = isComboActive ? (comboStep % skill.comboChainIds.length) : 0;
+                  const chainSkillId = skill.comboChainIds[activeStep];
+                  const chainSkill = SKILLS[chainSkillId];
+                  if (chainSkill) {
+                    skill = {
+                      ...skill,
+                      icon: chainSkill.icon,
+                      name: chainSkill.name,
+                      description: chainSkill.description,
+                      effects: chainSkill.effects,
+                    };
+                  }
+                }
+
                 const IconComponent = skill ? (ICONS[skill.icon] || Flame) : null;
                 
                 let outOfRange = false;
@@ -562,30 +597,16 @@ export function CombatOverlay() {
                         }
                         if (!skill) return;
                         
-                        // Execute skill logic
-                        const appState = useAppStore.getState();
                         const playerState = usePlayerStore.getState();
                         const worldState = useWorldStore.getState();
                         const combatState = useCombatStore.getState();
-                        let canAutoTarget = false;
                         let targetEntity = null;
 
                         if (playerState.activeTargetId) {
-                          targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId);
-                          if (targetEntity && !targetEntity.isDead) {
-                            const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
-                            const dist = getChebyshevDistance(playerState.position, targetEntity.position);
-                            const isSolid = (x: number, y: number) => {
-                              if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
-                              return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
-                            };
-                            if (dist <= effectiveRange && hasLineOfSight(playerState.position, targetEntity.position, isSolid)) {
-                              canAutoTarget = true;
-                            }
-                          }
+                          targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId && !e.isDead);
                         }
                         
-                        if (!appState.isPaused && canAutoTarget && targetEntity) {
+                        if (targetEntity) {
                           InputHandler.requestAction({ type: 'skill', skillId: skill.id, targetPos: targetEntity.position, targetId: targetEntity.id });
                         } else {
                           combatState.setTargetingSkill(skill.id);
@@ -673,19 +694,28 @@ export function CombatOverlay() {
                     >
                       {skill && IconComponent ? (
                         <div className={`relative z-10 w-full h-full flex items-center justify-center transition-transform group-hover:scale-110 ${outOfRange ? 'opacity-50' : ''}`}>
-                          <IconComponent className={`mb-1.5 w-8 h-8 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] ${isProcced ? 'text-teal-400 drop-shadow-[0_0_8px_rgba(45,212,191,0.8)]' : 'text-sky-400'}`} />
+                          <IconComponent className={`mb-1.5 w-8 h-8 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] text-sky-400 ${isProcced ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]' : ''}`} />
                         </div>
                       ) : null}
 
-                      {/* Cooldown Overlay */}
+                      {/* Cooldown Overlay (FFXIV style: circular sweep inside a square slot) */}
                       {onCooldown && skill && (
-                        <div 
-                           className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none rounded-none shadow-[inset_0_0_10px_rgba(0,0,0,0.5)]"
-                           style={{ background: `conic-gradient(transparent ${100 - activePercent}%, rgba(255,255,255,0.8) ${100 - activePercent}%, rgba(0,0,0,0.7) ${100 - activePercent + 3}%, rgba(0,0,0,0.7) 100%)` }}
-                        >
-                            <span className="text-white font-bold text-[0.625rem] z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
+                        <div className="absolute inset-0 z-20 pointer-events-none">
+                          {/* Dim the square slot corners */}
+                          <div className="absolute inset-0 bg-black/20 rounded-none" />
+                          
+                          {/* Centered circular sweep window (outline removed, scaled up) */}
+                          <div 
+                             className="absolute w-[2.75rem] h-[2.75rem] top-[0.125rem] left-[0.125rem] rounded-full overflow-hidden"
+                             style={{ background: `conic-gradient(from 0deg, transparent ${100 - activePercent}%, rgba(255,255,255,0.95) ${100 - activePercent}%, rgba(0,0,0,0.50) ${Math.min(100, 100 - activePercent + 2)}%, rgba(0,0,0,0.50) 100%)` }}
+                          />
+                          
+                          {/* Countdown Text */}
+                          <div className="absolute inset-0 flex items-center justify-center z-30">
+                            <span className="text-white font-bold text-[0.625rem] [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
                                {(Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000).toFixed(1)}
                             </span>
+                          </div>
                         </div>
                       )}
                       
@@ -759,7 +789,7 @@ export function CombatOverlay() {
             <div className="flex flex-col gap-[8px] drop-shadow-2xl">
               {/* Health Bar */}
               <div className="relative flex w-full items-center">
-                 <div className="relative w-full h-[1.25rem] bg-black/40 overflow-hidden backdrop-blur-md border border-white/10 rounded-none">
+                 <div className="relative w-full h-[1.25rem] bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
                     {expectedHealAmount > 0 && (
                       <div 
                         className="absolute top-0 left-0 h-full bg-red-400/70 transition-all duration-75"
@@ -777,7 +807,7 @@ export function CombatOverlay() {
               </div>
 
               {/* Energy Bar */}
-              <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden backdrop-blur-md border border-white/10 rounded-none">
+              <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
                  <div 
                    className="absolute top-0 left-0 h-full bg-[#eab308] transition-all duration-300"
                    style={{ width: `${Math.min(100, (currentEnergy / maxEnergy) * 100)}%` }}
@@ -789,7 +819,7 @@ export function CombatOverlay() {
 
               {/* Adrenaline Bar */}
               {isFighter && (
-                 <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden backdrop-blur-md border border-white/10 rounded-none">
+                 <div className="relative w-full h-[0.875rem] bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
                     <div 
                       className="absolute top-0 left-0 h-full bg-[#f97316]"
                       style={{ 
@@ -809,7 +839,7 @@ export function CombatOverlay() {
                <span className="text-[0.55rem] text-white font-bold font-mono [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none shrink-0">
                  {level}
                </span>
-               <div className="relative flex-1 h-[0.5rem] bg-black/40 overflow-hidden opacity-90 backdrop-blur-md border border-white/10 rounded-none">
+               <div className="relative flex-1 h-[0.5rem] bg-black/40 overflow-hidden opacity-90 backdrop-blur-md rounded-none">
                   <div 
                     className="absolute top-0 left-0 h-full bg-[#a78bfa] transition-all duration-300"
                     style={{ width: `${Math.min(100, (currentXp / xpRequired) * 100)}%` }}
@@ -913,12 +943,7 @@ export function CombatOverlay() {
         >
           <Backpack className="w-5 h-5" />
           {attributePoints > 0 && (
-             <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-950 rounded-full z-50 flex items-center justify-center">
-                <div className="absolute w-4 h-4 bg-red-600 rounded-full animate-pulse transform-gpu"></div>
-                <span className="relative text-white text-[0.6rem] font-bold leading-none mt-[1px]">
-                  {attributePoints}
-                </span>
-             </div>
+             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)] animate-pulse z-50" />
           )}
         </button>
 
@@ -948,12 +973,7 @@ export function CombatOverlay() {
         >
           <Sparkles className="w-5 h-5" />
           {activeSkillPoints > 0 && (
-             <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-950 rounded-full z-50 flex items-center justify-center">
-                <div className="absolute w-4 h-4 bg-red-600 rounded-full animate-pulse transform-gpu"></div>
-                <span className="relative text-white text-[0.6rem] font-bold leading-none mt-[1px]">
-                  {activeSkillPoints}
-                </span>
-             </div>
+             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)] animate-pulse z-50" />
           )}
         </button>
 
@@ -983,12 +1003,7 @@ export function CombatOverlay() {
         >
           <BookOpen className="w-5 h-5" />
           {passivePoints > 0 && (
-             <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-950 rounded-full z-50 flex items-center justify-center">
-                <div className="absolute w-4 h-4 bg-red-600 rounded-full animate-pulse transform-gpu"></div>
-                <span className="relative text-white text-[0.6rem] font-bold leading-none mt-[1px]">
-                  {passivePoints}
-                </span>
-             </div>
+             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)] animate-pulse z-50" />
           )}
         </button>
       </div>

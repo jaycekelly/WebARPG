@@ -31,7 +31,7 @@ export function createFogRenderer(): FogRenderer {
   const container = new Container();
   const fogGraphics = new Graphics();
   // We keep a slight blur so the tile diamonds aren't razor sharp
-  fogGraphics.filters = [new BlurFilter({ strength: 4 })];
+  fogGraphics.filters = [new BlurFilter({ strength: 2 })];
   container.addChild(fogGraphics);
 
   const voidFrameGraphics = new Graphics();
@@ -143,7 +143,7 @@ export function createFogRenderer(): FogRenderer {
         const fogAlpha = ambientDarkness * (1.0 - lighting.intensity);
 
         if (fogAlpha > 0.05) { // Skip drawing nearly-invisible fog
-          drawTilePolygon(fogGraphics, x, y, params, 0x000000, fogAlpha);
+          drawTilePolygon(fogGraphics, x, y, params, voidColor, fogAlpha);
         }
       }
     }

@@ -92,7 +92,8 @@ export function getTileLighting(
   }
 
   // Calculate Entity Tint
-  const ent = Math.min(1.0, whiteIntensity);
+  // Interpolate light level between minBrightness and 1.0 to guarantee a minimum visible ambient color
+  const ent = ctx.minBrightness + (1.0 - ctx.minBrightness) * Math.min(1.0, whiteIntensity);
   const minR = ctx.entityAmbient.r;
   const minG = ctx.entityAmbient.g;
   const minB = ctx.entityAmbient.b;

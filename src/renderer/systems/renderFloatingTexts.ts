@@ -28,7 +28,7 @@ const RISE_DURATION_MS = 800; // Time spent in the initial fast-rise phase
 const FADE_DURATION_MS = 250; // Fades out only in the final portion of its lifetime
 const STAGGER_OFFSET_PX = 10; // How far a newer overlapping hit is nudged down/behind
 const STAGGER_WINDOW_MS = 350; // Hits at the same tile within this window get staggered
-const ICON_SIZE_PX = 26; // On-screen icon size (before camera/tile scaling)
+const ICON_SIZE_PX = 30; // On-screen icon size (before camera/tile scaling)
 const ICON_GAP_PX = 4; // Gap between icon and text
 // Matches the skill hotbar's icon color (text-sky-400 in CombatOverlay.tsx) so the
 // floating combat text icon reads as "the same icon" the player just saw light up.
@@ -62,7 +62,7 @@ function resolveColor(colorClass: string): string {
 const TEXT_RESOLUTION = Math.min(3, Math.max(2, window.devicePixelRatio || 2));
 
 function makeTextStyle(fillColor: string, isNumeric: boolean, isCrit: boolean, isSkillDamage: boolean): TextStyle {
-  const baseSize = isNumeric ? 22 : 20;
+  const baseSize = isNumeric ? 24 : 22;
   // Skill damage renders a notch larger than plain auto-attack damage, so skill
   // hits read as slightly more impactful in the scrolling log at a glance.
   const skillBumpedSize = isSkillDamage ? baseSize + 4 : baseSize;

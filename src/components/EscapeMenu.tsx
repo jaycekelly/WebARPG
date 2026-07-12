@@ -65,12 +65,14 @@ export function EscapeMenu() {
                      </button>
                   )}
                   
-                  <button 
-                     onClick={handleCharacterSelect}
-                     className="w-full py-2 px-4 bg-surface-base hover:bg-surface-raised border border-border-subtle hover:border-accent rounded-lg text-sm font-bold text-text-secondary hover:text-text-primary transition-all text-center"
-                  >
-                     Character Select
-                  </button>
+                  {location !== 'dungeon' && (
+                     <button 
+                        onClick={handleCharacterSelect}
+                        className="w-full py-2 px-4 bg-surface-base hover:bg-surface-raised border border-border-subtle hover:border-accent text-text-secondary hover:text-text-primary rounded-lg text-sm font-bold transition-all text-center"
+                     >
+                        Character Select
+                     </button>
+                  )}
                   
                   <button 
                      disabled

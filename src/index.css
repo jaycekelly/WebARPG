@@ -93,4 +93,36 @@
     margin-top: auto;
     margin-bottom: auto;
   }
+
+  /* Empty slot style - flat and borderless */
+  .slot-empty {
+    background-color: #0e0f11;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .slot-empty:hover {
+    background-color: #14161a;
+  }
+
+  /* Filled slot style - flat and borderless */
+  .slot-filled {
+    background-color: #202227;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  }
+  .slot-filled:hover {
+    transform: scale(1.06);
+    z-index: 20;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Flat rarity styles (rarity is indicated purely by text and icon colors) */
+  .slot-rarity-normal,
+  .slot-rarity-magic,
+  .slot-rarity-rare,
+  .slot-rarity-epic,
+  .slot-rarity-legendary,
+  .slot-rarity-unique {
+    /* No borders or gradients */
+  }
 }
