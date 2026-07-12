@@ -783,7 +783,7 @@ export function CombatOverlay() {
           {/* Resources Container (Bottom Left) */}
           <div className="absolute bottom-3 left-3 flex flex-col gap-[8px] z-40 pointer-events-auto w-[360px]">
             {/* Vitals Box */}
-            <div className="flex flex-col gap-[8px] drop-shadow-2xl">
+            <div className="flex flex-col gap-[8px] drop-shadow-2xl mb-[3px]">
               {/* Health Bar */}
               <div className="relative flex w-full items-center">
                  <div className="relative w-full h-[1.375rem] bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
@@ -833,7 +833,7 @@ export function CombatOverlay() {
 
             {/* XP Bar & Level */}
             <div className="flex w-full items-center h-[7px] gap-1">
-               <span className="text-[0.55rem] text-white font-bold font-mono [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none shrink-0">
+               <span className="text-[0.75rem] text-white font-bold font-mono [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none shrink-0 -translate-y-[1.5px]">
                  {level}
                </span>
                <div className="relative flex-1 h-[7px] bg-black/40 overflow-hidden opacity-90 backdrop-blur-md rounded-none">
