@@ -251,11 +251,20 @@ export function createEntityRenderer(): EntityRenderer {
     let lighting = getTileLighting(wx, wy, playerPos, pointLights, ctx);
     
     // If in memory fog (explored but not visible), it receives no direct light.
-    // Use a subtle, dark gray tint (20% brightness) so they are visible but not too bright.
+    // Use the biome's ambient color scaled to a visible 18% brightness baseline so they match
+    // the surrounding environment and avoid simultaneous contrast artifacts (looking brown).
     if (!visibleTiles.has(`${wx},${wy}`) && exploredTiles.has(`${wx},${wy}`)) {
-       const memoryB = Math.floor(0.20 * 255);
-       const darkTint = (memoryB << 16) | (memoryB << 8) | memoryB;
-       lighting = { intensity: 0.0, entityTint: darkTint };
+       const minR = ctx.entityAmbient.r;
+       const minG = ctx.entityAmbient.g;
+       const minB = ctx.entityAmbient.b;
+       
+       const ent = Math.max(0.18, ctx.minBrightness);
+       const finalR = Math.floor(minR + (255 - minR) * ent);
+       const finalG = Math.floor(minG + (255 - minG) * ent);
+       const finalB = Math.floor(minB + (255 - minB) * ent);
+       
+       const memoryTint = (finalR << 16) | (finalG << 8) | finalB;
+       lighting = { intensity: 0.0, entityTint: memoryTint };
     }
     
     const tint = lighting.entityTint;
@@ -328,12 +337,14 @@ export function createEntityRenderer(): EntityRenderer {
     const exploredTilesSet = exploredTiles ?? new Set<string>();
     const worldStore = useWorldStore.getState();
     const pointLights = extractLights(worldStore.grid);
+    const biome = getBiome(worldStore.grid.environment);
     
     const ctx: LightingContext = {
       isTown: worldStore.grid.environment === 'town',
       playerLightRadius: useLightingStore.getState().playerLightRadiusDungeon,
       minBrightness: useLightingStore.getState().minBrightness,
-      entityAmbient: getBiome(worldStore.grid.environment).entityAmbient,
+      entityAmbient: biome.entityAmbient,
+      ambientBaseline: biome.ambientBaseline,
     };
     
     const hitsMap = new Map<string, HitEffect>();

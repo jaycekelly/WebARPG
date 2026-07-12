@@ -157,4 +157,7 @@ export interface Skill {
   // Internal skills (e.g. combo chain hits) that shouldn't be listed as their own
   // entry in skill selection UIs like the Active Skills tab.
   isHidden?: boolean;
+  
+  // Enforce disable skill casting in town
+  disableInTown?: boolean;
 }

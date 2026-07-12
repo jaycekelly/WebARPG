@@ -157,8 +157,8 @@ function handleTileClick(target: ClickTarget) {
   const combat = useCombatStore.getState();
   const app = useAppStore.getState();
 
-  // Only handle clicks when in dungeon
-  if (app.location !== 'dungeon') return;
+  // Only handle clicks when in dungeon or town
+  if (app.location !== 'dungeon' && app.location !== 'town') return;
 
   const { gx, gy } = target.tile;
   const dist = Math.max(Math.abs(player.position.x - gx), Math.abs(player.position.y - gy));

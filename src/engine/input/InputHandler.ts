@@ -137,15 +137,23 @@ export class InputHandler {
     const skill = SKILLS[skillId];
     if (!skill) return;
 
+    const combatState = useCombatStore.getState();
+    const playerState = usePlayerStore.getState();
+
+    // Check if skill is prohibited in town
+    if (useAppStore.getState().location === 'town' && skill.disableInTown) {
+      const pos = playerState.position;
+      combatState.addFloatingText(pos.x, pos.y, 'Disabled in Town', { colorClass: 'text-red-400' });
+      combatState.addLog(`Cannot cast ${skill.name} in town.`, 'system');
+      return;
+    }
+
     const worldState = useWorldStore.getState();
     const preTarget = targetId ? worldState.enemies.find(e => e.id === targetId) : undefined;
     if (preTarget && preTarget.isDead) return; // Drop action if target died in queue
 
     let tId = targetId;
     let tPos = targetPos;
-
-    const combatState = useCombatStore.getState();
-    const playerState = usePlayerStore.getState();
 
     // Combo Chain Resolution (e.g. Heavy Strike Combo): resolve which chained hit to actually execute
     const isPaused = useAppStore.getState().isPaused;

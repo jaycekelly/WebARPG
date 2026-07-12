@@ -119,13 +119,12 @@ export function SkillTreePanel() {
           }
         }}
       >
-        <div className={`relative w-8 h-8 flex items-center justify-center transition-all rounded-none border border-transparent
-           ${canAfford && isUnlocked && !isMaxed 
-             ? 'bg-[#202227] border-accent/40 animate-pulse' 
-             : 'bg-[#0e0f11]'}
+        <div className={`relative w-8 h-8 flex items-center justify-center transition-all rounded-none border
+            ${canAfford && isUnlocked && !isMaxed 
+              ? 'bg-[#1c1c21] border-accent/90 animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)]' 
+              : isUnlocked ? 'bg-[#1c1c21] border-[#2a2a30]/40 hover:border-border-strong' : 'bg-[#0c0c0f]/60 border-transparent'}
         `}>
-           <Icon className={`w-5 h-5 ${node.type === 'active' ? 'text-blue-500' : 'text-sky-400'}`} />
-
+           <Icon className={`w-6 h-6 ${node.type === 'active' ? 'text-blue-500' : 'text-sky-400'} ${!isUnlocked ? 'opacity-40' : ''}`} />
         </div>
         
         <div className="text-[8px] font-black tracking-widest mt-0.5 transition-colors leading-none text-text-secondary">
@@ -143,20 +142,26 @@ export function SkillTreePanel() {
         <div className="flex gap-2">
           <button 
             onClick={() => setActiveTab('primary')}
-            className={`px-2 py-1 text-xs font-bold transition-colors flex items-center gap-1.5 rounded-none ${activeTab === 'primary' ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227]'}`}
+            className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
+              ${activeTab === 'primary' 
+                ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
           >
             <span>{playerClass}</span>
-            <span className={`text-[0.625rem] px-1.5 py-0.5 rounded-none ${activeTab === 'primary' ? 'bg-[#0e0f11] text-accent' : 'bg-[#16171a]/50 text-text-secondary'}`}>
+            <span className={`text-[0.6rem] px-1.5 py-0.5 rounded-none font-bold border ${activeTab === 'primary' ? 'bg-[#0c0c0f] text-accent border-accent/20' : 'bg-[#141417]/50 text-text-secondary border-border-subtle'}`}>
               {getTotalPointsSpent(playerClass)}
             </span>
           </button>
           {secondaryClass ? (
             <button 
               onClick={() => setActiveTab('secondary')}
-              className={`px-2 py-1 text-xs font-bold transition-colors flex items-center gap-1.5 rounded-none ${activeTab === 'secondary' ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227]'}`}
+              className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
+                ${activeTab === 'secondary' 
+                  ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                  : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
             >
               <span>{secondaryClass}</span>
-              <span className={`text-[0.625rem] px-1.5 py-0.5 rounded-none ${activeTab === 'secondary' ? 'bg-[#0e0f11] text-accent' : 'bg-[#16171a]/50 text-text-secondary'}`}>
+              <span className={`text-[0.6rem] px-1.5 py-0.5 rounded-none font-bold border ${activeTab === 'secondary' ? 'bg-[#0c0c0f] text-accent border-accent/20' : 'bg-[#141417]/50 text-text-secondary border-border-subtle'}`}>
                 {getTotalPointsSpent(secondaryClass)}
               </span>
             </button>
@@ -164,7 +169,10 @@ export function SkillTreePanel() {
             level >= 5 && (
                 <button 
                   onClick={() => setActiveTab('select_secondary')}
-                  className={`px-2 py-1 text-xs font-bold transition-colors rounded-none ${activeTab === 'select_secondary' ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227]'}`}
+                  className={`px-3 py-1.5 text-xs font-bold transition-all rounded-none active:scale-[0.98]
+                    ${activeTab === 'select_secondary' 
+                      ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                      : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
                 >
                   Select 2nd Class
                 </button>

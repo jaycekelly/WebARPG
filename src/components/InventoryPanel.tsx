@@ -71,14 +71,14 @@ export function InventoryPanel() {
         onClick={() => item && unequip(slot)}
         onMouseEnter={() => setHoveredEqSlot(slot)}
         onMouseLeave={() => setHoveredEqSlot(null)}
-        className={`flex items-center gap-2 py-1 px-1.5 pr-2 transition-all w-full text-left shrink-0 rounded-none ${
+        className={`flex items-center gap-2 py-1 px-1.5 pr-2 transition-all w-full text-left shrink-0 rounded-none ring-1 ring-inset ${
           item 
-            ? 'bg-[#1c1c21]/45 hover:bg-[#1c1c21]/70' 
-            : 'bg-[#0c0c0f]/30 opacity-65 hover:opacity-100 hover:bg-[#0c0c0f]/60'
+            ? 'bg-[#1c1c21]/45 ring-transparent hover:ring-accent/40 hover:bg-[#1e1e23] hover:text-text-primary' 
+            : 'bg-[#0c0c0f]/30 opacity-65 hover:opacity-100 ring-transparent hover:ring-accent/30 hover:bg-[#1e1e23]/30'
         }`}
       >
-        <div className={`w-9 h-9 shrink-0 flex items-center justify-center ${
-          item ? `slot-filled slot-rarity-${item.rarity.toLowerCase()}` : 'slot-empty'
+        <div className={`w-9 h-9 shrink-0 flex items-center justify-center border ${
+          item ? `bg-[#1c1c21] border-white/5 slot-rarity-${item.rarity.toLowerCase()}` : 'bg-[#0c0c0f] border-white/2'
         }`}>
           <Icon className={`w-5 h-5 ${
             item ? RARITY_TEXT_COLORS[item.rarity] : 'text-zinc-500'
@@ -102,14 +102,22 @@ export function InventoryPanel() {
       {/* Top Panel: Split Attributes & Loadout */}
       <div className="flex gap-2 shrink-0 mb-2">
         {/* Left Column */}
-        <div className="w-[8rem] flex flex-col gap-2 shrink-0">
+        <div className="w-[rem] flex flex-col gap-2 shrink-0">
           {/* Attributes Panel */}
           <div className="flex flex-col">
-            <div className="flex items-center justify-center w-full mb-3 mt-1 select-none px-4">
+            <div className="flex items-center justify-center w-full mb-2 mt-2 select-none px-5">
               <div className="flex-1 h-px bg-black" />
-              <div className="relative flex items-center justify-center w-7 h-7 mx-2 shrink-0 group" title="Character Level">
-                <div className="absolute inset-0 bg-[#0c0c0f] border border-accent/40 rotate-45 rounded-none transition-all group-hover:border-accent" />
-                <span className="relative text-[24px] font-black text-accent drop-shadow-[0_0_5px_rgba(56,189,248,0.6)] z-10 leading-none">{level}</span>
+              <div className="relative flex items-center justify-center w-8 h-8 mx-[5px] shrink-0 group" title="Character Level">
+                <svg className="absolute -top-[9px] -left-[8px] w-11 h-11 pointer-events-none" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path 
+                    d="M22 2 L42 22 L22 42 L2 22 Z" 
+                    fill="#0c0c0f" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    className="text-accent/40 group-hover:text-accent transition-colors" 
+                  />
+                </svg>
+                <span className="relative text-[26px] font-black text-accent drop-shadow-[0_0_5px_rgba(56,189,248,0.6)] z-10 leading-none pt-[1px]">{level}</span>
               </div>
               <div className="flex-1 h-px bg-black" />
             </div>
@@ -125,7 +133,7 @@ export function InventoryPanel() {
                       attr === 'Intelligence' ? 'Gives 1 energy per point' :
                       'Gives 4 hp per point';
                     setHoveredCustom(
-                      <div className="w-60 bg-[#0c0c0f] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none border-none">
+                      <div className="w-60 bg-[#141417]/95 backdrop-blur-md border border-[#2a2a30]/60 shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
                         <div className="text-xs text-text-secondary leading-relaxed">
                           {desc}
                         </div>
@@ -136,7 +144,7 @@ export function InventoryPanel() {
                 >
                    <div className="flex flex-row items-center flex-1 px-1 overflow-hidden min-w-0">
                       <span className="text-text-secondary text-[12px] uppercase tracking-wide leading-none truncate flex-1">{attr}</span>
-                      <div className="h-3.5 w-px bg-[#1c1c21]/40 mx-1.5 shrink-0" />
+                      <div className="h-3.5 w-px bg-[#2a2a30]/40 mx-1.5 shrink-0" />
                       <span className="font-semibold text-text-primary text-[16px] leading-none shrink-0 w-6 text-center">{getStat(attr).toFixed(0)}</span>
                    </div>
                    {attributePoints > 0 && (
@@ -151,16 +159,16 @@ export function InventoryPanel() {
               ))}
             </div>
             
-            <div className="mt-5.5 flex justify-start">
+            <div className="mt-[calc(1.375rem-4px)] flex justify-start">
               {/* Stats Button */}
-              <button 
-                onClick={() => setStatsPopoutOpen(!statsPopoutOpen)}
-                className={`flex items-center gap-1 py-1.5 pl-1.5 pr-3.5 transition-all rounded-none group ${
-                  statsPopoutOpen 
-                    ? 'bg-accent/15 text-accent font-bold' 
-                    : 'bg-[#0c0c0f] hover:bg-[#1c1c21] text-text-secondary hover:text-text-primary'
-                }`}
-              >
+               <button 
+                 onClick={() => setStatsPopoutOpen(!statsPopoutOpen)}
+                 className={`flex items-center gap-1 py-1.5 pl-1.5 pr-3.5 transition-all rounded-none group ring-1 ring-inset ${
+                   statsPopoutOpen 
+                     ? 'bg-[#1e1e23] ring-accent text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.25)]' 
+                     : 'bg-[#0c0c0f] ring-[#2a2a30]/20 hover:ring-accent/40 hover:bg-[#1e1e23] text-text-secondary hover:text-text-primary'
+                 }`}
+               >
                 <ChevronLeft className={`w-3.5 h-3.5 transition-transform ${statsPopoutOpen ? 'rotate-180 text-accent' : 'text-accent group-hover:-translate-x-0.5'}`} />
                 <span className="text-[9px] font-black uppercase tracking-widest leading-none">Stats</span>
               </button>
@@ -192,7 +200,7 @@ export function InventoryPanel() {
                 <div 
                   className="absolute right-[-9px] top-1/2 -translate-y-1/2 bg-transparent z-20"
                   onMouseEnter={() => setHoveredCustom(
-                    <div className="bg-[#0c0c0f] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none whitespace-nowrap border-none">
+                    <div className="bg-[#141417]/95 backdrop-blur-md border border-[#2a2a30]/60 shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none whitespace-nowrap">
                       <div className="text-xs text-text-secondary leading-relaxed">
                         Swap weapon set
                       </div>
@@ -200,12 +208,12 @@ export function InventoryPanel() {
                   )}
                   onMouseLeave={() => setHoveredCustom(null)}
                 >
-                  <button
-                    onClick={() => swapWeaponSet()}
-                    className="w-[1.4rem] h-[1.4rem] bg-[#0c0c0f] hover:bg-[#1c1c21] text-accent border border-[#1c1c21]/50 rounded-none flex items-center justify-center transition-all group shadow-md"
-                  >
-                    <ArrowRightLeft className="w-3.5 h-3.5 text-accent transition-transform group-hover:scale-110" />
-                  </button>
+                   <button
+                     onClick={() => swapWeaponSet()}
+                     className="w-[1.4rem] h-[1.4rem] bg-[#0c0c0f] hover:bg-[#1e1e23] text-accent ring-1 ring-inset ring-[#2a2a30]/50 hover:ring-accent/40 rounded-none flex items-center justify-center transition-all group shadow-md"
+                   >
+                     <ArrowRightLeft className="w-3.5 h-3.5 text-accent transition-transform group-hover:scale-110" />
+                   </button>
                 </div>
                 
                 {renderEquipmentRow('weapon2', `Off Hand (${activeWeaponSet === 1 ? 'I' : 'II'})`)}

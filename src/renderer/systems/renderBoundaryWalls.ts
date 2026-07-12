@@ -69,16 +69,25 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
     };
 
     const now = Date.now();
-    // Pulse every ~3.7 seconds (0.75 +/- 0.25)
+    // Pulse every ~3.7 seconds (0.75 +/- 0.25). Driven purely by Container.alpha so it
+    // stays perfectly smooth every frame regardless of whether the (expensive) wall
+    // geometry below gets rebuilt this frame.
     container.alpha = 0.75 + 0.25 * Math.sin(now / 600);
 
-    // Skip expensive geometry rebuild if camera and vision hasn't moved
-    if (panX === lastPanX && panY === lastPanY && visibleTiles.size === lastVisCount && exploredTiles.size === lastExpCount) {
+    // Skip expensive geometry rebuild if camera and vision haven't meaningfully moved.
+    // Pan is rounded to whole pixels because the camera continuously lerps toward the
+    // player by fractional amounts every frame — comparing raw floats meant this almost
+    // never matched while the camera was easing, forcing a full clear+redraw (dozens of
+    // fill/stroke calls) on every single frame during movement, which dropped the
+    // framerate and made the alpha pulse above look choppy/stuttery.
+    const roundedPanX = Math.round(panX);
+    const roundedPanY = Math.round(panY);
+    if (roundedPanX === lastPanX && roundedPanY === lastPanY && visibleTiles.size === lastVisCount && exploredTiles.size === lastExpCount) {
       return;
     }
 
-    lastPanX = panX;
-    lastPanY = panY;
+    lastPanX = roundedPanX;
+    lastPanY = roundedPanY;
     lastVisCount = visibleTiles.size;
     lastExpCount = exploredTiles.size;
 
@@ -106,6 +115,7 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
       playerLightRadius: useLightingStore.getState().playerLightRadiusDungeon,
       minBrightness: useLightingStore.getState().minBrightness,
       entityAmbient: biome.entityAmbient,
+      ambientBaseline: biome.ambientBaseline,
     };
 
     const getBrightness = (x: number, y: number) => {
@@ -143,8 +153,11 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
         return;
       }
 
-      // South edges (x=w or y=h) overlap the floor in screen space, so dim them to be less intrusive
-      if (x1 === w || y1 === h) {
+      // South edge (y=h) overlaps the floor in screen space, so dim it to be less intrusive.
+      // Note: only the bottom wall folds over the floor visually — the right wall (x=w)
+      // does not, so it must not be darkened here (this previously made right-side walls
+      // look darker than the left).
+      if (y1 === h) {
         brightness *= 0.67;
       }
 
@@ -179,7 +192,7 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
         return;
       }
 
-      if (x === w || y === h) {
+      if (y === h) {
         brightness *= 0.67;
       }
       

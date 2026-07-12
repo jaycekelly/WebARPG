@@ -50,6 +50,7 @@ export interface LightingContext {
   playerLightRadius: number;
   minBrightness: number;
   entityAmbient: { r: number; g: number; b: number };
+  ambientBaseline?: number;
 }
 
 export function getTileLighting(
@@ -85,8 +86,8 @@ export function getTileLighting(
   }
 
   // 3. Ambient Baseline
-  if (ctx.isTown) {
-    const ambient = 0.45;
+  const ambient = ctx.ambientBaseline !== undefined ? ctx.ambientBaseline : (ctx.isTown ? 0.45 : 0.0);
+  if (ambient > 0) {
     totalIntensity = Math.max(totalIntensity, ambient);
     whiteIntensity = Math.max(whiteIntensity, ambient);
   }

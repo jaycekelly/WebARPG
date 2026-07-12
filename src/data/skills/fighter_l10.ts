@@ -91,7 +91,8 @@ export const heavy_strike_combo: Skill = {
     { type: 'damage', damageMultiplier: 1.1, element: 'Strike' }
   ],
   requiredLevel: 0,
-  classRequirement: 'Fighter'
+  classRequirement: 'Fighter',
+  disableInTown: true
 };
 
 // --- (Removed from starting kit for now) Kinetic Impact --------------------
@@ -171,7 +172,8 @@ export const shield_break: Skill = {
     { type: 'damage', damageMultiplier: 3.0, element: 'Strike', bonusDamageIfSundered: 25 }
   ],
   requiredLevel: 0,
-  classRequirement: 'Fighter'
+  classRequirement: 'Fighter',
+  disableInTown: true
 };
 
 // --- Slot 5: Ground Slam -----------------------------------------------------
@@ -198,7 +200,8 @@ export const ground_slam: Skill = {
     { type: 'damage', damageMultiplier: 2.25, element: 'Strike' }
   ],
   requiredLevel: 0,
-  classRequirement: 'Fighter'
+  classRequirement: 'Fighter',
+  disableInTown: true
 };
 
 // --- Zealous Blow (Proc) -----------------------------------------------------
@@ -236,7 +239,8 @@ export const zealous_blow: Skill = {
     }
   ],
   requiredLevel: 0,
-  classRequirement: 'Fighter'
+  classRequirement: 'Fighter',
+  disableInTown: true
 };
 
 export const FIGHTER_L10_SKILLS: Record<string, Skill> = {

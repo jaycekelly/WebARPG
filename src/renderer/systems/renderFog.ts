@@ -110,11 +110,13 @@ export function createFogRenderer(): FogRenderer {
     voidFrameGraphics.fill({ color: voidColor });
 
     const isTown = grid.environment === 'town';
+    const biome = getBiome(grid.environment);
     const ctx = {
       isTown,
       playerLightRadius: useLightingStore.getState().playerLightRadiusDungeon,
       minBrightness: useLightingStore.getState().minBrightness,
-      entityAmbient: getBiome(grid.environment).entityAmbient,
+      entityAmbient: biome.entityAmbient,
+      ambientBaseline: biome.ambientBaseline,
     };
 
     for (let y = 0; y < grid.height; y++) {

@@ -31,7 +31,7 @@
   --font-mono: "Noto Sans Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
   /* Surfaces */
-  --color-surface-deep:    color-mix(in oklab, #09090b 90%, transparent);   /* zinc-950/90 */
+  --color-surface-deep:    #141417;   /* dark charcoal grey */
   --color-surface-base:    color-mix(in oklab, #18181b 90%, transparent);   /* zinc-900/90 */
   --color-surface-raised:  color-mix(in oklab, #27272a 85%, transparent);   /* zinc-800/85 */
   --color-surface-overlay: color-mix(in oklab, #18181b 95%, transparent);   /* zinc-900/95 – tooltips */
@@ -67,9 +67,13 @@
 }
 
 /* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+@keyframes subtlePulse {
+  0%, 100% { opacity: 1; border-color: rgba(56, 189, 248, 0.95); box-shadow: 0 0 6px rgba(56, 189, 248, 0.35); }
+  50% { opacity: 0.75; border-color: rgba(56, 189, 248, 0.35); box-shadow: 0 0 1px rgba(56, 189, 248, 0.05); }
+}
+
+.animate-subtle-pulse {
+  animation: subtlePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes levelUpFade {
@@ -97,23 +101,25 @@
   /* Empty slot style - flat and borderless */
   .slot-empty {
     background-color: #0c0c0f;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.02);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
   .slot-empty:hover {
-    background-color: #141417;
+    background-color: #1c1c21;
+    border-color: rgba(56, 189, 248, 0.2);
   }
 
   /* Filled slot style - flat and borderless */
   .slot-filled {
     background-color: #1c1c21;
+    border: 1px solid rgba(255, 255, 255, 0.05);
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   }
   .slot-filled:hover {
-    transform: scale(1.06);
-    z-index: 20;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.5);
+    border-color: rgba(56, 189, 248, 0.4);
   }
 
   /* Flat rarity styles (rarity is indicated purely by text and icon colors) */

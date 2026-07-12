@@ -145,7 +145,7 @@ export function createFloorRenderer(): FloorRenderer {
         // Connections & Path to dungeon (10, 6)
         '4,6', '8,6', '9,6', '10,6'
       ]);
-      const dirtColor = 0x4a3b32; // Lighter dirt color
+      const dirtColor = biome.dirtColor !== undefined ? biome.dirtColor : 0x4a3b32; // Lighter dirt color
       
       for (let y = 0; y < g.height; y++) {
         for (let x = 0; x < g.width; x++) {

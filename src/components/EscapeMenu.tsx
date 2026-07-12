@@ -44,14 +44,14 @@ export function EscapeMenu() {
 
   return (
     <div className="absolute inset-0 z-[9000] flex items-center justify-center bg-black/20 backdrop-blur-[1px] animate-in fade-in duration-200">
-      <div className="relative w-56 bg-[#16171a] flex flex-col overflow-hidden shadow-2xl rounded-none border-none">
+      <div className="relative w-56 bg-surface-deep/93 backdrop-blur-[1px] flex flex-col overflow-hidden shadow-2xl rounded-none border border-transparent">
          
          <div className="p-4 flex flex-col gap-2">
             {!showWarning ? (
                <>
                   <button 
                      onClick={handleResume}
-                     className="w-full py-2 px-4 bg-[#0e0f11] hover:bg-[#202227] text-accent rounded-none text-sm font-bold transition-all text-center mb-2 border-none"
+                     className="w-full py-2 px-4 bg-[#1c1c21] border border-transparent text-accent hover:text-white hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none text-sm font-bold text-center mb-2"
                   >
                      Resume Game
                   </button>
@@ -59,7 +59,7 @@ export function EscapeMenu() {
                   {location === 'dungeon' && (
                      <button 
                         onClick={handleForfeit}
-                        className="w-full py-2 px-4 bg-[#0e0f11] hover:bg-[#202227] rounded-none text-sm font-bold text-text-secondary hover:text-text-primary transition-all text-center border-none"
+                        className="w-full py-2 px-4 bg-[#1c1c21] border border-transparent text-text-secondary hover:text-text-primary hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none text-sm font-bold text-center"
                      >
                         Forfeit Dungeon
                      </button>
@@ -68,7 +68,7 @@ export function EscapeMenu() {
                   {location !== 'dungeon' && (
                      <button 
                         onClick={handleCharacterSelect}
-                        className="w-full py-2 px-4 bg-[#0e0f11] hover:bg-[#202227] text-text-secondary hover:text-text-primary rounded-none text-sm font-bold transition-all text-center border-none"
+                        className="w-full py-2 px-4 bg-[#1c1c21] border border-transparent text-text-secondary hover:text-text-primary hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none text-sm font-bold text-center"
                      >
                         Character Select
                      </button>
@@ -76,7 +76,7 @@ export function EscapeMenu() {
                   
                   <button 
                      disabled
-                     className="w-full py-2 px-4 bg-[#0e0f11] text-sm font-bold text-text-muted opacity-50 cursor-not-allowed text-center rounded-none border-none"
+                     className="w-full py-2 px-4 bg-[#1c1c21]/40 border border-transparent text-sm font-bold text-text-muted opacity-30 cursor-not-allowed text-center rounded-none"
                   >
                      Options
                   </button>
@@ -87,16 +87,16 @@ export function EscapeMenu() {
                   <p className="text-xs text-text-secondary mb-4">You are currently in a dungeon. Returning to the main menu will forfeit your run.</p>
                   <div className="flex gap-2 w-full">
                      <button 
-                         className="flex-1 py-2 bg-[#0e0f11] hover:bg-[#202227] rounded-none text-text-secondary font-bold text-sm border-none"
-                         onClick={() => setShowWarning(false)}
-                     >
-                         Cancel
+                          className="flex-1 py-2 bg-[#1c1c21] border border-transparent text-text-secondary hover:text-text-primary hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none font-bold text-sm"
+                          onClick={() => setShowWarning(false)}
+                      >
+                          Cancel
                      </button>
                      <button 
-                         className="flex-1 py-2 bg-red-950/30 hover:bg-red-900/40 border border-red-900/50 hover:border-red-500 rounded-none text-red-400 font-bold text-sm transition-colors"
-                         onClick={confirmForfeitToMenu}
-                     >
-                         Forfeit
+                          className="flex-1 py-2 bg-[#1c1c21] border border-transparent text-red-400 hover:text-red-300 hover:bg-[#1e1e23] hover:border-red-500 hover:ring-1 hover:ring-red-500 active:scale-[0.98] rounded-none font-bold text-sm transition-all"
+                          onClick={confirmForfeitToMenu}
+                      >
+                          Forfeit
                      </button>
                   </div>
                </div>

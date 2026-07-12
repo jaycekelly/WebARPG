@@ -60,9 +60,9 @@ export function ActiveSkillPanel() {
     if (skill.castTime) infoParts.push(`${(getEffectiveCastTime(skill) / 1000).toFixed(1)} Cast`);
 
     setContent(
-      <div className="w-56 bg-[#0e0f11] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
+      <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-[#2a2a30]/60 shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
         <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
-        <div className="text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#202227]/40 uppercase tracking-widest">
+        <div className="text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#2a2a30]/40 uppercase tracking-widest">
            {Array.from({ length: Math.ceil(infoParts.length / 2) }).map((_, rowIdx) => (
              <div key={rowIdx} className="flex justify-between">
                <span>{infoParts[rowIdx * 2]}</span>
@@ -92,20 +92,26 @@ export function ActiveSkillPanel() {
             <div className="flex gap-2">
               <button 
                 onClick={() => handleTabClick('primary')}
-                className={`px-2 py-1 text-xs font-bold transition-colors flex items-center gap-1.5 rounded-none ${activeTab === 'primary' ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227]'}`}
+                className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
+                  ${activeTab === 'primary' 
+                    ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                    : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
               >
                 <span>{playerClass}</span>
-                <span className={`text-[0.625rem] px-1.5 py-0.5 rounded-none ${activeTab === 'primary' ? 'bg-[#0e0f11] text-accent' : 'bg-[#16171a]/50 text-text-secondary'}`}>
+                <span className={`text-[0.6rem] px-1.5 py-0.5 rounded-none font-bold border ${activeTab === 'primary' ? 'bg-[#0c0c0f] text-accent border-accent/20' : 'bg-[#141417]/50 text-text-secondary border-border-subtle'}`}>
                   {getPointsSpentInClass()}
                 </span>
               </button>
               {secondaryClass ? (
                 <button 
                   onClick={() => handleTabClick('secondary')}
-                  className={`px-2 py-1 text-xs font-bold transition-colors flex items-center gap-1.5 rounded-none ${activeTab === 'secondary' ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227]'}`}
+                  className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
+                    ${activeTab === 'secondary' 
+                      ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                      : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
                 >
                   <span>{secondaryClass}</span>
-                  <span className={`text-[0.625rem] px-1.5 py-0.5 rounded-none ${activeTab === 'secondary' ? 'bg-[#0e0f11] text-accent' : 'bg-[#16171a]/50 text-text-secondary'}`}>
+                  <span className={`text-[0.6rem] px-1.5 py-0.5 rounded-none font-bold border ${activeTab === 'secondary' ? 'bg-[#0c0c0f] text-accent border-accent/20' : 'bg-[#141417]/50 text-text-secondary border-border-subtle'}`}>
                     {getPointsSpentInClass()}
                   </span>
                 </button>
@@ -113,7 +119,10 @@ export function ActiveSkillPanel() {
                 level >= 5 && (
                   <button 
                     onClick={() => handleTabClick('select_secondary')}
-                    className={`px-2 py-1 text-xs font-bold transition-colors rounded-none ${activeTab === 'select_secondary' ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227]'}`}
+                    className={`px-3 py-1.5 text-xs font-bold transition-all rounded-none active:scale-[0.98]
+                      ${activeTab === 'select_secondary' 
+                        ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                        : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
                   >
                     Select 2nd Class
                   </button>
@@ -127,16 +136,16 @@ export function ActiveSkillPanel() {
             </div>
           </div>
           {/* Skill List */}
-          <div className="flex-1 overflow-y-auto bg-transparent p-2 custom-scrollbar relative">
+          <div className="flex-1 overflow-y-auto bg-transparent px-0 pt-[2px] pb-2 custom-scrollbar relative">
              {activeTab === 'select_secondary' && (
-                 <div className="absolute top-0 left-0 right-0 z-40 bg-[#0e0f11] p-3 flex flex-col items-center animate-in slide-in-from-top-4 shadow-2xl rounded-none">
+                 <div className="absolute top-0 left-0 right-0 z-40 bg-[#141417]/93 backdrop-blur-md p-3 flex flex-col items-center animate-in slide-in-from-top-4 shadow-2xl rounded-none">
                      <div className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-2">Select Secondary Class</div>
                      <div className="flex gap-2">
                          {availableClasses.map(cls => (
                              <button 
                                  key={cls}
                                  onClick={() => setPreviewClass(cls)}
-                                 className={`px-3 py-1.5 font-bold text-xs transition-all rounded-none ${selectedPreviewClass === cls ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] text-text-secondary hover:text-text-primary hover:bg-[#202227]'}`}
+                                 className={`px-3 py-1.5 font-bold text-xs transition-all rounded-none ${selectedPreviewClass === cls ? 'bg-[#1e1e23] text-accent' : 'bg-[#0c0c0f] text-text-secondary hover:text-text-primary hover:bg-[#1e1e23]'}`}
                              >
                                  {cls}
                              </button>
@@ -144,13 +153,13 @@ export function ActiveSkillPanel() {
                      </div>
                      <div className="flex gap-2 mt-3">
                          <button 
-                             className="px-4 py-1.5 bg-[#0e0f11] hover:bg-[#202227] text-text-secondary font-bold text-xs rounded-none"
+                             className="px-4 py-1.5 bg-[#0c0c0f] hover:bg-[#1e1e23] text-text-secondary font-bold text-xs rounded-none"
                              onClick={() => setActiveTab('primary')}
                          >
                              Cancel
                          </button>
                          <button 
-                             className="px-4 py-1.5 bg-[#202227] text-accent font-bold text-xs rounded-none hover:bg-accent/15"
+                             className="px-4 py-1.5 bg-[#1e1e23] text-accent font-bold text-xs rounded-none hover:bg-accent/15"
                              onClick={() => {
                                  usePlayerStore.getState().setSecondaryClass(selectedPreviewClass);
                                  setActiveTab('secondary');
@@ -161,7 +170,7 @@ export function ActiveSkillPanel() {
                      </div>
                  </div>
              )}
-            <div className="grid grid-cols-2 gap-2 h-max">
+            <div className="grid grid-cols-2 gap-3 h-max">
           {classSkills.map((skill) => {
             const rank = skillRanks[skill.id] || 0;
             const isEquipped = boundSkills.includes(skill.id);
@@ -177,7 +186,13 @@ export function ActiveSkillPanel() {
                 }}
                 onMouseEnter={() => handleMouseEnter(skill)}
                 onMouseLeave={handleMouseLeave}
-                className={`relative flex flex-col p-2.5 transition-all h-20 rounded-none ${isSelected ? 'bg-[#202227] text-accent' : 'bg-[#0e0f11] hover:bg-[#202227]'} ${!isUnlocked ? 'opacity-50 grayscale' : ''}`}
+                className={`relative flex flex-col p-2.5 transition-all h-24 rounded-none border
+                  ${isUnlocked 
+                    ? isSelected 
+                      ? 'border-accent bg-[#1c1c21] text-accent shadow-[0_0_8px_rgba(56,189,248,0.15)] active:scale-[0.98]' 
+                      : 'border-[#2a2a30]/40 bg-[#0c0c0f] hover:bg-[#1c1c21] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98]'
+                    : 'opacity-40 grayscale border border-transparent bg-[#0c0c0f]/30'
+                  }`}
               >
                 <div className="flex justify-between items-center w-full mb-auto relative pr-6">
                   <div className="flex items-center gap-1.5 overflow-hidden">
@@ -205,13 +220,13 @@ export function ActiveSkillPanel() {
                     setContent(null);
                     setInspectSkillId(skill.id);
                   }}
-                  className="absolute top-1.5 right-1.5 text-text-secondary hover:text-text-primary transition-all flex items-center justify-center p-1 bg-[#0e0f11] hover:bg-[#202227] rounded-none"
+                  className="absolute top-1.5 right-1.5 text-text-secondary hover:text-text-primary transition-all flex items-center justify-center p-1 bg-surface-base border border-border-subtle hover:bg-surface-raised hover:border-border-strong active:scale-90 rounded-none"
                 >
                   <Menu className="w-4 h-4" />
                 </button>
                 
                 <div className="flex justify-between items-end w-full mt-2">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     {[1, 2, 3, 4, 5, 6].map((pipRank) => {
                       const isMorph = pipRank === 3 || pipRank === 6;
                       const isFilled = pipRank <= rank;
@@ -219,7 +234,14 @@ export function ActiveSkillPanel() {
                       return (
                         <div 
                           key={pipRank}
-                          className={`h-1.5 transition-all rounded-none ${isMorph ? 'w-3 bg-[#202227]' : 'w-3 bg-black/60'} ${isFilled ? '!bg-accent' : ''}`}
+                          className={`h-2 transition-all rounded-none border
+                            ${isFilled 
+                              ? 'bg-accent border-accent/80 shadow-[0_0_4px_rgba(56,189,248,0.5)]' 
+                              : isMorph 
+                                ? 'bg-[#453018] border-amber-600/30' 
+                                : 'bg-[#2a2a30] border-[#3f3f46]/30'}
+                            ${isMorph ? 'w-3.5' : 'w-2.5'}
+                          `}
                         />
                       );
                     })}
@@ -236,10 +258,10 @@ export function ActiveSkillPanel() {
 
       {/* Detail Footer */}
       {selectedSkillId && (
-        <div className="bg-[#16171a] p-2 shrink-0 flex flex-col animate-in slide-in-from-bottom-2 relative z-20 shadow-[-5px_0px_50px_rgba(0,0,0,0.5)] rounded-none">
+        <div className="absolute bottom-0 left-0 right-0 border-t border-accent/30 bg-surface-deep/93 backdrop-blur-md p-3.5 shrink-0 flex flex-col animate-in slide-in-from-bottom-6 duration-300 ease-out z-50 shadow-[0_-8px_32px_rgba(0,0,0,0.7)] rounded-none">
           <button 
             onClick={() => setSelectedSkillId(null)}
-            className="absolute top-2 right-2 text-text-muted hover:text-text-primary transition-colors"
+            className="absolute top-2.5 right-2.5 text-text-muted hover:text-text-primary transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -267,7 +289,7 @@ export function ActiveSkillPanel() {
                   </div>
                 </div>
                 
-                <div className="text-xs text-text-secondary mb-3 flex justify-between items-end border-b border-[#202227]/40 pb-2">
+                <div className="text-xs text-text-secondary mb-3 flex justify-between items-end border-b border-[#2a2a30]/40 pb-2">
                   <span>
                     {isMorph ? `Rank ${nextRank} breakpoint — choose a morph (locks out the others)` : `Rank ${nextRank} upgrade — choose an enhancement`}
                   </span>
@@ -283,7 +305,10 @@ export function ActiveSkillPanel() {
                         key={dial.id}
                         disabled={!canAfford}
                         onClick={() => allocateDial(selectedSkillId, nextRank, dial.id)}
-                        className={`flex flex-col items-center justify-center p-2 text-center transition-all rounded-none ${canAfford ? 'bg-[#0e0f11] hover:bg-[#202227] cursor-pointer' : 'bg-[#0e0f11]/30 opacity-50 cursor-default'}`}
+                        className={`flex flex-col items-center justify-center p-2 text-center rounded-none border transition-all duration-200
+                          ${canAfford 
+                            ? 'border-[#2a2a30]/40 bg-[#0c0c0f] hover:bg-[#1c1c21] hover:border-border-strong active:scale-[0.98] cursor-pointer' 
+                            : 'border-border-subtle/20 bg-[#0c0c0f]/30 text-text-muted opacity-50 cursor-default'}`}
                       >
                         <span className="font-bold text-text-primary text-[11px] mb-1 leading-tight">{dial.name}</span>
                         <span className="text-[9px] text-text-secondary leading-tight">{dial.description}</span>
@@ -297,7 +322,10 @@ export function ActiveSkillPanel() {
                         key={morph.id}
                         disabled={!canAfford}
                         onClick={() => allocateMorph(selectedSkillId, nextRank, morph.id)}
-                        className={`flex flex-col items-center justify-center p-2 text-center transition-all rounded-none ${canAfford ? 'bg-[#0e0f11] hover:bg-[#202227] cursor-pointer' : 'bg-[#0e0f11]/30 opacity-50 cursor-default'}`}
+                        className={`flex flex-col items-center justify-center p-2 text-center rounded-none border transition-all duration-200
+                          ${canAfford 
+                            ? 'border-[#2a2a30]/40 bg-[#0c0c0f] hover:bg-[#1c1c21] hover:border-border-strong active:scale-[0.98] cursor-pointer' 
+                            : 'border-border-subtle/20 bg-[#0c0c0f]/30 text-text-muted opacity-50 cursor-default'}`}
                       >
                         <span className="font-bold text-text-primary text-[11px] mb-1 leading-tight">{morph.name}</span>
                         <span className="text-[9px] text-text-secondary leading-tight">{morph.description}</span>

@@ -2,7 +2,7 @@ import { SKILLS } from '../data/skills';
 import { useActiveSkillStore } from '../store/useActiveSkillStore';
 import { GENERIC_DIALS, getMorphOptionsForSkill } from '../data/skills/upgrades';
 import { ICONS } from './IconLibrary';
-import { ChevronLeft, Lock, Check } from 'lucide-react';
+import { ChevronLeft, Check } from 'lucide-react';
 
 interface SkillInspectorProps {
   skillId: string;
@@ -27,11 +27,10 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
     const cost = RANK_COSTS[rankIdx - 1];
 
     return (
-      <div key={rankIdx} className={`relative flex flex-col pl-6 ${rankIdx !== 6 ? 'pb-6 border-l border-[#202227]/40 ml-3' : 'pb-2 ml-3'}`}>
+      <div key={rankIdx} className={`relative flex flex-col pl-6 ${rankIdx !== 6 ? 'pb-6 border-l border-[#2a2a30]/40 ml-3' : 'pb-2 ml-3'}`}>
         {/* Timeline Node */}
-        <div className={`absolute -left-[12px] -top-0.5 w-4 h-4 z-10 flex items-center justify-center rounded-none ${isUnlocked ? 'bg-[#202227] text-accent' : isNext ? 'bg-[#202227] text-accent animate-pulse' : 'bg-[#0e0f11] text-text-muted'}`}>
+        <div className={`absolute -left-[12px] -top-0.5 w-4 h-4 z-10 flex items-center justify-center rounded-none ${isUnlocked ? 'bg-[#1e1e23] text-accent' : isNext ? 'bg-[#1e1e23] text-accent animate-pulse' : 'bg-[#0c0c0f] text-text-muted'}`}>
           {isUnlocked && <Check className="w-2.5 h-2.5" />}
-          {!isUnlocked && !isNext && <Lock className="w-2 h-2 opacity-50" />}
         </div>
 
         {/* Rank Header */}
@@ -50,22 +49,22 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
           {!isMorph && GENERIC_DIALS.map((dial) => {
             const Icon = ICONS[dial.icon] || ICONS['Flame'];
             const isChosen = chosenDials[rankIdx] === dial.id;
-            const notChosenButUnlocked = isUnlocked && !isChosen;
 
             return (
               <div
                 key={dial.id}
-                className={`flex flex-col p-2 transition-all h-max rounded-none ${
-                  isChosen ? 'bg-[#202227]' : 
-                  notChosenButUnlocked ? 'bg-[#0e0f11] opacity-50 grayscale' : 
-                  isNext ? 'bg-[#0e0f11]/60' : 
-                  'bg-[#0e0f11]/30 opacity-65'
+                className={`flex flex-col p-2 transition-all h-max rounded-none border ${
+                  isChosen 
+                    ? 'bg-accent/10 border-accent text-accent shadow-sm' : 
+                  isNext 
+                    ? 'border-accent/40 bg-[#1c1c21] hover:border-accent/80 hover:bg-[#1e1e23] cursor-pointer text-text-primary shadow-sm' : 
+                    'bg-[#0c0c0f] border-transparent text-text-muted opacity-30 grayscale'
                 }`}
               >
                 <div className="flex justify-between items-center mb-1">
-                  <div className={`flex items-center gap-1.5 ${isChosen ? 'text-text-primary' : 'text-text-primary'}`}>
-                    <Icon className={`w-3.5 h-3.5 ${isChosen ? 'text-accent' : 'text-accent'}`} />
-                    <span className="font-bold text-[11px] leading-tight">{dial.name}</span>
+                  <div className={`flex items-center gap-1.5 ${isChosen ? 'text-accent' : 'text-text-secondary'}`}>
+                    <Icon className={`w-3.5 h-3.5 ${isChosen ? 'text-accent' : 'text-text-muted'}`} />
+                    <span className="font-bold text-[11px] leading-tight text-text-primary">{dial.name}</span>
                   </div>
                   {isChosen && <Check className="w-3 h-3 text-accent" />}
                 </div>
@@ -77,22 +76,22 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
           {isMorph && getMorphOptionsForSkill(skillId, rankIdx).map((morph) => {
             const Icon = ICONS[morph.icon] || ICONS['Flame'];
             const isChosen = chosenMorphs[rankIdx] === morph.id;
-            const notChosenButUnlocked = isUnlocked && !isChosen;
 
             return (
               <div
                 key={morph.id}
-                className={`flex flex-col p-2 transition-all h-max rounded-none ${
-                  isChosen ? 'bg-[#202227]' : 
-                  notChosenButUnlocked ? 'bg-[#0e0f11] opacity-50 grayscale' : 
-                  isNext ? 'bg-[#0e0f11]/60' : 
-                  'bg-[#0e0f11]/30 opacity-65'
+                className={`flex flex-col p-2 transition-all h-max rounded-none border ${
+                  isChosen 
+                    ? 'bg-accent/10 border-accent text-accent shadow-sm' : 
+                  isNext 
+                    ? 'border-accent/40 bg-[#1c1c21] hover:border-accent/80 hover:bg-[#1e1e23] cursor-pointer text-text-primary shadow-sm' : 
+                    'bg-[#0c0c0f] border-transparent text-text-muted opacity-30 grayscale'
                 }`}
               >
                 <div className="flex justify-between items-center mb-1">
-                  <div className={`flex items-center gap-1.5 ${isChosen ? 'text-text-primary' : 'text-text-primary'}`}>
-                    <Icon className={`w-3.5 h-3.5 ${isChosen ? 'text-accent' : 'text-accent'}`} />
-                    <span className="font-bold text-[11px] leading-tight">{morph.name}</span>
+                  <div className={`flex items-center gap-1.5 ${isChosen ? 'text-accent' : 'text-text-secondary'}`}>
+                    <Icon className={`w-3.5 h-3.5 ${isChosen ? 'text-accent' : 'text-text-muted'}`} />
+                    <span className="font-bold text-[11px] leading-tight text-text-primary">{morph.name}</span>
                   </div>
                   {isChosen && <Check className="w-3 h-3 text-accent" />}
                 </div>
@@ -111,7 +110,7 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
       <div className="flex items-center gap-2 mb-2 shrink-0 px-2 pt-0">
         <button 
           onClick={onBack}
-          className="p-1 bg-[#0e0f11] hover:bg-[#202227] transition-colors rounded-none text-text-secondary hover:text-text-primary"
+          className="p-1 bg-[#0c0c0f] hover:bg-[#1e1e23] transition-colors rounded-none text-text-secondary hover:text-text-primary"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
