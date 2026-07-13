@@ -284,17 +284,8 @@ export function setupCanvasInput(
       }
     }
 
-    // Cursor update: crosshair when targeting, pointer over enemies/loot
-    const combat = useCombatStore.getState();
+    // Cursor intentionally left untouched — never override the browser/OS pointer icon
     const pos = getWorldPos(e);
-    if (pos && combat.targetingSkillId) {
-      canvas.style.cursor = '';
-    } else if (pos) {
-      const target = getClickTarget(pos.gx, pos.gy, pos.sx, pos.sy, getProjectionParams());
-      canvas.style.cursor = target.enemyId || target.lootId ? 'pointer' : '';
-    } else {
-      canvas.style.cursor = '';
-    }
 
     if (callbacks?.onHover) {
       callbacks.onHover(pos);

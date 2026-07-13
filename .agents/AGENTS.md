@@ -28,18 +28,7 @@ This document outlines the core principles and architectural rules for the WebAR
 ### Design Token System
 All UI colors are defined as CSS custom properties in `src/index.css` via a Tailwind v4 `@theme` block. **Never use raw `zinc-xxx` classes for UI backgrounds, borders, or text in components.** Use tokens so the whole game can be recolored from one place.
 
-| Token Class | Role | Approx Value |
-|---|---|---|
-| `bg-surface-deep` | Main panel backgrounds, action bar tray | zinc-950/90 |
-| `bg-surface-base` | Slots, cards, inputs sitting on panels | zinc-900/90 |
-| `bg-surface-raised` | Hover / active lift state | zinc-800/85 |
-| `bg-surface-overlay` | Tooltips, floating popups | zinc-900/95 |
-| `border-border-subtle` | Default panel/slot edges | zinc-700 |
-| `border-border-strong` | Hover / focused / active borders | zinc-600 |
-| `text-text-primary` | Main readable values — names, numbers | zinc-100 |
-| `text-text-secondary` | Labels, descriptions, stat names | zinc-400 |
-| `text-text-muted` | Hints, hotkeys, empty states | zinc-600 |
-| `text-accent` / `border-accent` | Selection, highlight, active tabs | sky-400 |
+*(Note: For the exact token names and their current color values, refer directly to `src/index.css` to ensure accuracy.)*
 
 **Semantic colors — never replace with tokens:**
 - **Health**: `bg-red-700` fill, `text-red-500` text/icons

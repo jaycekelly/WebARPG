@@ -128,10 +128,10 @@ export function useGameEngine() {
         usePlayerStore.getState().decayAdrenaline(decayAmount);
       }
 
-      // Adrenaline Generation: Passively generate 5 per second, ONLY IF player dealt damage within last 2 seconds
+      // Adrenaline Generation: Passively generate 4 per second, ONLY IF player dealt damage within last 2 seconds
       const timeSinceDamageDealt = now - combatState.lastDamageDealtTime;
       if (timeSinceDamageDealt <= 2000 && playerState.currentAdrenaline < 100) {
-        const generationAmount = 5 * dtSec;
+        const generationAmount = 4 * dtSec;
         usePlayerStore.getState().addAdrenaline(generationAmount);
       }
 

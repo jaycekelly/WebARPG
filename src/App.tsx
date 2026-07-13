@@ -216,6 +216,14 @@ function App() {
         }
       }
 
+      if (e.key.toLowerCase() === 'm') {
+        const appState = useAppStore.getState();
+        if (appState.location === 'dungeon' || appState.location === 'town') {
+          appState.setMapOverlayOpen(!appState.mapOverlayOpen);
+        }
+        return;
+      }
+
       if (e.key === 'Escape') {
         const appState = useAppStore.getState();
         const combatState = useCombatStore.getState();
@@ -236,6 +244,10 @@ function App() {
         }
 
         // 3. Close Modal Windows
+        if (appState.mapOverlayOpen) {
+          appState.setMapOverlayOpen(false);
+          return;
+        }
         if (appState.vendorOpen) {
           appState.setVendorOpen(false);
           return;

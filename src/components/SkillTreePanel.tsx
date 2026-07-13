@@ -106,9 +106,8 @@ export function SkillTreePanel() {
     return (
       <div 
         key={node.id} 
-        className={`group relative flex flex-col items-center justify-center transition-all cursor-pointer
+        className={`group relative flex flex-col items-center justify-center transition-all
           ${isUnlocked ? 'opacity-100' : 'opacity-40'}
-          ${!isUnlocked ? 'cursor-not-allowed' : ''}
         `}
         onMouseEnter={() => setContent(renderTooltip())}
         onMouseLeave={() => setContent(null)}

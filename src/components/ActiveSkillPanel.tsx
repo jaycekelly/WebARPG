@@ -300,8 +300,8 @@ export function ActiveSkillPanel() {
                         onClick={() => allocateDial(selectedSkillId, nextRank, dial.id)}
                         className={`flex flex-col items-center justify-center p-2 text-center rounded-none border transition-all duration-200
                           ${canAfford 
-                            ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] active:scale-[0.98] cursor-pointer text-text-primary' 
-                            : 'border-border-subtle/20 bg-[#0c0c0f]/30 text-text-muted opacity-50 cursor-default'}`}
+                            ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] active:scale-[0.98] text-text-primary' 
+                            : 'border-border-subtle/20 bg-[#0c0c0f]/30 text-text-muted opacity-50'}`}
                       >
                         <span className="font-bold text-text-primary text-[11px] mb-1 leading-tight">{dial.name}</span>
                         <span className="text-[9px] text-text-secondary leading-tight">{dial.description}</span>
@@ -317,8 +317,8 @@ export function ActiveSkillPanel() {
                         onClick={() => allocateMorph(selectedSkillId, nextRank, morph.id)}
                         className={`flex flex-col items-center justify-center p-2 text-center rounded-none border transition-all duration-200
                           ${canAfford 
-                            ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] active:scale-[0.98] cursor-pointer text-text-primary' 
-                            : 'border-border-subtle/20 bg-[#0c0c0f]/30 text-text-muted opacity-50 cursor-default'}`}
+                            ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] active:scale-[0.98] text-text-primary' 
+                            : 'border-border-subtle/20 bg-[#0c0c0f]/30 text-text-muted opacity-50'}`}
                       >
                         <span className="font-bold text-text-primary text-[11px] mb-1 leading-tight">{morph.name}</span>
                         <span className="text-[9px] text-text-secondary leading-tight">{morph.description}</span>

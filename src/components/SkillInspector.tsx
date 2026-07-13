@@ -73,8 +73,8 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
                     ? 'bg-accent/10 border-accent text-accent shadow-sm' : 
                   isNext 
                     ? canAfford
-                      ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] cursor-pointer text-text-primary'
-                      : 'border-[#2a2a30]/40 bg-[#1c1c21] hover:border-border-strong hover:bg-[#1e1e23] cursor-pointer text-text-secondary shadow-sm'
+                      ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] text-text-primary'
+                      : 'border-[#2a2a30]/40 bg-[#1c1c21] hover:border-border-strong hover:bg-[#1e1e23] text-text-secondary shadow-sm'
                     : 'bg-[#0c0c0f] border-transparent text-text-muted opacity-30 grayscale'
                 }`}
               >
@@ -107,8 +107,8 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
                     ? 'bg-accent/10 border-accent text-accent shadow-sm' : 
                   isNext 
                     ? canAfford
-                      ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] cursor-pointer text-text-primary'
-                      : 'border-[#2a2a30]/40 bg-[#1c1c21] hover:border-border-strong hover:bg-[#1e1e23] cursor-pointer text-text-secondary shadow-sm'
+                      ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] text-text-primary'
+                      : 'border-[#2a2a30]/40 bg-[#1c1c21] hover:border-border-strong hover:bg-[#1e1e23] text-text-secondary shadow-sm'
                     : 'bg-[#0c0c0f] border-transparent text-text-muted opacity-30 grayscale'
                 }`}
               >

@@ -383,7 +383,7 @@ export function CombatOverlay() {
             const isExpiring = buff.durationMs !== null && buff.durationMs < 2500;
             return (
               <div key={buff.id} className="relative group">
-                <div className={`w-7 h-7 rounded-none border flex flex-col items-center justify-center bg-surface-base overflow-hidden shadow-lg ${buff.type === 'buff' ? 'border-sky-400/50 text-sky-400' : 'border-red-500/50 text-red-500'} ${isExpiring ? 'animate-pulse' : ''}`}>
+                <div className={`relative w-7 h-7 rounded-none border flex flex-col items-center justify-center bg-surface-base overflow-hidden shadow-lg ${buff.type === 'buff' ? 'border-sky-400/50 text-sky-400' : 'border-red-500/50 text-red-500'} ${isExpiring ? 'animate-pulse' : ''}`}>
                   <BuffIcon className="w-3.5 h-3.5 opacity-80" />
                   {buff.stacks > 1 && (
                     <span className="absolute bottom-0 right-0 text-[0.5rem] font-bold bg-surface-base/80 px-1 rounded-none z-20">{buff.stacks}</span>
@@ -426,73 +426,76 @@ export function CombatOverlay() {
             
             {/* Docked Flask Slot (Offset to the left of the center skill bar) */}
             <div className="absolute right-full mr-2 bottom-0 h-12 flex items-center justify-center drop-shadow-2xl gap-2">
-               <div className="relative w-12 h-12 flex flex-col items-center justify-center">
-                  <button 
-                    className={`relative w-full h-full flex items-center justify-center transition-all bg-transparent focus:outline-none focus:ring-0 group
-                      ${now - lastFlaskTime < 30000 ? 'cursor-not-allowed grayscale brightness-50' : ''}
-                    `}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (currentHealth < maxHealth && useFlask()) {
-                         useBuffStore.getState().addBuff('player', {
-                           buffId: 'flask_recovery',
-                           name: 'Flask Recovery',
-                           type: 'buff',
-                           stackingBehavior: 'refresh',
-                           durationMs: 2000,
-                           maxDurationMs: 2000,
-                           stacks: 1,
-                           maxStacks: 1,
-                           icon: 'FlaskConical',
-                           statModifiers: [],
-                           isHoT: true,
-                           hotTickRateMs: 50,
-                           hotHealPerTick: (maxHealth * 0.3) / (2000 / 50)
-                         });
-                         
-                         useCombatStore.getState().addLog('Used Healing Flask.', 'system');
-                      }
-                    }}
-                    onMouseEnter={() => setContent(
-                      <div className="w-52 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
-                        <div className="font-bold text-sm text-red-400 mb-1">
-                          Healing Flask
-                        </div>
-                        <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-[#2a2a30]/40 uppercase tracking-widest">
-                          30.0 CD
-                        </div>
-                        <div className="text-xs text-text-secondary leading-snug mb-1">
-                          Restores <span className="text-red-400 font-bold">30%</span> of your maximum health over <span className="text-text-secondary font-bold">2 seconds</span>.
-                        </div>
-                      </div>
-                    )}
-                   onMouseLeave={() => setContent(null)}
-                  >
-                     <FlaskConical className="mt-1 w-6 h-6 text-red-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] z-10 transition-transform group-hover:scale-110" />
-                     {now - lastFlaskTime < 30000 && (() => {
-                         const timeRemaining = 30000 - (now - lastFlaskTime);
-                         const activePercent = (timeRemaining / 30000) * 100;
-                         return (
-                           <div className="absolute inset-0 z-20 pointer-events-none">
-                             {/* Dim the square slot corners */}
-                             <div className="absolute inset-0 bg-black/20 rounded-none" />
+                <div className="relative w-12 h-12 flex flex-col items-center justify-center group">
+                   <div className="relative w-full h-full">
+                      <button 
+                        className={`w-full h-full flex items-center justify-center transition-all bg-transparent focus:outline-none focus:ring-0
+                          ${now - lastFlaskTime < 30000 ? 'cursor-not-allowed' : ''}
+                        `}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (currentHealth < maxHealth && useFlask()) {
+                             useBuffStore.getState().addBuff('player', {
+                               buffId: 'flask_recovery',
+                               name: 'Flask Recovery',
+                               type: 'buff',
+                               stackingBehavior: 'refresh',
+                               durationMs: 2000,
+                               maxDurationMs: 2000,
+                               stacks: 1,
+                               maxStacks: 1,
+                               icon: 'FlaskConical',
+                               statModifiers: [],
+                               isHoT: true,
+                               hotTickRateMs: 50,
+                               hotHealPerTick: (maxHealth * 0.3) / (2000 / 50)
+                             });
                              
-                             {/* Centered circular sweep window */}
-                             <div 
-                                className="absolute w-10 h-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full overflow-hidden"
-                                style={{ background: `conic-gradient(from 0deg, transparent ${100 - activePercent}%, rgba(255,255,255,0.95) ${100 - activePercent}%, rgba(0,0,0,0.50) ${Math.min(100, 100 - activePercent + 2)}%, rgba(0,0,0,0.50) 100%)` }}
-                             />
-                             
-                             {/* Countdown Text */}
-                             <div className="absolute inset-0 flex items-center justify-center z-30">
-                               <span className="text-white font-bold text-xs [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
-                                 {Math.ceil(timeRemaining / 1000)}
-                               </span>
-                             </div>
-                           </div>
-                         );
+                             useCombatStore.getState().addLog('Used Healing Flask.', 'system');
+                          }
+                        }}
+                        onMouseEnter={() => setContent(
+                          <div className="w-52 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
+                            <div className="font-bold text-sm text-red-400 mb-1">
+                              Healing Flask
+                            </div>
+                            <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-[#2a2a30]/40 uppercase tracking-widest">
+                              30.0 CD
+                            </div>
+                            <div className="text-xs text-text-secondary leading-snug mb-1">
+                              Restores <span className="text-red-400 font-bold">30%</span> of your maximum health over <span className="text-text-secondary font-bold">2 seconds</span>.
+                            </div>
+                          </div>
+                        )}
+                       onMouseLeave={() => setContent(null)}
+                      >
+                         <FlaskConical className="mt-1 w-6 h-6 text-red-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] z-10 transition-transform group-hover:scale-110" />
+                      </button>
+                      
+                      {now - lastFlaskTime < 30000 && (() => {
+                          const timeRemaining = 30000 - (now - lastFlaskTime);
+                          const activePercent = (timeRemaining / 30000) * 100;
+                          return (
+                            <div className="absolute inset-0 z-20 pointer-events-none">
+                              {/* Dim the square slot area behind the circle to match */}
+                              <div className="absolute w-9 h-9 top-[10px] left-[8px] bg-black/20 rounded-none" />
+                              
+                              {/* Centered circular sweep window - smaller and shifted down */}
+                              <div 
+                                 className="absolute w-9 h-9 top-[10px] left-[8px] rounded-full overflow-hidden"
+                                 style={{ background: `conic-gradient(from 0deg, transparent ${100 - activePercent}%, rgba(255,255,255,0.95) ${100 - activePercent}%, rgba(0,0,0,0.50) ${Math.min(100, 100 - activePercent + 2)}%, rgba(0,0,0,0.50) 100%)` }}
+                              />
+                              
+                              {/* Countdown Text - brought down a tad to align with the circle */}
+                              <div className="absolute inset-0 flex items-center justify-center z-30 translate-x-[2px] translate-y-[4px]">
+                                <span className="text-white font-bold text-xs [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
+                                  {Math.ceil(timeRemaining / 1000)}
+                                </span>
+                              </div>
+                            </div>
+                          );
                       })()}
-                  </button>
+                   </div>
                   
                   {/* Floating Hotkey */}
                   <div className="absolute -bottom-5 w-4 h-4 bg-zinc-900 flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-[0_2px_4px_rgba(0,0,0,0.5)] pointer-events-none">
@@ -577,55 +580,59 @@ export function CombatOverlay() {
                 const missingBuff = skill?.requiresBuffId ? !hasRequiredBuff : false;
                 const isProcced = skill?.requiresBuffId && hasRequiredBuff;
 
+                const shouldGreyOut = skill ? ((outOfEnergy || missingBuff || outOfRange) && !isBinding) : false;
+
                 return (
                   <div key={index} className="relative flex flex-col items-center">
-                    <button
-                      className={`relative w-12 h-12 flex items-center justify-center transition-all bg-transparent focus:outline-none focus:ring-0 group
-                        ${isBinding ? 'animate-pulse scale-110' : ''}
-                        ${(outOfEnergy || missingBuff) && !isBinding ? 'grayscale brightness-50' : ''}
-                      `}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (bindingSlotIndex !== null) {
-                           setBindingSlotIndex(index);
-                           return;
-                        }
-                        if (!skill) return;
-                        
-                        const playerState = usePlayerStore.getState();
-                        const worldState = useWorldStore.getState();
-                        const combatState = useCombatStore.getState();
-                        let targetEntity = null;
+                    <div className="relative w-12 h-12 group">
+                      <button
+                        className={`w-full h-full flex items-center justify-center transition-all bg-transparent focus:outline-none focus:ring-0
+                          ${isBinding ? 'animate-pulse scale-110' : ''}
+                          ${shouldGreyOut ? 'grayscale brightness-50' : ''}
+                        `}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (bindingSlotIndex !== null) {
+                             setBindingSlotIndex(index);
+                             return;
+                          }
+                          if (!skill) return;
+                          
+                          const playerState = usePlayerStore.getState();
+                          const worldState = useWorldStore.getState();
+                          const combatState = useCombatStore.getState();
+                          let targetEntity = null;
 
-                        if (playerState.activeTargetId) {
-                          targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId && !e.isDead);
-                        }
-                        
-                        if (targetEntity) {
-                          InputHandler.requestAction({ type: 'skill', skillId: skill.id, targetPos: targetEntity.position, targetId: targetEntity.id });
-                        } else {
-                          combatState.setTargetingSkill(skill.id);
-                        }
-                      }}
-                      onContextMenu={(e) => {
-                        e.preventDefault();
-                        if (bindingSlotIndex === index) setBindingSlotIndex(null);
-                        else setBindingSlotIndex(index);
-                      }}
-                      onMouseEnter={() => {
-                        if (!isBinding && skill) {
-                          setContent(<SkillTooltip skill={skill} />);
-                        }
-                      }}
-                      onMouseLeave={() => {
-                        setContent(null);
-                      }}
-                    >
-                      {skill && IconComponent ? (
-                        <div className={`relative z-10 w-full h-full flex items-center justify-center transition-transform group-hover:scale-110 ${outOfRange ? 'opacity-50' : ''}`}>
-                          <IconComponent className={`mb-1.5 w-8 h-8 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] text-sky-400 ${isProcced ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]' : ''}`} />
-                        </div>
-                      ) : null}
+                          if (playerState.activeTargetId) {
+                            targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId && !e.isDead);
+                          }
+                          
+                          if (targetEntity) {
+                            InputHandler.requestAction({ type: 'skill', skillId: skill.id, targetPos: targetEntity.position, targetId: targetEntity.id });
+                          } else {
+                            combatState.setTargetingSkill(skill.id);
+                          }
+                        }}
+                        onContextMenu={(e) => {
+                          e.preventDefault();
+                          if (bindingSlotIndex === index) setBindingSlotIndex(null);
+                          else setBindingSlotIndex(index);
+                        }}
+                        onMouseEnter={() => {
+                          if (!isBinding && skill) {
+                            setContent(<SkillTooltip skill={skill} />);
+                          }
+                        }}
+                        onMouseLeave={() => {
+                          setContent(null);
+                        }}
+                      >
+                        {skill && IconComponent ? (
+                          <div className="relative z-10 w-full h-full flex items-center justify-center transition-transform group-hover:scale-110">
+                            <IconComponent className={`mb-1.5 w-8 h-8 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] text-sky-400 ${isProcced ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]' : ''}`} />
+                          </div>
+                        ) : null}
+                      </button>
 
                       {/* Cooldown Overlay (FFXIV style: circular sweep inside a square slot) */}
                       {onCooldown && skill && (
@@ -660,7 +667,7 @@ export function CombatOverlay() {
                            />
                         </div>
                       )}
-                    </button>
+                    </div>
                     
                     {/* Underline */}
                     <div className="absolute bottom-0 left-[10%] w-[80%] h-[4px] bg-zinc-900 drop-shadow-md pointer-events-none" />
@@ -807,10 +814,6 @@ export function CombatOverlay() {
            <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">Q E Z C</span>
          </div>
          <div className="flex items-center gap-2">
-           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Health Potion</span>
-           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">R</span>
-         </div>
-         <div className="flex items-center gap-2">
            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Cycle Targets</span>
            <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">TAB</span>
          </div>
@@ -843,9 +846,9 @@ export function CombatOverlay() {
               </div>
             )}
             onMouseLeave={() => setContent(null)}
-            className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group transition-all bg-surface-deep/93 shadow-md rounded-none border ${
+            className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group transition-all bg-surface-deep/93 rounded-none border shadow-[0_4px_12px_rgba(0,0,0,0.6)] ${
               castingSkillId === 'portal_skill'
-                ? 'border-accent text-accent shadow-[0_0_8px_rgba(56,189,248,0.2)]'
+                ? 'border-accent text-accent shadow-[0_0_8px_rgba(56,189,248,0.2),_0_4px_12px_rgba(0,0,0,0.6)]'
                 : 'border-transparent text-text-secondary hover:ring-1 hover:ring-accent'
             }`}
           >
@@ -870,10 +873,10 @@ export function CombatOverlay() {
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border shadow-[0_4px_12px_rgba(0,0,0,0.6)] ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'inventory')
-              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
-              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent shadow-md'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2),_0_4px_12px_rgba(0,0,0,0.6)]'
+              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent'
           }`}
         >
           <Backpack className="w-5 h-5" />
@@ -900,10 +903,10 @@ export function CombatOverlay() {
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border shadow-[0_4px_12px_rgba(0,0,0,0.6)] ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'active_skills')
-              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
-              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent shadow-md'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2),_0_4px_12px_rgba(0,0,0,0.6)]'
+              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent'
           }`}
         >
           <Sparkles className="w-5 h-5" />
@@ -930,10 +933,10 @@ export function CombatOverlay() {
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border shadow-[0_4px_12px_rgba(0,0,0,0.6)] ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'skills')
-              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
-              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent shadow-md'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2),_0_4px_12px_rgba(0,0,0,0.6)]'
+              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent'
           }`}
         >
           <BookOpen className="w-5 h-5" />

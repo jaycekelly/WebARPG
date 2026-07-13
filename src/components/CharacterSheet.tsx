@@ -259,7 +259,7 @@ export function CharacterSheet() {
                  return (
                    <div 
                      key={index} 
-                     className="flex justify-between items-center py-1.5 px-3 hover:bg-[#1e1e23] transition-colors rounded-none group cursor-default"
+                     className="flex justify-between items-center py-1.5 px-3 hover:bg-[#1e1e23] transition-colors rounded-none group"
                      onMouseEnter={() => {
                         let desc = '';
                         if (statDef.id === 'Armor') {

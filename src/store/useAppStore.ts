@@ -18,6 +18,7 @@ interface AppState {
   pauseStartTime: number | null;
   pixiFloorVisible: boolean;
   selectedLootDropId: string | null;
+  mapOverlayOpen: boolean;
   setLocation: (loc: AppLocation) => void;
   setVendorOpen: (isOpen: boolean) => void;
   setCharacterWindowOpen: (isOpen: boolean) => void;
@@ -29,6 +30,7 @@ interface AppState {
   togglePause: () => void;
   togglePixiFloor: () => void;
   setSelectedLootDropId: (id: string | null) => void;
+  setMapOverlayOpen: (isOpen: boolean) => void;
   getGameTime: () => number;
   
   // Anti-save scumming / Offline time freeze
@@ -52,7 +54,8 @@ export const useAppStore = create<AppState>()(
   pauseStartTime: null,
   pixiFloorVisible: false,
   selectedLootDropId: null,
-  setLocation: (location) => set({ location, vendorOpen: false, characterWindowOpen: false }), // Auto close on move
+  mapOverlayOpen: false,
+  setLocation: (location) => set({ location, vendorOpen: false, characterWindowOpen: false, mapOverlayOpen: false }), // Auto close on move
   setVendorOpen: (vendorOpen) => set({ vendorOpen }),
   setCharacterWindowOpen: (isOpen) => set(() => ({ 
     characterWindowOpen: isOpen,
@@ -88,6 +91,7 @@ export const useAppStore = create<AppState>()(
   }),
   togglePixiFloor: () => set((state) => ({ pixiFloorVisible: !state.pixiFloorVisible })),
   setSelectedLootDropId: (id) => set({ selectedLootDropId: id }),
+  setMapOverlayOpen: (mapOverlayOpen) => set({ mapOverlayOpen }),
   getGameTime: () => {
     const state = get();
     const now = Date.now();

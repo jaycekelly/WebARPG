@@ -336,11 +336,7 @@ export function GameCanvas() {
                 }
               }
 
-              if (c.targetingSkillId) {
-                canvas.style.cursor = '';
-              } else {
-                canvas.style.cursor = (target.enemyId || target.lootId) ? 'pointer' : '';
-              }
+              // Cursor intentionally left untouched — never override the browser/OS pointer icon
             } else {
               hoveredTile = null;
               hoveredEnemyId = null;
@@ -348,7 +344,6 @@ export function GameCanvas() {
                 hoveredLootId = null;
                 useTooltipStore.getState().setContent(null);
               }
-              canvas.style.cursor = '';
             }
           } else {
              if (hoveredLootId !== null) {

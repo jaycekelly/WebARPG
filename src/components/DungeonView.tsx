@@ -1,6 +1,8 @@
 import { CombatOverlay } from './CombatOverlay';
 import { GameCanvas } from '../renderer/GameCanvas';
 import { LootPopup } from './LootPopup';
+import { Minimap } from './Minimap';
+import { MapOverlay } from './MapOverlay';
 import { useAppStore } from '../store/useAppStore';
 
 export function DungeonView() {
@@ -14,6 +16,8 @@ export function DungeonView() {
         <GameCanvas />
       </div>
       <CombatOverlay />
+      <Minimap />
+      <MapOverlay />
       {selectedLootDropId && (
         <LootPopup dropId={selectedLootDropId} onClose={() => setSelectedLootDropId(null)} />
       )}

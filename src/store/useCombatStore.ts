@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { useAppStore } from './useAppStore';
+import { useWorldStore } from './useWorldStore';
 import { dualStorage } from './storage';
 
-export const OUT_OF_COMBAT_MOVE_COOLDOWN_MS = 450;
+export const OUT_OF_COMBAT_MOVE_COOLDOWN_MS = 400;
 export const COMBAT_TIMEOUT_MS = 4000;
 export const DEFAULT_FLOATING_TEXT_DURATION_MS = 1300;
 export const FLOATING_TEXT_THROTTLE_MS = 250;
@@ -140,7 +141,14 @@ export const useCombatStore = create<CombatState>()(
   isInCombat: () => {
     const state = get();
     const now = useAppStore.getState().getGameTime();
-    return (now - state.lastCombatEventTime) < COMBAT_TIMEOUT_MS;
+    // Timer-based check: covers the trailing grace period after the last damage/cast
+    // event, and after the last aggroed enemy drops aggro, so combat doesn't end
+    // instantly on the same frame.
+    if ((now - state.lastCombatEventTime) < COMBAT_TIMEOUT_MS) return true;
+    // Aggro-based check: an enemy can chase/attack-attempt for longer than
+    // COMBAT_TIMEOUT_MS without ever landing a hit (e.g. player kiting/running).
+    // As long as anything is actively aggroed on the player, combat should stay active.
+    return useWorldStore.getState().enemies.some(e => !e.isDead && e.isAggroed);
   },
   comboStep: 0,
   lastComboTime: 0,

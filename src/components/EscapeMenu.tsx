@@ -76,7 +76,7 @@ export function EscapeMenu() {
                   
                   <button 
                      disabled
-                     className="w-full py-2 px-4 bg-[#1c1c21]/40 border border-transparent text-sm font-bold text-text-muted opacity-30 cursor-not-allowed text-center rounded-none"
+                     className="w-full py-2 px-4 bg-[#1c1c21]/40 border border-transparent text-sm font-bold text-text-muted opacity-30 text-center rounded-none"
                   >
                      Options
                   </button>

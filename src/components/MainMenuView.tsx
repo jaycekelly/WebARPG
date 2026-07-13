@@ -75,7 +75,7 @@ export const MainMenuView = () => {
                         New Character
                     </button>
                     
-                    <button className="bg-[#1c1c21]/40 border border-transparent text-text-muted py-1.5 px-3 rounded-none text-sm font-bold opacity-30 cursor-not-allowed text-center">
+                    <button className="bg-[#1c1c21]/40 border border-transparent text-text-muted py-1.5 px-3 rounded-none text-sm font-bold opacity-30 text-center">
                         Options
                     </button>
                 </div>
@@ -142,7 +142,7 @@ export const MainMenuView = () => {
                                         key={cls}
                                         disabled={!isEnabled}
                                         onClick={() => setSelectedClass(cls)}
-                                        className={`py-1.5 px-1 rounded-none text-xs font-bold transition-all ${!isEnabled ? 'opacity-30 cursor-not-allowed bg-[#1c1c21]/45 text-text-muted border border-transparent' : isSelected ? 'bg-[#1e1e23] border border-accent text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' : 'border border-transparent bg-[#1c1c21] hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent text-text-secondary hover:text-text-primary active:scale-[0.98]'}`}
+                                        className={`py-1.5 px-1 rounded-none text-xs font-bold transition-all ${!isEnabled ? 'opacity-30 bg-[#1c1c21]/45 text-text-muted border border-transparent' : isSelected ? 'bg-[#1e1e23] border border-accent text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' : 'border border-transparent bg-[#1c1c21] hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent text-text-secondary hover:text-text-primary active:scale-[0.98]'}`}
                                     >
                                         {cls}
                                     </button>
@@ -159,7 +159,7 @@ export const MainMenuView = () => {
                             Cancel
                         </button>
                         <button 
-                            className="flex-1 bg-[#1c1c21] border border-transparent text-accent hover:text-white hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent py-1.5 rounded-none transition-all font-bold text-xs disabled:opacity-30 disabled:cursor-not-allowed active:scale-[0.98]"
+                            className="flex-1 bg-[#1c1c21] border border-transparent text-accent hover:text-white hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent py-1.5 rounded-none transition-all font-bold text-xs disabled:opacity-30 active:scale-[0.98]"
                             onClick={handleCreateChar}
                             disabled={!newName.trim()}
                         >

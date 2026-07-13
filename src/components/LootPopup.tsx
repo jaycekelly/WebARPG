@@ -88,7 +88,7 @@ export function LootPopup({ dropId, onClose }: Props) {
                 }}
                 onMouseEnter={() => setContent(<ItemTooltip item={item} />)}
                 onMouseLeave={() => setContent(null)}
-                className="flex items-center gap-4 p-3 bg-[#0c0c0f] rounded-none cursor-pointer hover:bg-[#1e1e23] transition-colors relative group border-none"
+                className="flex items-center gap-4 p-3 bg-[#0c0c0f] rounded-none hover:bg-[#1e1e23] transition-colors relative group border-none"
               >
                 <div className="w-10 h-10 rounded-none bg-black/40 flex items-center justify-center border border-[#2a2a30]/50">
                   <Icon className={cn("w-6 h-6", RARITY_COLORS[item.rarity])} />
