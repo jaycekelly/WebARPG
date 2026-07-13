@@ -87,11 +87,11 @@ export function ActiveSkillPanel() {
                 onClick={() => handleTabClick('primary')}
                 className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
                   ${activeTab === 'primary' 
-                    ? 'border border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
-                    : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
+                    ? 'border border-accent bg-surface-overlay text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                    : 'border border-border-subtle/40 bg-surface-base text-text-secondary hover:bg-surface-raised hover:border-border-strong hover:text-text-primary'}`}
               >
                 <span>{playerClass}</span>
-                <span className={`text-[0.6rem] px-1.5 py-0.5 rounded-none font-bold border ${activeTab === 'primary' ? 'bg-[#0c0c0f] text-accent border-accent/20' : 'bg-[#141417]/50 text-text-secondary border-border-subtle'}`}>
+                <span className={`text-[0.6rem] px-1.5 py-0.5 rounded-none font-bold border ${activeTab === 'primary' ? 'bg-surface-base text-accent border-accent/20' : 'bg-surface-deep/50 text-text-secondary border-border-subtle'}`}>
                   {getPointsSpentInClass()}
                 </span>
               </button>
@@ -100,11 +100,11 @@ export function ActiveSkillPanel() {
                   onClick={() => handleTabClick('secondary')}
                   className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
                     ${activeTab === 'secondary' 
-                      ? 'border border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
-                      : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
+                      ? 'border border-accent bg-surface-overlay text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                      : 'border border-border-subtle/40 bg-surface-base text-text-secondary hover:bg-surface-raised hover:border-border-strong hover:text-text-primary'}`}
                 >
                   <span>{secondaryClass}</span>
-                  <span className={`text-[0.6rem] px-1.5 py-0.5 rounded-none font-bold border ${activeTab === 'secondary' ? 'bg-[#0c0c0f] text-accent border-accent/20' : 'bg-[#141417]/50 text-text-secondary border-border-subtle'}`}>
+                  <span className={`text-[0.6rem] px-1.5 py-0.5 rounded-none font-bold border ${activeTab === 'secondary' ? 'bg-surface-base text-accent border-accent/20' : 'bg-surface-deep/50 text-text-secondary border-border-subtle'}`}>
                     {getPointsSpentInClass()}
                   </span>
                 </button>
@@ -114,8 +114,8 @@ export function ActiveSkillPanel() {
                     onClick={() => handleTabClick('select_secondary')}
                     className={`px-3 py-1.5 text-xs font-bold transition-all rounded-none active:scale-[0.98]
                       ${activeTab === 'select_secondary' 
-                        ? 'border border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
-                        : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
+                        ? 'border border-accent bg-surface-overlay text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                        : 'border border-border-subtle/40 bg-surface-base text-text-secondary hover:bg-surface-raised hover:border-border-strong hover:text-text-primary'}`}
                   >
                     Select 2nd Class
                   </button>
@@ -134,14 +134,14 @@ export function ActiveSkillPanel() {
             style={{ paddingBottom: selectedSkillId ? `${footerHeight + 8}px` : '8px' }}
           >
              {activeTab === 'select_secondary' && (
-                 <div className="absolute top-0 left-0 right-0 z-40 bg-[#141417]/93 backdrop-blur-md p-3 flex flex-col items-center animate-in slide-in-from-top-4 shadow-2xl rounded-none">
+                 <div className="absolute top-0 left-0 right-0 z-40 bg-surface-deep/93 backdrop-blur-md p-3 flex flex-col items-center animate-in slide-in-from-top-4 shadow-2xl rounded-none">
                      <div className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-2">Select Secondary Class</div>
                      <div className="flex gap-2">
                          {availableClasses.map(cls => (
                              <button 
                                  key={cls}
                                  onClick={() => setPreviewClass(cls)}
-                                 className={`px-3 py-1.5 font-bold text-xs transition-all rounded-none ${selectedPreviewClass === cls ? 'bg-[#1e1e23] text-accent' : 'bg-[#0c0c0f] text-text-secondary hover:text-text-primary hover:bg-[#1e1e23]'}`}
+                                 className={`px-3 py-1.5 font-bold text-xs transition-all rounded-none ${selectedPreviewClass === cls ? 'bg-surface-overlay text-accent' : 'bg-surface-base text-text-secondary hover:text-text-primary hover:bg-surface-overlay'}`}
                              >
                                  {cls}
                              </button>
@@ -149,13 +149,13 @@ export function ActiveSkillPanel() {
                      </div>
                      <div className="flex gap-2 mt-3">
                          <button 
-                             className="px-4 py-1.5 bg-[#0c0c0f] hover:bg-[#1e1e23] text-text-secondary font-bold text-xs rounded-none"
+                             className="px-4 py-1.5 bg-surface-base hover:bg-surface-overlay text-text-secondary font-bold text-xs rounded-none"
                              onClick={() => setActiveTab('primary')}
                          >
                              Cancel
                          </button>
                          <button 
-                             className="px-4 py-1.5 bg-[#1e1e23] text-accent font-bold text-xs rounded-none hover:bg-accent/15"
+                             className="px-4 py-1.5 bg-surface-overlay text-accent font-bold text-xs rounded-none hover:bg-accent/15"
                              onClick={() => {
                                  usePlayerStore.getState().setSecondaryClass(selectedPreviewClass);
                                  setActiveTab('secondary');
@@ -185,9 +185,9 @@ export function ActiveSkillPanel() {
                 className={`relative flex flex-col p-2.5 transition-all h-24 rounded-none border
                   ${isUnlocked 
                     ? isSelected 
-                      ? 'border-accent bg-[#1c1c21] text-accent shadow-[0_0_8px_rgba(56,189,248,0.15)] active:scale-[0.98]' 
-                      : 'border-transparent bg-[#0c0c0f] text-text-secondary hover:text-text-primary hover:bg-[#1c1c21] hover:border-accent active:scale-[0.98]'
-                    : 'opacity-40 grayscale border border-transparent bg-[#0c0c0f]/30'
+                      ? 'border-accent bg-surface-raised text-accent shadow-[0_0_8px_rgba(56,189,248,0.15)] active:scale-[0.98]' 
+                      : 'border-transparent bg-surface-base text-text-secondary hover:text-text-primary hover:bg-surface-raised hover:border-accent active:scale-[0.98]'
+                    : 'opacity-40 grayscale border border-transparent bg-surface-base/30'
                   }`}
               >
                 <div className="flex justify-between items-center w-full mb-auto relative pr-6">
@@ -203,7 +203,7 @@ export function ActiveSkillPanel() {
                   
                   <div className="flex items-center gap-1 shrink-0">
                     {!isUnlocked && (
-                      <span className="text-[8px] font-bold px-1 py-0.5 bg-red-950/80 text-red-400 uppercase tracking-wider">
+                      <span className="text-[8px] font-bold px-1 py-0.5 bg-red-950/80 text-red-500 uppercase tracking-wider">
                         Lvl {skill.requiredLevel}
                       </span>
                     )}
@@ -216,7 +216,7 @@ export function ActiveSkillPanel() {
                     setContent(null);
                     setInspectSkillId(skill.id);
                   }}
-                  className="absolute top-1.5 right-1.5 text-text-primary hover:text-accent transition-all flex items-center justify-center p-1 bg-[#1c1c21] border border-transparent hover:bg-[#27272f] active:scale-90 rounded-none shadow-sm"
+                  className="absolute top-1.5 right-1.5 text-text-primary hover:text-accent transition-all flex items-center justify-center p-1 bg-surface-raised border border-transparent hover:bg-surface-overlay active:scale-90 rounded-none shadow-sm"
                 >
                   <Menu className="w-4 h-4" />
                 </button>
@@ -234,8 +234,8 @@ export function ActiveSkillPanel() {
                             ${isFilled 
                               ? 'bg-accent border-accent/80 shadow-[0_0_4px_rgba(56,189,248,0.5)]' 
                               : isMorph 
-                                ? 'bg-[#0e2a35] border-accent/30' 
-                                : 'bg-[#2a2a30] border-[#3f3f46]/30'}
+                                ? 'bg-emerald-950 border-accent/30' 
+                                : 'bg-border-subtle border-border-strong/30'}
                             ${isMorph ? 'w-3.5' : 'w-2.5'}
                           `}
                         />
@@ -285,9 +285,9 @@ export function ActiveSkillPanel() {
                   </div>
                 </div>
                 
-                <div className="text-xs text-text-secondary mb-3 flex justify-between items-end border-b border-[#2a2a30]/40 pb-2">
+                <div className="text-xs text-text-secondary mb-3 flex justify-between items-end border-b border-border-subtle/40 pb-2">
                   <span className="font-bold uppercase tracking-wider text-text-secondary">
-                    Rank {nextRank} — <span className={canAfford ? 'text-accent' : 'text-red-400'}>{cost} SP</span> — Choose {isMorph ? 'augment' : 'enhancement'}
+                    Rank {nextRank} — <span className={canAfford ? 'text-accent' : 'text-red-500'}>{cost} SP</span> — Choose {isMorph ? 'augment' : 'enhancement'}
                   </span>
                 </div>
 
@@ -300,8 +300,8 @@ export function ActiveSkillPanel() {
                         onClick={() => allocateDial(selectedSkillId, nextRank, dial.id)}
                         className={`flex flex-col items-center justify-center p-2 text-center rounded-none border transition-all duration-200
                           ${canAfford 
-                            ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] active:scale-[0.98] text-text-primary' 
-                            : 'border-border-subtle/20 bg-[#0c0c0f]/30 text-text-muted opacity-50'}`}
+                            ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-surface-overlay active:scale-[0.98] text-text-primary' 
+                            : 'border-border-subtle/20 bg-surface-base/30 text-text-muted opacity-50'}`}
                       >
                         <span className="font-bold text-text-primary text-[11px] mb-1 leading-tight">{dial.name}</span>
                         <span className="text-[9px] text-text-secondary leading-tight">{dial.description}</span>
@@ -317,8 +317,8 @@ export function ActiveSkillPanel() {
                         onClick={() => allocateMorph(selectedSkillId, nextRank, morph.id)}
                         className={`flex flex-col items-center justify-center p-2 text-center rounded-none border transition-all duration-200
                           ${canAfford 
-                            ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] active:scale-[0.98] text-text-primary' 
-                            : 'border-border-subtle/20 bg-[#0c0c0f]/30 text-text-muted opacity-50'}`}
+                            ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-surface-overlay active:scale-[0.98] text-text-primary' 
+                            : 'border-border-subtle/20 bg-surface-base/30 text-text-muted opacity-50'}`}
                       >
                         <span className="font-bold text-text-primary text-[11px] mb-1 leading-tight">{morph.name}</span>
                         <span className="text-[9px] text-text-secondary leading-tight">{morph.description}</span>

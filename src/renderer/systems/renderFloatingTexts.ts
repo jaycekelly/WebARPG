@@ -131,7 +131,7 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
       let entry = tracked.get(ft.id);
       if (!entry) {
         let colorClass = ft.color;
-        if (ft.isCrit) colorClass = 'text-yellow-400';
+        if (ft.isCrit) colorClass = 'text-yellow-500';
         
         const isSkillDamage = !!ft.isSkillDamage;
         const text = createText(ft.text, colorClass, !!ft.isCrit, isSkillDamage);

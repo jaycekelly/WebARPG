@@ -80,8 +80,10 @@ export function drawMinimap(
   ctx.globalAlpha = alpha;
 
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+  ctx.globalAlpha = alpha * 0.4; // 40% opaque / 60% transparent
   ctx.fillStyle = VOID_COLOR;
   ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+  ctx.globalAlpha = alpha;
 
   if (!grid || grid.width <= 0 || grid.height <= 0) {
     ctx.restore();
@@ -148,6 +150,9 @@ export function drawMinimap(
       }
     }
   }
+
+  // Entity pulsing to catch the eye
+  ctx.globalAlpha = alpha * (0.7 + 0.3 * Math.sin(Date.now() / 350));
 
   // Points of interest (NPCs, dungeon exits) — always shown once explored, they don't move
   for (const poi of pois) {

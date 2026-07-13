@@ -32,7 +32,7 @@ export function TownView() {
   return (
     <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-[1px]">
        <div className="bg-surface-deep/93 backdrop-blur-[1px] shadow-2xl w-96 relative flex flex-col overflow-hidden rounded-none border border-transparent">
-          <div className="h-10 border-b border-[#2a2a30]/40 flex items-center px-4 justify-between bg-transparent">
+          <div className="h-10 border-b border-border-subtle/40 flex items-center px-4 justify-between bg-transparent">
              <div className="text-text-primary font-bold tracking-widest text-sm uppercase">Dungeon Select</div>
              <button onClick={() => setDungeonSelectOpen(false)} className="text-text-muted hover:text-text-primary transition-colors">
                 <X className="w-5 h-5" />
@@ -46,7 +46,7 @@ export function TownView() {
                   <button 
                     key={biomeId}
                     onClick={() => handleEnterDungeon(biomeId)}
-                    className="flex items-center gap-4 p-4 border border-transparent bg-[#1c1c21] hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent rounded-none active:scale-[0.98] transition-all group text-left shrink-0"
+                    className="flex items-center gap-4 p-4 border border-transparent bg-surface-raised hover:bg-surface-overlay hover:border-accent hover:ring-1 hover:ring-accent rounded-none active:scale-[0.98] transition-all group text-left shrink-0"
                   >
                     <div className="bg-red-500/10 p-3 rounded-none border border-red-500/20 group-hover:border-red-500/40 transition-colors">
                        <Map className="w-6 h-6 text-red-500" />

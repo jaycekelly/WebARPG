@@ -31,14 +31,14 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
     const canAfford = activeSkillPoints >= cost;
 
     return (
-      <div key={rankIdx} className={`relative flex flex-col pl-6 ${rankIdx !== 6 ? 'pb-6 border-l border-[#2a2a30]/40 ml-3' : 'pb-2 ml-3'}`}>
+      <div key={rankIdx} className={`relative flex flex-col pl-6 ${rankIdx !== 6 ? 'pb-6 border-l border-border-subtle/40 ml-3' : 'pb-2 ml-3'}`}>
         {/* Timeline Node */}
         <div className={`absolute -left-[12px] -top-0.5 w-4 h-4 z-10 flex items-center justify-center rounded-none border ${
           isUnlocked 
             ? 'bg-accent/10 border-accent text-accent' 
             : isNext && canAfford
-              ? 'bg-[#1c1c21] border-accent/90 animate-subtle-pulse text-accent shadow-[0_0_6px_rgba(56,189,248,0.3)]' 
-              : 'bg-[#0c0c0f] border-[#2a2a30]/20 text-text-muted'
+              ? 'bg-surface-raised border-accent/90 animate-subtle-pulse text-accent shadow-[0_0_6px_rgba(56,189,248,0.3)]' 
+              : 'bg-surface-base border-border-subtle/20 text-text-muted'
         }`}>
           {isUnlocked && <Check className="w-2.5 h-2.5" />}
         </div>
@@ -73,9 +73,9 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
                     ? 'bg-accent/10 border-accent text-accent shadow-sm' : 
                   isNext 
                     ? canAfford
-                      ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] text-text-primary'
-                      : 'border-[#2a2a30]/40 bg-[#1c1c21] hover:border-border-strong hover:bg-[#1e1e23] text-text-secondary shadow-sm'
-                    : 'bg-[#0c0c0f] border-transparent text-text-muted opacity-30 grayscale'
+                      ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-surface-overlay text-text-primary'
+                      : 'border-border-subtle/40 bg-surface-raised hover:border-border-strong hover:bg-surface-overlay text-text-secondary shadow-sm'
+                    : 'bg-surface-base border-transparent text-text-muted opacity-30 grayscale'
                 }`}
               >
                 <div className="flex justify-between items-center mb-1">
@@ -107,9 +107,9 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
                     ? 'bg-accent/10 border-accent text-accent shadow-sm' : 
                   isNext 
                     ? canAfford
-                      ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] text-text-primary'
-                      : 'border-[#2a2a30]/40 bg-[#1c1c21] hover:border-border-strong hover:bg-[#1e1e23] text-text-secondary shadow-sm'
-                    : 'bg-[#0c0c0f] border-transparent text-text-muted opacity-30 grayscale'
+                      ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-surface-overlay text-text-primary'
+                      : 'border-border-subtle/40 bg-surface-raised hover:border-border-strong hover:bg-surface-overlay text-text-secondary shadow-sm'
+                    : 'bg-surface-base border-transparent text-text-muted opacity-30 grayscale'
                 }`}
               >
                 <div className="flex justify-between items-center mb-1">
@@ -135,7 +135,7 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
         <div className="flex gap-2">
           <button 
             onClick={onBack}
-            className="w-7 h-7 bg-[#0c0c0f] hover:bg-[#1c1c21] transition-all rounded-none text-text-secondary hover:text-accent border border-[#2a2a30]/40 hover:border-accent hover:ring-1 hover:ring-accent flex items-center justify-center shrink-0"
+            className="w-7 h-7 bg-surface-base hover:bg-surface-raised transition-all rounded-none text-text-secondary hover:text-accent border border-border-subtle/40 hover:border-accent hover:ring-1 hover:ring-accent flex items-center justify-center shrink-0"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>

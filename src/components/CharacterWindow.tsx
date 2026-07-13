@@ -51,7 +51,7 @@ export function CharacterWindow() {
           {/* Content layer */}
           <div className="absolute inset-0 z-20 flex flex-col">
             {/* Header & Tabs */}
-            <div className="flex items-center justify-start bg-[#0c0c0f] flex-shrink-0 relative h-[1.375rem] select-none border-b border-[#2a2a30]/20">
+            <div className="flex items-center justify-start bg-surface-base flex-shrink-0 relative h-[1.375rem] select-none border-b border-border-subtle/20">
               <div className="flex gap-0 h-full ml-3">
                 <button 
                   onClick={() => setCharacterWindowTab('inventory')}

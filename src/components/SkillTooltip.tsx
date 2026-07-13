@@ -9,9 +9,9 @@ interface SkillTooltipProps {
 
 export function SkillTooltip({ skill }: SkillTooltipProps) {
   return (
-    <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none animate-in fade-in duration-200">
+    <div className="w-56 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none animate-in fade-in duration-200">
       <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
-      <div className="flex flex-col text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#2a2a30]/40 uppercase tracking-widest gap-1">
+      <div className="flex flex-col text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle/40 uppercase tracking-widest gap-1">
         {(() => {
           const stats = [];
           if (getEffectiveEnergyCost(skill) > 0) stats.push({ val: getEffectiveEnergyCost(skill), lbl: 'Energy' });
@@ -29,7 +29,7 @@ export function SkillTooltip({ skill }: SkillTooltipProps) {
           }
 
           return rows.map((row, i) => (
-            <div key={i} className="flex justify-between items-center border-b border-[#2a2a30]/40 pb-0.5 last:border-0 last:pb-0">
+            <div key={i} className="flex justify-between items-center border-b border-border-subtle/40 pb-0.5 last:border-0 last:pb-0">
               <div className="flex items-center gap-1">
                 <span>{row[0].val}</span>
                 {row[0].lbl && <span>{row[0].lbl}</span>}
@@ -45,7 +45,7 @@ export function SkillTooltip({ skill }: SkillTooltipProps) {
         })()}
       </div>
       {skill.effects.some(e => e.type === 'damage') && (
-        <div className="mb-1 pb-1 border-b border-[#2a2a30]/40 space-y-0.5">
+        <div className="mb-1 pb-1 border-b border-border-subtle/40 space-y-0.5">
           {skill.effects.filter(e => e.type === 'damage').map((effect, i) => {
             const weaponDamage = useStatsStore.getState().getStat('WeaponDamage');
             const weaponType = (useInventoryStore.getState().equipment['weapon1'] as any)?.damageType || 'Physical';

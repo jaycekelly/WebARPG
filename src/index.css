@@ -32,12 +32,12 @@
 
   /* Surfaces */
   --color-surface-deep:    #141417;   /* dark charcoal grey */
-  --color-surface-base:    color-mix(in oklab, #18181b 90%, transparent);   /* zinc-900/90 */
-  --color-surface-raised:  color-mix(in oklab, #27272a 85%, transparent);   /* zinc-800/85 */
-  --color-surface-overlay: color-mix(in oklab, #18181b 95%, transparent);   /* zinc-900/95 – tooltips */
+  --color-surface-base:    #0c0c0f;   /* zinc-900/90 */
+  --color-surface-raised:  #1c1c21;   /* zinc-800/85 */
+  --color-surface-overlay: #1e1e23;   /* zinc-900/95 – tooltips */
 
   /* Borders */
-  --color-border-subtle:   #27272a;   /* zinc-800 */
+  --color-border-subtle:   #2a2a30;   /* zinc-800 */
   --color-border-strong:   #3f3f46;   /* zinc-700 */
 
   /* Text */

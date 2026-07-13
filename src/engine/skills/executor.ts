@@ -774,7 +774,7 @@ export class SkillExecutor {
                     addLog(`You hit yourself for ${actualDamage.toFixed(0)} damage!${resultText}`, 'enemy-attack');
                  } else {
                     worldState.damageEnemy(enemy.id, actualDamage);
-                    useCombatStore.getState().setLastDamageDealtTime(Date.now());
+                    useCombatStore.getState().setLastDamageDealtTime(useAppStore.getState().getGameTime());
                     
                     let dmgColor = 'text-zinc-200';
                     if (finalElement === 'Pierce') dmgColor = 'text-stone-300';

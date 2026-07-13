@@ -4,6 +4,7 @@ import { useWorldStore } from '../store/useWorldStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useVisionStore } from '../store/useVisionStore';
 import { drawMinimap } from '../renderer/utils/minimapDraw';
+import { getBiome } from '../data/biomes';
 
 const CORNER_SIZE_PX = 320;
 const FOLLOW_RADIUS_TILES = 8;
@@ -19,6 +20,9 @@ export function Minimap() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sizeRef = useRef({ w: 0, h: 0 });
   const mapOverlayOpen = useAppStore((s) => s.mapOverlayOpen);
+  const environment = useWorldStore((s) => s.grid.environment);
+
+  const areaName = getBiome(environment).name;
 
   useEffect(() => {
     const container = containerRef.current;
@@ -88,16 +92,17 @@ export function Minimap() {
     <button
       type="button"
       onClick={() => useAppStore.getState().setMapOverlayOpen(true)}
-      className={`absolute top-3 right-3 z-40 pointer-events-auto focus:outline-none ${mapOverlayOpen ? 'hidden' : ''}`}
+      className={`absolute top-3 right-3 z-40 pointer-events-auto focus:outline-none flex flex-col items-center ${mapOverlayOpen ? 'hidden' : ''}`}
     >
       <div
         ref={containerRef}
-        className="relative shadow-[0_4px_12px_rgba(0,0,0,0.6)] overflow-hidden"
+        className="relative shadow-[0_2px_10px_rgba(0,0,0,0.45)] overflow-hidden"
         style={{ width: CORNER_SIZE_PX, height: CORNER_SIZE_PX }}
       >
         <canvas ref={canvasRef} className="block" />
-        {/* Soft vignette so the flat tile grid doesn't read as a harsh square against the game view */}
-        <div className="absolute inset-0 pointer-events-none shadow-[inset_0_0_18px_10px_rgba(10,10,12,0.55)]" />
+      </div>
+      <div className="mt-1.5 text-[20px] font-medium tracking-wide text-zinc-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+        {areaName}
       </div>
     </button>
   );

@@ -25,11 +25,11 @@ const SLOT_ICONS: Record<string, React.ElementType> = {
 
 
 const RARITY_TEXT_COLORS: Record<Rarity, string> = {
-  'Normal': 'text-zinc-200',
-  'Magic': 'text-blue-400',
-  'Rare': 'text-yellow-400',
-  'Epic': 'text-purple-400',
-  'Legendary': 'text-orange-400',
+  'Normal': 'text-zinc-400',
+  'Magic': 'text-blue-500',
+  'Rare': 'text-yellow-500',
+  'Epic': 'text-purple-500',
+  'Legendary': 'text-orange-500',
   'Unique': 'text-yellow-300',
 };
 
@@ -73,12 +73,12 @@ export function InventoryPanel() {
         onMouseLeave={() => setHoveredEqSlot(null)}
         className={`flex items-center gap-2 py-1 px-1.5 pr-2 transition-all w-full text-left shrink-0 rounded-none ring-1 ring-inset ${
           item 
-            ? 'bg-[#1c1c21]/45 ring-transparent hover:ring-accent/40 hover:bg-[#1e1e23] hover:text-text-primary' 
-            : 'bg-[#0c0c0f]/30 opacity-65 hover:opacity-100 ring-transparent hover:ring-accent/30 hover:bg-[#1e1e23]/30'
+            ? 'bg-surface-raised/45 ring-transparent hover:ring-accent/40 hover:bg-surface-overlay hover:text-text-primary' 
+            : 'bg-surface-base/30 opacity-65 hover:opacity-100 ring-transparent hover:ring-accent/30 hover:bg-surface-overlay/30'
         }`}
       >
         <div className={`w-9 h-9 shrink-0 flex items-center justify-center border ${
-          item ? `bg-[#1c1c21] border-white/5 slot-rarity-${item.rarity.toLowerCase()}` : 'bg-[#0c0c0f] border-white/2'
+          item ? `bg-surface-raised border-white/5 slot-rarity-${item.rarity.toLowerCase()}` : 'bg-surface-base border-white/2'
         }`}>
           <Icon className={`w-5 h-5 ${
             item ? RARITY_TEXT_COLORS[item.rarity] : 'text-zinc-500'
@@ -125,7 +125,7 @@ export function InventoryPanel() {
               {(['Strength', 'Dexterity', 'Intelligence', 'Vitality'] as const).map(attr => (
                 <div 
                   key={attr} 
-                  className="bg-[#0c0c0f] overflow-hidden flex items-center justify-between px-1.5 h-8 w-full"
+                  className="bg-surface-base overflow-hidden flex items-center justify-between px-1.5 h-8 w-full"
                   onMouseEnter={() => {
                     const desc = 
                       attr === 'Strength' ? 'Gives 1 armor per point' :
@@ -133,7 +133,7 @@ export function InventoryPanel() {
                       attr === 'Intelligence' ? 'Gives 1 energy per point' :
                       'Gives 4 hp per point';
                     setHoveredCustom(
-                      <div className="w-60 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
+                      <div className="w-60 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
                         <div className="text-xs text-text-secondary leading-relaxed">
                           {desc}
                         </div>
@@ -144,7 +144,7 @@ export function InventoryPanel() {
                 >
                    <div className="flex flex-row items-center flex-1 px-1 overflow-hidden min-w-0">
                       <span className="text-text-secondary text-[12px] uppercase tracking-wide leading-none truncate flex-1">{attr}</span>
-                      <div className="h-3.5 w-px bg-[#2a2a30]/40 mx-1.5 shrink-0" />
+                      <div className="h-3.5 w-px bg-border-subtle/40 mx-1.5 shrink-0" />
                       <span className="font-semibold text-text-primary text-[16px] leading-none shrink-0 w-6 text-center">{getStat(attr).toFixed(0)}</span>
                    </div>
                    {attributePoints > 0 && (
@@ -165,8 +165,8 @@ export function InventoryPanel() {
                  onClick={() => setStatsPopoutOpen(!statsPopoutOpen)}
                  className={`flex items-center gap-1 py-1.5 pl-1.5 pr-3.5 transition-all rounded-none group ring-1 ring-inset ${
                    statsPopoutOpen 
-                     ? 'bg-[#1e1e23] ring-accent text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.25)]' 
-                     : 'bg-[#0c0c0f] ring-[#2a2a30]/20 hover:ring-accent/40 hover:bg-[#1e1e23] text-text-secondary hover:text-text-primary'
+                     ? 'bg-surface-overlay ring-accent text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.25)]' 
+                     : 'bg-surface-base ring-border-subtle/20 hover:ring-accent/40 hover:bg-surface-overlay text-text-secondary hover:text-text-primary'
                  }`}
                >
                 <ChevronLeft className={`w-3.5 h-3.5 transition-transform ${statsPopoutOpen ? 'rotate-180 text-accent' : 'text-accent group-hover:-translate-x-0.5'}`} />
@@ -200,7 +200,7 @@ export function InventoryPanel() {
                 <div 
                   className="absolute right-[-9px] top-1/2 -translate-y-1/2 bg-transparent z-20"
                   onMouseEnter={() => setHoveredCustom(
-                    <div className="bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none whitespace-nowrap">
+                    <div className="bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none whitespace-nowrap">
                       <div className="text-xs text-text-secondary leading-relaxed">
                         Swap weapon set
                       </div>
@@ -210,7 +210,7 @@ export function InventoryPanel() {
                 >
                    <button
                      onClick={() => swapWeaponSet()}
-                     className="w-[1.4rem] h-[1.4rem] bg-[#0c0c0f] hover:bg-[#1e1e23] text-accent ring-1 ring-inset ring-[#2a2a30]/50 hover:ring-accent/40 rounded-none flex items-center justify-center transition-all group shadow-md"
+                     className="w-[1.4rem] h-[1.4rem] bg-surface-base hover:bg-surface-overlay text-accent ring-1 ring-inset ring-border-subtle/50 hover:ring-accent/40 rounded-none flex items-center justify-center transition-all group shadow-md"
                    >
                      <ArrowRightLeft className="w-3.5 h-3.5 text-accent transition-transform group-hover:scale-110" />
                    </button>

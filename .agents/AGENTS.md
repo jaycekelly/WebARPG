@@ -35,7 +35,8 @@ All UI colors are defined as CSS custom properties in `src/index.css` via a Tail
 - **Mana**: `bg-blue-700` fill, `text-blue-500` text/icons
 - **Enemy UI**: `text-red-500` icons, `bg-red-950` backgrounds
 - **Player UI**: `text-emerald-500` icons, `bg-emerald-950` backgrounds
-- **Item Rarity**: Normal=zinc-400, Magic=blue-500, Rare=yellow-500, Epic=purple-500, Legendary=sky-400, Unique=amber-500
+- **Item Rarity**: Normal=zinc-400, Magic=blue-500, Rare=yellow-500, Epic=purple-500, Legendary=orange-500, Unique=yellow-300
+- **Damage Types**: Strike=zinc-200, Pierce=stone-300, Fire=orange-500, Cold=blue-300, Lightning=purple-500
 - **Grid tiles**: `border-zinc-800/40` (fine-grained, keep as-is)
 - **Combat Log**: System=`text-text-secondary italic`, Player=`text-text-primary`, Enemy=`text-red-500`, Abilities=`text-accent bg-accent/10`
 

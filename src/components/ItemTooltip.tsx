@@ -9,13 +9,21 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+export const DAMAGE_TYPE_COLORS: Record<string, string> = {
+  Strike: 'text-zinc-200',
+  Pierce: 'text-stone-300',
+  Fire: 'text-orange-500',
+  Cold: 'text-blue-300',
+  Lightning: 'text-purple-500'
+};
+
 const RARITY_COLORS: Record<Rarity, string> = {
-  Normal: 'text-text-secondary',
+  Normal: 'text-zinc-400',
   Magic: 'text-blue-500',
   Rare: 'text-yellow-500',
   Epic: 'text-purple-500',
   Legendary: 'text-orange-500',
-  Unique: 'text-yellow-400',
+  Unique: 'text-yellow-300',
 };
 
 interface Props {
@@ -27,19 +35,19 @@ export function ItemTooltip({ item }: Props) {
   const { getStat } = useStatsStore();
   
   return (
-    <div className="w-60 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
+    <div className="w-60 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
       <div className={cn("font-bold text-sm mb-1 tracking-tight", RARITY_COLORS[item.rarity])}>
         {item.name}
       </div>
       
-      <div className="flex justify-between items-center text-[0.625rem] text-text-secondary border-b border-[#2a2a30]/40 pb-1 mb-1 uppercase tracking-widest">
+      <div className="flex justify-between items-center text-[0.625rem] text-text-secondary border-b border-border-subtle/40 pb-1 mb-1 uppercase tracking-widest">
         <span>{item.itemType.replace('weapon-', 'Weapon (').replace('1h', '1H)').replace('2h', '2H)')}</span>
         <span>iLvl {item.iLvl}</span>
       </div>
 
       {item.itemType.startsWith('weapon-') && (
-        <div className="flex justify-between items-center text-[0.625rem] text-text-secondary border-b border-[#2a2a30]/40 pb-1 mb-1 uppercase tracking-widest">
-           <span>{item.damageType || 'Physical'}</span>
+        <div className="flex justify-between items-center text-[0.625rem] text-text-secondary border-b border-border-subtle/40 pb-1 mb-1 uppercase tracking-widest">
+           <span className={DAMAGE_TYPE_COLORS[item.damageType || 'Strike'] || 'text-zinc-200'}>{item.damageType || 'Strike'}</span>
            <span>{item.weaponRange !== undefined && item.weaponRange > 1 ? `Range ${item.weaponRange}` : 'Melee'}</span>
         </div>
       )}
@@ -103,7 +111,7 @@ export function ItemTooltip({ item }: Props) {
       )}
 
       {item.affixes.length > 0 && (
-        <div className="space-y-0.5 mt-1 pt-1 border-t border-[#2a2a30]/40">
+        <div className="space-y-0.5 mt-1 pt-1 border-t border-border-subtle/40">
           {item.affixes.map((affix) => (
             <div key={affix.id} className="text-xs text-blue-400">
               {affix.description}
@@ -113,7 +121,7 @@ export function ItemTooltip({ item }: Props) {
       )}
       
       {item.requirements && (
-        <div className="mt-1 pt-1 border-t border-[#2a2a30]/40 space-y-0.5">
+        <div className="mt-1 pt-1 border-t border-border-subtle/40 space-y-0.5">
            <div className="text-[0.625rem] text-text-secondary font-bold uppercase tracking-widest">Requires:</div>
            {item.requirements.level && (
               <div className={cn("text-xs", level >= item.requirements.level ? 'text-text-secondary' : 'text-red-500')}>

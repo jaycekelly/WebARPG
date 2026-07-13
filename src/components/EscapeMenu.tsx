@@ -44,14 +44,14 @@ export function EscapeMenu() {
 
   return (
     <div className="absolute inset-0 z-[9000] flex items-center justify-center bg-black/20 backdrop-blur-[1px] animate-in fade-in duration-200">
-      <div className="relative w-56 bg-[#0c0c0f]/93 backdrop-blur-[1px] flex flex-col overflow-hidden shadow-2xl rounded-none border border-transparent">
+      <div className="relative w-56 bg-surface-base/93 backdrop-blur-[1px] flex flex-col overflow-hidden shadow-2xl rounded-none border border-transparent">
          
          <div className="p-4 flex flex-col gap-2">
             {!showWarning ? (
                <>
                   <button 
                      onClick={handleResume}
-                     className="w-full py-2 px-4 bg-[#1c1c21] border border-transparent text-text-secondary hover:text-text-primary hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none text-sm font-bold text-center mb-2"
+                     className="w-full py-2 px-4 bg-surface-raised border border-transparent text-text-secondary hover:text-text-primary hover:bg-surface-overlay hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none text-sm font-bold text-center mb-2"
                   >
                      Resume Game
                   </button>
@@ -59,7 +59,7 @@ export function EscapeMenu() {
                   {location === 'dungeon' && (
                      <button 
                         onClick={handleForfeit}
-                        className="w-full py-2 px-4 bg-[#1c1c21] border border-transparent text-text-secondary hover:text-text-primary hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none text-sm font-bold text-center"
+                        className="w-full py-2 px-4 bg-surface-raised border border-transparent text-text-secondary hover:text-text-primary hover:bg-surface-overlay hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none text-sm font-bold text-center"
                      >
                         Forfeit Dungeon
                      </button>
@@ -68,7 +68,7 @@ export function EscapeMenu() {
                   {location !== 'dungeon' && (
                      <button 
                         onClick={handleCharacterSelect}
-                        className="w-full py-2 px-4 bg-[#1c1c21] border border-transparent text-text-secondary hover:text-text-primary hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none text-sm font-bold text-center"
+                        className="w-full py-2 px-4 bg-surface-raised border border-transparent text-text-secondary hover:text-text-primary hover:bg-surface-overlay hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none text-sm font-bold text-center"
                      >
                         Character Select
                      </button>
@@ -76,7 +76,7 @@ export function EscapeMenu() {
                   
                   <button 
                      disabled
-                     className="w-full py-2 px-4 bg-[#1c1c21]/40 border border-transparent text-sm font-bold text-text-muted opacity-30 text-center rounded-none"
+                     className="w-full py-2 px-4 bg-surface-raised/40 border border-transparent text-sm font-bold text-text-muted opacity-30 text-center rounded-none"
                   >
                      Options
                   </button>
@@ -87,13 +87,13 @@ export function EscapeMenu() {
                   <p className="text-xs text-text-secondary mb-4">You are currently in a dungeon. Returning to the main menu will forfeit your run.</p>
                   <div className="flex gap-2 w-full">
                      <button 
-                          className="flex-1 py-2 bg-[#1c1c21] border border-transparent text-text-secondary hover:text-text-primary hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none font-bold text-sm"
+                          className="flex-1 py-2 bg-surface-raised border border-transparent text-text-secondary hover:text-text-primary hover:bg-surface-overlay hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none font-bold text-sm"
                           onClick={() => setShowWarning(false)}
                       >
                           Cancel
                      </button>
                      <button 
-                          className="flex-1 py-2 bg-[#1c1c21] border border-transparent text-red-400 hover:text-red-300 hover:bg-[#1e1e23] hover:border-red-500 hover:ring-1 hover:ring-red-500 active:scale-[0.98] rounded-none font-bold text-sm transition-all"
+                          className="flex-1 py-2 bg-surface-raised border border-transparent text-red-400 hover:text-red-300 hover:bg-surface-overlay hover:border-red-500 hover:ring-1 hover:ring-red-500 active:scale-[0.98] rounded-none font-bold text-sm transition-all"
                           onClick={confirmForfeitToMenu}
                       >
                           Forfeit
