@@ -1,5 +1,6 @@
 import { Container, Graphics } from 'pixi.js';
 import type { GridMap, GroundZone } from '../../store/useWorldStore';
+import { getBiome } from '../../data/biomes';
 import { projectTileToScreen } from '../../engine/world/screenProjection';
 import type { ProjectionParams } from '../../engine/world/screenProjection';
 
@@ -7,7 +8,7 @@ const FLOOR_PERSPECTIVE_PX = 2500;
 const FLOOR_TILT_DEG = 52;
 const BASE_TILE_SIZE = 72;
 
-const COLOR_FLOOR_BG = 0x18181b;
+// const COLOR_FLOOR_BG = 0x282828; // Greyscale
 
 // Zone element → hex color
 const ZONE_ELEMENT_COLORS: Record<string, number> = {
@@ -83,19 +84,21 @@ export function createFloorRenderer(): FloorRenderer {
     for (let row = 0; row <= g.height; row++) {
       const gl = rowGridLines[row];
 
-      // Horizontal line
-      gl.moveTo(
-        projCorner(0, row).screenX,
-        projCorner(0, row).screenY,
-      );
-      for (let col = 1; col <= g.width; col++) {
-        const p = projCorner(col, row);
-        gl.lineTo(p.screenX, p.screenY);
+      // Horizontal line (skip top and bottom edges)
+      if (row > 0 && row < g.height) {
+        gl.moveTo(
+          projCorner(0, row).screenX,
+          projCorner(0, row).screenY,
+        );
+        for (let col = 1; col <= g.width; col++) {
+          const p = projCorner(col, row);
+          gl.lineTo(p.screenX, p.screenY);
+        }
       }
 
-      // Vertical line segments going downwards (only if not the last row)
+      // Vertical line segments going downwards (skip left and right edges)
       if (row < g.height) {
-        for (let col = 0; col <= g.width; col++) {
+        for (let col = 1; col < g.width; col++) {
           const p1 = projCorner(col, row);
           const p2 = projCorner(col, row + 1);
           gl.moveTo(p1.screenX, p1.screenY);
@@ -126,8 +129,8 @@ export function createFloorRenderer(): FloorRenderer {
       br.screenX, br.screenY,
       bl.screenX, bl.screenY
     ]);
-    const bgColor = g.environment === 'town' ? 0x1f3d23 : COLOR_FLOOR_BG;
-    bgLayer.fill({ color: bgColor });
+    const biome = getBiome(g.environment);
+    bgLayer.fill({ color: biome.floorColor });
 
     if (g.environment === 'town') {
       const dirtTiles = new Set([
@@ -142,7 +145,7 @@ export function createFloorRenderer(): FloorRenderer {
         // Connections & Path to dungeon (10, 6)
         '4,6', '8,6', '9,6', '10,6'
       ]);
-      const dirtColor = 0x4a3b32; // Lighter dirt color
+      const dirtColor = biome.dirtColor !== undefined ? biome.dirtColor : 0x4a3b32; // Lighter dirt color
       
       for (let y = 0; y < g.height; y++) {
         for (let x = 0; x < g.width; x++) {

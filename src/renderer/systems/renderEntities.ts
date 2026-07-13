@@ -8,6 +8,8 @@ import type { Enemy, LootDrop, Obstacle } from '../../store/useWorldStore';
 import type { HitEffect } from '../../store/useCombatStore';
 import { useWorldStore } from '../../store/useWorldStore';
 import { useLightingStore } from '../../store/useLightingStore';
+import { getBiome } from '../../data/biomes';
+import type { LightingContext } from '../utils/lighting';
 
 // ---- Constants ---------------------------------------------------------------
 const HEALTH_BAR_WIDTH = 90;
@@ -234,7 +236,8 @@ export function createEntityRenderer(): EntityRenderer {
     playerPos: { x: number; y: number },
     pointLights: PointLight[],
     visibleTiles: Set<string>,
-    exploredTiles: Set<string>
+    exploredTiles: Set<string>,
+    ctx: LightingContext
   ) {
     const sx = projected.screenX;
     const sy = projected.screenY;
@@ -245,13 +248,23 @@ export function createEntityRenderer(): EntityRenderer {
     entry.container.zIndex = projected.zDepth + (ENTITY_Z[entry.category] ?? 0);
     
     // Lighting tint
-    let lighting = getTileLighting(wx, wy, playerPos, pointLights);
+    let lighting = getTileLighting(wx, wy, playerPos, pointLights, ctx);
     
-    // If in memory fog (explored but not visible), it receives no direct light
+    // If in memory fog (explored but not visible), it receives no direct light.
+    // Use the biome's ambient color scaled to a visible 18% brightness baseline so they match
+    // the surrounding environment and avoid simultaneous contrast artifacts (looking brown).
     if (!visibleTiles.has(`${wx},${wy}`) && exploredTiles.has(`${wx},${wy}`)) {
-       const minB = Math.floor(useLightingStore.getState().minBrightness * 255);
-       const darkTint = (minB << 16) | (minB << 8) | minB;
-       lighting = { intensity: 0.0, entityTint: darkTint };
+       const minR = ctx.entityAmbient.r;
+       const minG = ctx.entityAmbient.g;
+       const minB = ctx.entityAmbient.b;
+       
+       const ent = Math.max(0.18, ctx.minBrightness);
+       const finalR = Math.floor(minR + (255 - minR) * ent);
+       const finalG = Math.floor(minG + (255 - minG) * ent);
+       const finalB = Math.floor(minB + (255 - minB) * ent);
+       
+       const memoryTint = (finalR << 16) | (finalG << 8) | finalB;
+       lighting = { intensity: 0.0, entityTint: memoryTint };
     }
     
     const tint = lighting.entityTint;
@@ -322,7 +335,17 @@ export function createEntityRenderer(): EntityRenderer {
     const activeKeys = new Set<string>();
     const visibleTilesSet = visibleTiles ?? new Set<string>();
     const exploredTilesSet = exploredTiles ?? new Set<string>();
-    const pointLights = extractLights(useWorldStore.getState().grid);
+    const worldStore = useWorldStore.getState();
+    const pointLights = extractLights(worldStore.grid);
+    const biome = getBiome(worldStore.grid.environment);
+    
+    const ctx: LightingContext = {
+      isTown: worldStore.grid.environment === 'town',
+      playerLightRadius: useLightingStore.getState().playerLightRadiusDungeon,
+      minBrightness: useLightingStore.getState().minBrightness,
+      entityAmbient: biome.entityAmbient,
+      ambientBaseline: biome.ambientBaseline,
+    };
     
     const hitsMap = new Map<string, HitEffect>();
     for (const h of hitEffects) hitsMap.set(h.targetId, h);
@@ -402,7 +425,7 @@ export function createEntityRenderer(): EntityRenderer {
     
     playerEntry.container.zIndex = projPlayer.zDepth;
 
-    setPosition(playerEntry, projPlayer, hopPlayer, playerEntry.currentX, playerEntry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
+    setPosition(playerEntry, projPlayer, hopPlayer, playerEntry.currentX, playerEntry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
     updateFlash(playerEntry, playerKey, playerHit);
     }
 
@@ -481,7 +504,7 @@ export function createEntityRenderer(): EntityRenderer {
          projEnemy.screenY = jitterProj.screenY;
       }
       
-      setPosition(entry, projEnemy, hopEnemy, entry.currentX, entry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
+      setPosition(entry, projEnemy, hopEnemy, entry.currentX, entry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
       
       if (eHit) {
         entry.icon.tint = eHit.color;
@@ -615,7 +638,7 @@ export function createEntityRenderer(): EntityRenderer {
       showEntry(entry);
       {
         const projLoot = projectTileToScreen(drop.position.x, drop.position.y, params);
-        setPosition(entry, projLoot, 0, drop.position.x, drop.position.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
+        setPosition(entry, projLoot, 0, drop.position.x, drop.position.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
 
         const time = Date.now();
         const floatY = Math.sin(time / 400 + drop.position.x) * 4;
@@ -673,7 +696,7 @@ export function createEntityRenderer(): EntityRenderer {
       showEntry(entry);
       {
         const projObs = projectTileToScreen(obs.x, obs.y, params);
-        setPosition(entry, projObs, 0, obs.x, obs.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet);
+        setPosition(entry, projObs, 0, obs.x, obs.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
       }
     }
 

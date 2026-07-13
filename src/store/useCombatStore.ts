@@ -67,7 +67,9 @@ interface CombatState {
   
   comboStep: number;
   lastComboTime: number;
-  advanceCombo: (now: number, timeoutMs: number) => number;
+  comboOtherSkillsCast: number;
+  advanceCombo: (now: number, timeoutMs: number, chainLength?: number) => number;
+  recordSkillCast: (isComboSkill: boolean) => void;
   resetCombo: () => void;
   
   lastSideLanes: Record<string, 'left' | 'right'>;
@@ -142,17 +144,37 @@ export const useCombatStore = create<CombatState>()(
   },
   comboStep: 0,
   lastComboTime: 0,
-  advanceCombo: (now, timeoutMs) => {
+  comboOtherSkillsCast: 0,
+  advanceCombo: (now, timeoutMs, chainLength = 3) => {
     let newStep = 1;
     set((state) => {
       if (now - state.lastComboTime < timeoutMs) {
         newStep = state.comboStep + 1;
+        if (newStep > chainLength) {
+          newStep = 1;
+        }
       }
       return { comboStep: newStep, lastComboTime: now };
     });
     return newStep;
   },
-  resetCombo: () => set({ comboStep: 0, lastComboTime: 0 }),
+  recordSkillCast: (isComboSkill) => {
+    if (isComboSkill) {
+      set({ comboOtherSkillsCast: 0 });
+    } else {
+      set((state) => {
+        if (state.comboStep > 0) {
+          const newCount = state.comboOtherSkillsCast + 1;
+          if (newCount > 1) {
+            return { comboStep: 0, lastComboTime: 0, comboOtherSkillsCast: 0 };
+          }
+          return { comboOtherSkillsCast: newCount };
+        }
+        return state;
+      });
+    }
+  },
+  resetCombo: () => set({ comboStep: 0, lastComboTime: 0, comboOtherSkillsCast: 0 }),
   lastSideLanes: {},
   gcdEndTime: 0,
   lastMoveTime: 0,

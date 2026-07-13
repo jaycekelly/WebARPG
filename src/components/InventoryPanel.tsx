@@ -24,17 +24,14 @@ const SLOT_ICONS: Record<string, React.ElementType> = {
 };
 
 
-const RARITY_COLORS: Record<Rarity, string> = {
-  'Normal': 'border-border-strong text-text-secondary',
-  'Magic': 'border-blue-500/50 text-blue-500',
-  'Rare': 'border-yellow-500/50 text-yellow-500',
-  'Epic': 'border-purple-500/50 text-purple-500',
-  'Legendary': 'border-orange-500/70 text-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.3)]',
-  'Unique': 'border-yellow-400/70 text-yellow-400 shadow-[0_0_8px_rgba(250,204,21,0.3)]',
+const RARITY_TEXT_COLORS: Record<Rarity, string> = {
+  'Normal': 'text-zinc-200',
+  'Magic': 'text-blue-400',
+  'Rare': 'text-yellow-400',
+  'Epic': 'text-purple-400',
+  'Legendary': 'text-orange-400',
+  'Unique': 'text-yellow-300',
 };
-
-// Slot button — purely responsive based on parent grid
-const SLOT_CLASS = 'flex items-center justify-center border rounded transition-all relative bg-surface-base hover:bg-surface-raised z-10';
 
 export function InventoryPanel() {
   const { inventory, equipment, equip, unequip, sellItem, activeWeaponSet, swapWeaponSet } = useInventoryStore();
@@ -68,22 +65,30 @@ export function InventoryPanel() {
   const renderEquipmentRow = (slot: EquipmentSlot, label: string) => {
     const item = equipment[slot];
     const Icon = item ? (ICONS[item.icon] || HelpCircle) : (SLOT_ICONS[slot] || HelpCircle);
-    // Custom borders for the list items
-    const iconClasses = item ? RARITY_COLORS[item.rarity] : 'bg-surface-base/50 border-border-subtle/50 text-text-muted';
 
     return (
       <button
         onClick={() => item && unequip(slot)}
         onMouseEnter={() => setHoveredEqSlot(slot)}
         onMouseLeave={() => setHoveredEqSlot(null)}
-        className={`flex items-center gap-2 py-1 px-1.5 pr-2 rounded transition-all bg-surface-deep/30 hover:bg-surface-raised w-full text-left shrink-0 ${!item ? 'opacity-40 hover:opacity-80' : ''}`}
+        className={`flex items-center gap-2 py-1 px-1.5 pr-2 transition-all w-full text-left shrink-0 rounded-none ring-1 ring-inset ${
+          item 
+            ? 'bg-[#1c1c21]/45 ring-transparent hover:ring-accent/40 hover:bg-[#1e1e23] hover:text-text-primary' 
+            : 'bg-[#0c0c0f]/30 opacity-65 hover:opacity-100 ring-transparent hover:ring-accent/30 hover:bg-[#1e1e23]/30'
+        }`}
       >
-        <div className={`w-9 h-9 shrink-0 flex items-center justify-center rounded border ${iconClasses}`}>
-          <Icon className={`w-5 h-5 ${item ? 'text-text-primary' : ''}`} />
+        <div className={`w-9 h-9 shrink-0 flex items-center justify-center border ${
+          item ? `bg-[#1c1c21] border-white/5 slot-rarity-${item.rarity.toLowerCase()}` : 'bg-[#0c0c0f] border-white/2'
+        }`}>
+          <Icon className={`w-5 h-5 ${
+            item ? RARITY_TEXT_COLORS[item.rarity] : 'text-zinc-500'
+          }`} />
         </div>
         <div className="flex flex-col overflow-hidden min-w-0">
            <span className="text-[14px] font-bold uppercase tracking-wider text-text-muted leading-none">{label}</span>
-           <span className={`text-[16px] font-semibold truncate leading-tight mt-0.5 ${item ? RARITY_COLORS[item.rarity].split(' ')[1] : 'text-text-secondary'}`}>
+           <span className={`text-[16px] font-semibold truncate leading-tight mt-0.5 ${
+             item ? RARITY_TEXT_COLORS[item.rarity] : 'text-text-secondary'
+           }`}>
              {item ? item.name : 'Empty'}
            </span>
         </div>
@@ -97,22 +102,30 @@ export function InventoryPanel() {
       {/* Top Panel: Split Attributes & Loadout */}
       <div className="flex gap-2 shrink-0 mb-2">
         {/* Left Column */}
-        <div className="w-[8rem] flex flex-col gap-2 shrink-0">
+        <div className="w-[rem] flex flex-col gap-2 shrink-0">
           {/* Attributes Panel */}
           <div className="flex flex-col">
-            <div className="flex items-center justify-center w-full mb-3 mt-1">
-              <div className="flex-1 h-px bg-gradient-to-r from-transparent to-border-subtle/50" />
-              <div className="relative flex items-center justify-center w-7 h-7 mx-2 shrink-0 group" title="Character Level">
-                <div className="absolute inset-0 bg-surface-deep border border-accent/50 rotate-45 rounded-[3px] shadow-[0_0_8px_rgba(56,189,248,0.3)] transition-all group-hover:border-accent group-hover:shadow-[0_0_12px_rgba(56,189,248,0.6)]" />
-                <span className="relative text-[24px] font-black text-accent drop-shadow-[0_0_5px_rgba(56,189,248,0.8)] z-10 leading-none select-none">{level}</span>
+            <div className="flex items-center justify-center w-full mb-2 mt-2 select-none px-5">
+              <div className="flex-1 h-px bg-black" />
+              <div className="relative flex items-center justify-center w-8 h-8 mx-[5px] shrink-0 group" title="Character Level">
+                <svg className="absolute -top-[9px] -left-[8px] w-11 h-11 pointer-events-none" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path 
+                    d="M22 2 L42 22 L22 42 L2 22 Z" 
+                    fill="#0c0c0f" 
+                    stroke="currentColor" 
+                    strokeWidth="1.5" 
+                    className="text-accent/40 group-hover:text-accent transition-colors" 
+                  />
+                </svg>
+                <span className="relative text-[26px] font-black text-accent drop-shadow-[0_0_5px_rgba(56,189,248,0.6)] z-10 leading-none pt-[1px]">{level}</span>
               </div>
-              <div className="flex-1 h-px bg-gradient-to-l from-transparent to-border-subtle/50" />
+              <div className="flex-1 h-px bg-black" />
             </div>
             <div className="flex flex-col gap-1 w-full flex-1 justify-center mt-1">
               {(['Strength', 'Dexterity', 'Intelligence', 'Vitality'] as const).map(attr => (
                 <div 
                   key={attr} 
-                  className="bg-surface-deep/60 rounded-lg border border-border-subtle overflow-hidden flex items-center justify-between px-1.5 h-8 w-full"
+                  className="bg-[#0c0c0f] overflow-hidden flex items-center justify-between px-1.5 h-8 w-full"
                   onMouseEnter={() => {
                     const desc = 
                       attr === 'Strength' ? 'Gives 1 armor per point' :
@@ -120,7 +133,7 @@ export function InventoryPanel() {
                       attr === 'Intelligence' ? 'Gives 1 energy per point' :
                       'Gives 4 hp per point';
                     setHoveredCustom(
-                      <div className="w-60 bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none">
+                      <div className="w-60 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
                         <div className="text-xs text-text-secondary leading-relaxed">
                           {desc}
                         </div>
@@ -130,14 +143,14 @@ export function InventoryPanel() {
                   onMouseLeave={() => setHoveredCustom(null)}
                 >
                    <div className="flex flex-row items-center flex-1 px-1 overflow-hidden min-w-0">
-                     <span className="text-text-secondary text-[12px] uppercase tracking-wide leading-none truncate flex-1">{attr}</span>
-                     <div className="h-3.5 w-px bg-border-subtle/80 mx-1.5 shrink-0" />
-                     <span className="font-semibold text-text-primary text-[16px] leading-none shrink-0 w-6 text-center">{getStat(attr).toFixed(0)}</span>
+                      <span className="text-text-secondary text-[12px] uppercase tracking-wide leading-none truncate flex-1">{attr}</span>
+                      <div className="h-3.5 w-px bg-[#2a2a30]/40 mx-1.5 shrink-0" />
+                      <span className="font-semibold text-text-primary text-[16px] leading-none shrink-0 w-6 text-center">{getStat(attr).toFixed(0)}</span>
                    </div>
                    {attributePoints > 0 && (
                      <button 
                        onClick={(e) => allocateAttribute(attr, e.shiftKey ? 5 : 1)}
-                       className="w-5 h-5 rounded bg-accent/20 hover:bg-accent/40 text-accent border border-accent/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 shrink-0 shadow-[0_0_8px_rgba(56,189,248,0.4)] animate-pulse ml-0.5"
+                       className="w-5 h-5 rounded-none bg-accent/20 hover:bg-accent/40 text-accent border border-accent/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 shrink-0 shadow-[0_0_8px_rgba(56,189,248,0.4)] animate-pulse ml-0.5"
                      >
                        <Plus className="w-3 h-3" />
                      </button>
@@ -146,12 +159,16 @@ export function InventoryPanel() {
               ))}
             </div>
             
-            <div className="mt-5.5 flex justify-start">
+            <div className="mt-[calc(1.375rem-4px)] flex justify-start">
               {/* Stats Button */}
-              <button 
-                onClick={() => setStatsPopoutOpen(!statsPopoutOpen)}
-                className={`flex items-center gap-1 py-1 pl-1 pr-3 bg-surface-deep border ${statsPopoutOpen ? 'border-accent text-accent' : 'border-border-strong text-text-secondary'} rounded shadow-sm hover:border-accent hover:text-accent transition-all group`}
-              >
+               <button 
+                 onClick={() => setStatsPopoutOpen(!statsPopoutOpen)}
+                 className={`flex items-center gap-1 py-1.5 pl-1.5 pr-3.5 transition-all rounded-none group ring-1 ring-inset ${
+                   statsPopoutOpen 
+                     ? 'bg-[#1e1e23] ring-accent text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.25)]' 
+                     : 'bg-[#0c0c0f] ring-[#2a2a30]/20 hover:ring-accent/40 hover:bg-[#1e1e23] text-text-secondary hover:text-text-primary'
+                 }`}
+               >
                 <ChevronLeft className={`w-3.5 h-3.5 transition-transform ${statsPopoutOpen ? 'rotate-180 text-accent' : 'text-accent group-hover:-translate-x-0.5'}`} />
                 <span className="text-[9px] font-black uppercase tracking-widest leading-none">Stats</span>
               </button>
@@ -160,7 +177,7 @@ export function InventoryPanel() {
         </div>
 
         {/* Right: Loadout */}
-        <div className="flex-1 flex flex-col bg-surface-base/10 rounded-xl p-2 border border-border-subtle relative">
+        <div className="flex-1 flex flex-col bg-black/20 p-2 relative">
           <div className="grid grid-cols-2 gap-0.5 h-full">
             {/* Left Column */}
             <div className="flex flex-col gap-0.5">
@@ -181,9 +198,9 @@ export function InventoryPanel() {
                 
                 {/* Weapon Swap Button */}
                 <div 
-                  className="absolute right-[-9px] top-1/2 -translate-y-1/2 bg-surface-deep rounded z-20"
+                  className="absolute right-[-9px] top-1/2 -translate-y-1/2 bg-transparent z-20"
                   onMouseEnter={() => setHoveredCustom(
-                    <div className="bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none whitespace-nowrap">
+                    <div className="bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none whitespace-nowrap">
                       <div className="text-xs text-text-secondary leading-relaxed">
                         Swap weapon set
                       </div>
@@ -191,12 +208,12 @@ export function InventoryPanel() {
                   )}
                   onMouseLeave={() => setHoveredCustom(null)}
                 >
-                  <button
-                    onClick={() => swapWeaponSet()}
-                    className="w-[1.4rem] h-[1.4rem] bg-accent/10 hover:bg-accent/20 border border-accent/50 rounded flex items-center justify-center transition-all group shadow-[0_0_8px_rgba(56,189,248,0.2)] hover:shadow-[0_0_12px_rgba(56,189,248,0.4)]"
-                  >
-                    <ArrowRightLeft className="w-3.5 h-3.5 text-accent transition-transform group-hover:scale-110" />
-                  </button>
+                   <button
+                     onClick={() => swapWeaponSet()}
+                     className="w-[1.4rem] h-[1.4rem] bg-[#0c0c0f] hover:bg-[#1e1e23] text-accent ring-1 ring-inset ring-[#2a2a30]/50 hover:ring-accent/40 rounded-none flex items-center justify-center transition-all group shadow-md"
+                   >
+                     <ArrowRightLeft className="w-3.5 h-3.5 text-accent transition-transform group-hover:scale-110" />
+                   </button>
                 </div>
                 
                 {renderEquipmentRow('weapon2', `Off Hand (${activeWeaponSet === 1 ? 'I' : 'II'})`)}
@@ -207,11 +224,10 @@ export function InventoryPanel() {
       </div>
 
       {/* Bottom Panel: Backpack */}
-      <div className="flex flex-col flex-1 overflow-hidden min-h-0 bg-surface-deep border border-border-subtle rounded-xl">
+      <div className="flex flex-col flex-1 overflow-hidden min-h-0 bg-black/20">
         <div className="grid grid-cols-10 gap-1 auto-rows-max px-1.5 pt-1.5 pb-1 content-start flex-1 overflow-y-auto custom-scrollbar">
           {Array.from({ length: 50 }).map((_, i) => {
             const item = inventory[i] ?? null;
-            const rarityClasses = item ? RARITY_COLORS[item.rarity] : 'bg-surface-base/50 border-border-subtle/30';
 
             return (
               <button
@@ -226,11 +242,13 @@ export function InventoryPanel() {
                 }}
                 onMouseEnter={() => setHoveredInvIndex(i)}
                 onMouseLeave={() => setHoveredInvIndex(null)}
-                className={`${SLOT_CLASS} ${rarityClasses} aspect-square w-full h-auto`}
+                className={`aspect-square w-full h-auto flex items-center justify-center relative transition-all ${
+                  item ? `slot-filled slot-rarity-${item.rarity.toLowerCase()}` : 'slot-empty'
+                }`}
               >
                 {item && (() => {
                   const ItemIcon = ICONS[item.icon] || HelpCircle;
-                  return <ItemIcon className="w-5 h-5 shrink-0 text-text-primary" />;
+                  return <ItemIcon className={`w-5 h-5 shrink-0 ${RARITY_TEXT_COLORS[item.rarity]}`} />;
                 })()}
               </button>
             );

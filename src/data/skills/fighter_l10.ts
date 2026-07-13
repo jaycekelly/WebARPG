@@ -77,7 +77,7 @@ export const heavy_strike_combo_3: Skill = {
 export const heavy_strike_combo: Skill = {
   id: 'heavy_strike_combo',
   name: 'Heavy Strike Combo',
-  description: 'Free 3-hit combo: Vanguard Strike, Sweeping Cleave, Overhead Strike. Resets after 3s of inactivity.',
+  description: 'Free 3-hit combo: Vanguard Strike, Sweeping Cleave, Overhead Strike. Resets after 5s of inactivity or casting more than 1 other skill.',
   icon: 'Swords',
   tags: ['Attack', 'Melee', 'Physical', 'Strike'],
   energyCost: 0,
@@ -86,12 +86,13 @@ export const heavy_strike_combo: Skill = {
   castTime: 0,
   targeting: 'Single',
   comboChainIds: ['heavy_strike_combo_1', 'heavy_strike_combo_2', 'heavy_strike_combo_3'],
-  comboTimeoutMs: 3000,
+  comboTimeoutMs: 5000,
   effects: [
     { type: 'damage', damageMultiplier: 1.1, element: 'Strike' }
   ],
   requiredLevel: 0,
-  classRequirement: 'Fighter'
+  classRequirement: 'Fighter',
+  disableInTown: true
 };
 
 // --- (Removed from starting kit for now) Kinetic Impact --------------------
@@ -171,7 +172,8 @@ export const shield_break: Skill = {
     { type: 'damage', damageMultiplier: 3.0, element: 'Strike', bonusDamageIfSundered: 25 }
   ],
   requiredLevel: 0,
-  classRequirement: 'Fighter'
+  classRequirement: 'Fighter',
+  disableInTown: true
 };
 
 // --- Slot 5: Ground Slam -----------------------------------------------------
@@ -198,7 +200,8 @@ export const ground_slam: Skill = {
     { type: 'damage', damageMultiplier: 2.25, element: 'Strike' }
   ],
   requiredLevel: 0,
-  classRequirement: 'Fighter'
+  classRequirement: 'Fighter',
+  disableInTown: true
 };
 
 // --- Zealous Blow (Proc) -----------------------------------------------------
@@ -236,7 +239,8 @@ export const zealous_blow: Skill = {
     }
   ],
   requiredLevel: 0,
-  classRequirement: 'Fighter'
+  classRequirement: 'Fighter',
+  disableInTown: true
 };
 
 export const FIGHTER_L10_SKILLS: Record<string, Skill> = {

@@ -2,7 +2,6 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { useWorldStore } from '../store/useWorldStore';
 import { useCombatStore } from '../store/useCombatStore';
 import { InputHandler, getEffectiveCastTime, getEffectiveEnergyCost, getEffectiveGcd, getMainHandAttackCooldown, getOffHandAttackCooldown } from '../engine/input/InputHandler';
-import { hasLineOfSight, getChebyshevDistance } from '../engine/world/gridMath';
 import { useStatsStore } from '../store/useStatsStore';
 import { useBuffStore } from '../store/useBuffStore';
 import { useSkillStore } from '../store/useSkillStore';
@@ -11,23 +10,24 @@ import { useInventoryStore } from '../store/useInventoryStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import { useVisionStore } from '../store/useVisionStore';
 import { useMessageStore } from '../store/useMessageStore';
-import { FlaskConical, X, Flame, ArrowUpCircle, Backpack, BookOpen, Sparkles } from 'lucide-react';
+import { FlaskConical, Flame, ArrowUpCircle, Backpack, BookOpen, Sparkles } from 'lucide-react';
 import { IconWhirl } from '@tabler/icons-react';
 import { useEffect, useState } from 'react';
 import { SKILLS } from '../data/skills';
 import { setRunState } from '../store/storage';
 
 import { ICONS } from './IconLibrary';
+import { SkillTooltip } from './SkillTooltip';
 
 const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => {
   return Math.max(Math.abs(p1.x - p2.x), Math.abs(p1.y - p2.y));
 };
 
 export function CombatOverlay() {
-  const { playerClass, secondaryClass, activeTargetId, setTarget, position, currentEnergy, currentAdrenaline, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore();
+  const { playerClass, secondaryClass, activeTargetId, position, currentEnergy, currentAdrenaline, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore();
   const setContent = useTooltipStore(state => state.setContent);
   const { enemies } = useWorldStore();
-  const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime } = useCombatStore();
+  const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime, comboStep, lastComboTime } = useCombatStore();
   const { getStat } = useStatsStore();
   const { entityBuffs } = useBuffStore();
   const { unlockedActives } = useSkillStore();
@@ -172,7 +172,7 @@ export function CombatOverlay() {
           targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId);
         }
         
-        if (targetEntity && !useAppStore.getState().isPaused) {
+        if (targetEntity) {
           InputHandler.requestAction({ type: 'skill', skillId: boundId, targetPos: targetEntity.position, targetId: targetEntity.id });
         } else {
           InputHandler.requestAction({ type: 'skill', skillId: boundId });
@@ -201,15 +201,15 @@ export function CombatOverlay() {
              name: 'Flask Recovery',
              type: 'buff',
              stackingBehavior: 'refresh',
-             durationMs: 3000,
-             maxDurationMs: 3000,
+             durationMs: 2000,
+             maxDurationMs: 2000,
              stacks: 1,
              maxStacks: 1,
-             icon: 'Droplet',
+             icon: 'FlaskConical',
              statModifiers: [],
              isHoT: true,
              hotTickRateMs: 50,
-             hotHealPerTick: (maxHp * 0.5) / (3000 / 50)
+             hotHealPerTick: (maxHp * 0.3) / (2000 / 50)
            });
            
            useCombatStore.getState().addLog('Used Healing Flask.', 'system');
@@ -230,23 +230,17 @@ export function CombatOverlay() {
       {/* Target Frame (Top Center) */}
       <div className="flex justify-center pointer-events-none pt-4">
         {target && (
-          <div className="bg-surface-deep border-2 border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.15)] rounded-lg pt-1.5 pb-2.5 px-2 flex flex-col items-center w-fit relative pointer-events-auto animate-[fadeIn_0.3s_ease-out]">
-            <button onClick={() => setTarget(null, true)} className="absolute top-1 right-1 text-text-secondary hover:text-text-primary transition-colors z-40">
-              <X className="w-3 h-3" />
-            </button>
-            <div className="flex-col justify-center w-[13.1875rem]">
-              <div className="font-bold text-text-primary text-sm mb-1.5 leading-none text-center [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">{target.name}</div>
-              <div className="relative h-[0.875rem] w-full bg-surface-deep rounded-[0.125rem] overflow-hidden border border-border-subtle shadow-inner">
-                <div 
-                  className="absolute top-0 left-0 h-full transition-all duration-150 border-r border-red-950 z-20"
-                  style={{ 
-                    width: `${healthPercent}%`,
-                    background: 'linear-gradient(to bottom, #dc2626 0%, #dc2626 50%, #991b1b 50%, #991b1b 100%)'
-                  }}
-                />
-                <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-30 font-mono tracking-widest pt-[0.0625rem]">
-                  {target.health > 0 ? Math.max(1, Math.floor(target.health)) : 0}/{target.stats.maxHealth}
-                </div>
+          <div className="flex flex-col items-center w-[13.1875rem] relative pointer-events-auto animate-[fadeIn_0.3s_ease-out] select-none">
+            <div className="font-bold text-text-primary text-sm mb-1.5 leading-none text-center [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">{target.name}</div>
+            <div className="relative h-[0.875rem] w-full bg-[#0c0c0f] rounded-none overflow-hidden border border-[#2a2a30]/40 shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+              <div 
+                className="absolute top-0 left-0 h-full transition-all duration-150 border-r border-red-950 z-20 bg-[#dc2626]"
+                style={{ 
+                  width: `${healthPercent}%`
+                }}
+              />
+              <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-30 font-mono tracking-widest pt-[0.0625rem]">
+                {target.health > 0 ? Math.max(1, Math.floor(target.health)) : 0}/{target.stats.maxHealth}
               </div>
             </div>
           </div>
@@ -285,8 +279,8 @@ export function CombatOverlay() {
           <>
           {showInteract && (
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-[11rem] pointer-events-none z-50 flex flex-col items-center animate-in fade-in duration-300">
-               <div className="bg-surface-deep/80 border border-border-subtle rounded-md pl-2 pr-2.5 py-1.5 backdrop-blur-sm flex items-center gap-2.5 shadow-md">
-                  <span className="text-[0.65rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded w-5 h-5 flex items-center justify-center shadow-sm leading-none font-mono">F</span>
+               <div className="bg-surface-deep/93 rounded-none pl-2 pr-3 py-1.5 flex items-center gap-2.5 shadow-md border-none">
+                  <span className="text-xs font-black tracking-widest text-text-primary bg-[#1e1e23] rounded-none w-6 h-6 flex items-center justify-center shadow-sm leading-none font-mono">F</span>
                   <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">{interactText}</span>
                </div>
             </div>
@@ -339,101 +333,103 @@ export function CombatOverlay() {
           <div className="flex flex-col items-center gap-1 pointer-events-none w-[12.75rem]">
             
             {/* Cast Bar (Top) */}
-            {castingSkillId && castEndTime > 0 && (SKILLS[castingSkillId] || castingSkillId === 'portal_skill') && (
-              <div className="flex flex-col items-center w-[9.5625rem] mb-1">
-                <div className="text-xs text-center whitespace-nowrap text-text-primary mb-0.5 font-bold [text-shadow:2px_2px_1px_rgba(0,0,0,1)] tracking-wide">
-                  {castingSkillId === 'portal_skill' ? 'Forfeiting' : SKILLS[castingSkillId].name}
+            <div className="h-10 flex flex-col items-center justify-end w-full">
+              {castingSkillId && castEndTime > 0 && (SKILLS[castingSkillId] || castingSkillId === 'portal_skill') ? (
+                <div className="flex flex-col items-center w-[8rem] mb-1">
+                  <div className="text-xs text-center whitespace-nowrap text-text-primary -mt-[7px] mb-[3.5px] font-bold [text-shadow:2px_2px_1px_rgba(0,0,0,1)] tracking-wide">
+                    {castingSkillId === 'portal_skill' ? 'Forfeiting' : SKILLS[castingSkillId].name}
+                  </div>
+                  <div className="h-3.5 w-full bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
+                    <div
+                      className="h-full transition-all duration-75 bg-[#9333ea]"
+                      style={{ 
+                        width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, castingSkillId === 'portal_skill' ? 4000 : getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%`
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="h-3.5 w-full bg-surface-deep rounded-none border border-border-subtle overflow-hidden shadow-inner">
-                  <div
-                    className="h-full transition-all duration-75 border-r border-[#6b21a8]"
-                    style={{ 
-                      width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, castingSkillId === 'portal_skill' ? 4000 : getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%`,
-                      background: 'linear-gradient(to bottom, #a855f7 0%, #a855f7 50%, #9333ea 50%, #9333ea 100%)'
-                    }}
-                  />
-                </div>
-              </div>
-            )}
+              ) : null}
+            </div>
 
             {/* Main Hand Swing Timer (Middle) */}
-            {isMainTimerActive && (
-              <div className="h-1.5 w-full bg-surface-deep rounded-none border border-border-subtle overflow-hidden shadow-inner">
+            <div className={`h-3 w-full flex items-center ${isMainTimerActive ? '' : 'opacity-0 pointer-events-none'}`}>
+              <div className="h-[5px] w-full bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
                 <div 
-                  className="h-full transition-all duration-75 border-r border-amber-950"
+                  className="h-full transition-all duration-75 bg-[#d97706]"
                   style={{ 
-                    width: `${Math.max(0, 100 - (timeSinceMainAttack / mainHandCooldown) * 100)}%`,
-                    background: 'linear-gradient(to bottom, #f59e0b 0%, #f59e0b 50%, #d97706 50%, #d97706 100%)'
+                    width: `${Math.max(0, 100 - (timeSinceMainAttack / mainHandCooldown) * 100)}%`
                   }}
                 />
               </div>
-            )}
+            </div>
 
             {/* Off-Hand Swing Timer (Bottom) */}
-            {isOffTimerActive && (
-              <div className="h-1.5 w-full bg-surface-deep rounded-none border border-border-subtle overflow-hidden shadow-inner opacity-80">
+            <div className={`h-3 w-full flex items-center ${isOffTimerActive ? '' : 'opacity-0 pointer-events-none'}`}>
+              <div className="h-[5px] w-full bg-black/40 overflow-hidden backdrop-blur-md rounded-none opacity-80">
                 <div 
-                  className="h-full transition-all duration-75 border-r border-amber-950"
+                  className="h-full transition-all duration-75 bg-[#d97706]"
                   style={{ 
-                    width: `${Math.max(0, 100 - (timeSinceOffAttack / offHandCooldown) * 100)}%`,
-                    background: 'linear-gradient(to bottom, #f59e0b 0%, #f59e0b 50%, #d97706 50%, #d97706 100%)'
+                    width: `${Math.max(0, 100 - (timeSinceOffAttack / offHandCooldown) * 100)}%`
                   }}
                 />
               </div>
-            )}
+            </div>
           </div>
 
-        {/* Active Buffs */}
-        {visiblePlayerBuffs.length > 0 && (
-          <div className="flex gap-1.5 justify-center mb-1">
-            {visiblePlayerBuffs.map(buff => {
-              const BuffIcon = ICONS[buff.icon] || ArrowUpCircle;
-              return (
-                <div key={buff.id} className="relative group">
-                  <div className={`w-8 h-8 rounded-sm border flex flex-col items-center justify-center bg-surface-base overflow-hidden shadow-lg ${buff.type === 'buff' ? 'border-sky-400/50 text-sky-400' : 'border-red-500/50 text-red-500'}`}>
-                    <BuffIcon className="w-4 h-4 opacity-80" />
-                    {buff.stacks > 1 && (
-                      <span className="absolute bottom-0 right-0 text-[0.5rem] font-bold bg-surface-base/80 px-1 rounded-tl">{buff.stacks}</span>
-                    )}
-                    {/* Visual duration wipe */}
-                    {buff.durationMs && buff.maxDurationMs && (
-                      <div 
-                        className="absolute bottom-0 left-0 w-full bg-black/50 origin-bottom"
-                        style={{ height: `${(buff.durationMs / buff.maxDurationMs) * 100}%` }}
-                      />
-                    )}
-                  </div>
-                  {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-surface-overlay border border-border-strong rounded px-2 py-1 text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-2xl">
-                    <div className={`font-bold mb-1 ${buff.type === 'buff' ? 'text-sky-400' : 'text-red-500'}`}>{buff.name}</div>
-                    {buff.durationMs ? (
-                       <div className="text-text-secondary mb-1 font-mono">{(buff.durationMs / 1000).toFixed(1)}s remaining</div>
-                    ) : (
-                       <div className="text-text-secondary mb-1 italic">Permanent</div>
-                    )}
-                    {buff.statModifiers.map((mod, i) => {
-                      const sign = mod.value > 0 ? '+' : '';
-                      const suffix = mod.type === 'increased' ? '%' : '';
-                      return <div key={i} className="text-text-primary">{sign}{mod.value * buff.stacks}{suffix} {mod.stat}</div>;
-                    })}
-                  </div>
+        {/* Active Buffs (fixed h-8 container to prevent bar bouncing) */}
+        <div className="flex gap-1.5 justify-center h-8 mb-1">
+          {visiblePlayerBuffs.map(buff => {
+            const BuffIcon = ICONS[buff.icon] || ArrowUpCircle;
+            const isExpiring = buff.durationMs !== null && buff.durationMs < 2500;
+            return (
+              <div key={buff.id} className="relative group">
+                <div className={`w-7 h-7 rounded-none border flex flex-col items-center justify-center bg-surface-base overflow-hidden shadow-lg ${buff.type === 'buff' ? 'border-sky-400/50 text-sky-400' : 'border-red-500/50 text-red-500'} ${isExpiring ? 'animate-pulse' : ''}`}>
+                  <BuffIcon className="w-3.5 h-3.5 opacity-80" />
+                  {buff.stacks > 1 && (
+                    <span className="absolute bottom-0 right-0 text-[0.5rem] font-bold bg-surface-base/80 px-1 rounded-none z-20">{buff.stacks}</span>
+                  )}
+                  {/* Visual duration wipe */}
+                  {buff.durationMs && buff.maxDurationMs && (
+                    <div 
+                      className="absolute bottom-0 left-0 w-full bg-black/50 origin-bottom"
+                      style={{ height: `${(1 - buff.durationMs / buff.maxDurationMs) * 100}%` }}
+                    />
+                  )}
+                  {/* Duration Text Overlay */}
+                  {buff.durationMs && (
+                    <span className="absolute text-[0.55rem] font-bold text-white z-10 [text-shadow:1px_1px_1px_rgba(0,0,0,1)] pointer-events-none">
+                      {Math.ceil(buff.durationMs / 1000)}
+                    </span>
+                  )}
                 </div>
-              );
-            })}
-          </div>
-        )}
+                {/* Tooltip */}
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-[#141417]/95 backdrop-blur-md border border-transparent rounded-none px-2 py-1 text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-2xl">
+                  <div className={`font-bold mb-1 ${buff.type === 'buff' ? 'text-sky-400' : 'text-red-500'}`}>{buff.name}</div>
+                  {buff.durationMs ? (
+                     <div className="text-text-secondary mb-1 font-mono">{(buff.durationMs / 1000).toFixed(1)}s remaining</div>
+                  ) : (
+                     <div className="text-text-secondary mb-1 italic">Permanent</div>
+                  )}
+                  {buff.statModifiers.map((mod, i) => {
+                    const sign = mod.value > 0 ? '+' : '';
+                    const suffix = mod.type === 'increased' ? '%' : '';
+                    return <div key={i} className="text-text-primary">{sign}{mod.value * buff.stacks}{suffix} {mod.stat}</div>;
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
         {/* Main Skill Bar with Docked Flask */}
-        <div className="relative flex items-end pointer-events-auto mt-1 w-max">
+        <div className="relative flex items-end pointer-events-auto mt-1 w-max mb-5">
             
             {/* Docked Flask Slot (Offset to the left of the center skill bar) */}
-            <div className="absolute right-full mr-1.5 bottom-0 h-12 flex items-center justify-center drop-shadow-2xl gap-1.5">
-               <div className="relative w-10 h-10">
+            <div className="absolute right-full mr-2 bottom-0 h-12 flex items-center justify-center drop-shadow-2xl gap-2">
+               <div className="relative w-12 h-12 flex flex-col items-center justify-center">
                   <button 
-                    className={`relative w-full h-full rounded-lg border flex items-center justify-center overflow-hidden transition-all focus:outline-none focus:ring-0
-                      ${now - lastFlaskTime >= 30000 
-                         ? 'bg-surface-deep border-border-subtle hover:border-accent'
-                         : 'bg-surface-deep border-border-subtle cursor-not-allowed'}
+                    className={`relative w-full h-full flex items-center justify-center transition-all bg-transparent focus:outline-none focus:ring-0 group
+                      ${now - lastFlaskTime < 30000 ? 'cursor-not-allowed grayscale brightness-50' : ''}
                     `}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -458,41 +454,81 @@ export function CombatOverlay() {
                       }
                     }}
                     onMouseEnter={() => setContent(
-                     <div className="w-52 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1 text-left pointer-events-none backdrop-blur-md">
-                       <div className="font-bold text-red-400 mb-1">
-                         Healing Flask
-                       </div>
-                       <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-border-subtle uppercase tracking-widest">
-                         30.0 CD
-                       </div>
-                       <div className="text-xs text-text-primary leading-snug mb-1">
-                         Restores <span className="text-red-400 font-bold">30%</span> of your maximum health over <span className="text-text-primary font-bold">2 seconds</span>.
-                       </div>
-                     </div>
-                   )}
+                      <div className="w-52 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
+                        <div className="font-bold text-sm text-red-400 mb-1">
+                          Healing Flask
+                        </div>
+                        <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-[#2a2a30]/40 uppercase tracking-widest">
+                          30.0 CD
+                        </div>
+                        <div className="text-xs text-text-secondary leading-snug mb-1">
+                          Restores <span className="text-red-400 font-bold">30%</span> of your maximum health over <span className="text-text-secondary font-bold">2 seconds</span>.
+                        </div>
+                      </div>
+                    )}
                    onMouseLeave={() => setContent(null)}
                   >
-                     <FlaskConical className="w-5 h-5 text-red-500 drop-shadow-[0_0_8px_rgba(239,68,68,0.5)] z-10" />
-                     {now - lastFlaskTime < 30000 && (
-                        <div 
-                          className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
-                          style={{ background: `conic-gradient(transparent ${100 - ((30000 - (now - lastFlaskTime)) / 30000) * 100}%, rgba(0,0,0,0.7) 0)` }}
-                        >
-                          <span className="text-white font-bold text-sm z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
-                            {Math.ceil((30000 - (now - lastFlaskTime)) / 1000)}
-                          </span>
-                        </div>
-                     )}
+                     <FlaskConical className="mt-1 w-6 h-6 text-red-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] z-10 transition-transform group-hover:scale-110" />
+                     {now - lastFlaskTime < 30000 && (() => {
+                         const timeRemaining = 30000 - (now - lastFlaskTime);
+                         const activePercent = (timeRemaining / 30000) * 100;
+                         return (
+                           <div className="absolute inset-0 z-20 pointer-events-none">
+                             {/* Dim the square slot corners */}
+                             <div className="absolute inset-0 bg-black/20 rounded-none" />
+                             
+                             {/* Centered circular sweep window */}
+                             <div 
+                                className="absolute w-10 h-10 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full overflow-hidden"
+                                style={{ background: `conic-gradient(from 0deg, transparent ${100 - activePercent}%, rgba(255,255,255,0.95) ${100 - activePercent}%, rgba(0,0,0,0.50) ${Math.min(100, 100 - activePercent + 2)}%, rgba(0,0,0,0.50) 100%)` }}
+                             />
+                             
+                             {/* Countdown Text */}
+                             <div className="absolute inset-0 flex items-center justify-center z-30">
+                               <span className="text-white font-bold text-xs [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
+                                 {Math.ceil(timeRemaining / 1000)}
+                               </span>
+                             </div>
+                           </div>
+                         );
+                      })()}
                   </button>
-                  <span className="absolute bottom-0.5 left-1 text-xs font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] z-30 pointer-events-none">{`R`}</span>
+                  
+                  {/* Floating Hotkey */}
+                  <div className="absolute -bottom-5 w-4 h-4 bg-zinc-900 flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-[0_2px_4px_rgba(0,0,0,0.5)] pointer-events-none">
+                    R
+                  </div>
+                  {/* Underline */}
+                  <div className="absolute bottom-0 left-[20%] w-[60%] h-[4px] bg-zinc-900 drop-shadow-md pointer-events-none" />
                </div>
-               <div className="w-px h-8 bg-border-subtle" />
+               {/* Vertical Separator */}
+               <div className="w-[4px] h-5 bg-zinc-900 self-end mr-1" />
             </div>
 
             {/* Main Skill Bar */}
-            <div className="flex gap-1 drop-shadow-2xl">
+            <div className="flex gap-1 drop-shadow-2xl relative">
+              
               {boundSkills.slice(0, 8).map((skillId, index) => {
-                const skill = skillId ? SKILLS[skillId] : null;
+                let skill = skillId ? SKILLS[skillId] : null;
+
+                // Resolve dynamic combo chain steps for active displaying
+                if (skill && skill.comboChainIds && skill.comboChainIds.length > 0) {
+                  const timeoutMs = skill.comboTimeoutMs || 5000;
+                  const isComboActive = now - lastComboTime < timeoutMs;
+                  const activeStep = isComboActive ? (comboStep % skill.comboChainIds.length) : 0;
+                  const chainSkillId = skill.comboChainIds[activeStep];
+                  const chainSkill = SKILLS[chainSkillId];
+                  if (chainSkill) {
+                    skill = {
+                      ...skill,
+                      icon: chainSkill.icon,
+                      name: chainSkill.name,
+                      description: chainSkill.description,
+                      effects: chainSkill.effects,
+                    };
+                  }
+                }
+
                 const IconComponent = skill ? (ICONS[skill.icon] || Flame) : null;
                 
                 let outOfRange = false;
@@ -527,7 +563,7 @@ export function CombatOverlay() {
                    }
                 }
 
-                const isOnGcd = timeUntilGcdFree > 0 && timeUntilGcdFree >= timeUntilSkillFree;
+                // const isOnGcd = timeUntilGcdFree > 0 && timeUntilGcdFree >= timeUntilSkillFree;
                 
                 const isCastingThis = castingSkillId === skillId;
                 let castPercent = 0;
@@ -542,12 +578,10 @@ export function CombatOverlay() {
                 const isProcced = skill?.requiresBuffId && hasRequiredBuff;
 
                 return (
-                  <div key={index} className="relative">
+                  <div key={index} className="relative flex flex-col items-center">
                     <button
-                      className={`relative w-12 h-12 flex items-center justify-center rounded-lg border transition-all overflow-hidden bg-surface-deep focus:outline-none focus:ring-0
-                        ${isBinding ? 'border-accent bg-surface-raised animate-pulse' : 
-                          isProcced ? 'border-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.5)]' :
-                          'border-border-subtle hover:border-accent'}
+                      className={`relative w-12 h-12 flex items-center justify-center transition-all bg-transparent focus:outline-none focus:ring-0 group
+                        ${isBinding ? 'animate-pulse scale-110' : ''}
                         ${(outOfEnergy || missingBuff) && !isBinding ? 'grayscale brightness-50' : ''}
                       `}
                       onClick={(e) => {
@@ -558,30 +592,16 @@ export function CombatOverlay() {
                         }
                         if (!skill) return;
                         
-                        // Execute skill logic
-                        const appState = useAppStore.getState();
                         const playerState = usePlayerStore.getState();
                         const worldState = useWorldStore.getState();
                         const combatState = useCombatStore.getState();
-                        let canAutoTarget = false;
                         let targetEntity = null;
 
                         if (playerState.activeTargetId) {
-                          targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId);
-                          if (targetEntity && !targetEntity.isDead) {
-                            const effectiveRange = skill.range > 0 ? skill.range : ((useInventoryStore.getState().equipment['weapon1'] as any)?.range || 1);
-                            const dist = getChebyshevDistance(playerState.position, targetEntity.position);
-                            const isSolid = (x: number, y: number) => {
-                              if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
-                              return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
-                            };
-                            if (dist <= effectiveRange && hasLineOfSight(playerState.position, targetEntity.position, isSolid)) {
-                              canAutoTarget = true;
-                            }
-                          }
+                          targetEntity = worldState.enemies.find(e => e.id === playerState.activeTargetId && !e.isDead);
                         }
                         
-                        if (!appState.isPaused && canAutoTarget && targetEntity) {
+                        if (targetEntity) {
                           InputHandler.requestAction({ type: 'skill', skillId: skill.id, targetPos: targetEntity.position, targetId: targetEntity.id });
                         } else {
                           combatState.setTargetingSkill(skill.id);
@@ -594,73 +614,7 @@ export function CombatOverlay() {
                       }}
                       onMouseEnter={() => {
                         if (!isBinding && skill) {
-                          setContent(
-                            <div className="w-56 bg-surface-overlay border border-border-strong rounded-lg shadow-2xl px-2 py-1.5 text-left pointer-events-none backdrop-blur-md">
-                              <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
-                              <div className="flex flex-col text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle uppercase tracking-widest gap-1">
-                                {(() => {
-                                  const stats = [];
-                                  if (getEffectiveEnergyCost(skill) > 0) stats.push({ val: getEffectiveEnergyCost(skill), lbl: 'Energy' });
-                                  if (skill.adrenalineCost) stats.push({ val: skill.adrenalineCost, lbl: 'Adrenaline' });
-                                  if (skill.cooldownMs) stats.push({ val: (skill.cooldownMs / 1000).toFixed(1), lbl: 'CD' });
-                                  if (skill.castTime) stats.push({ val: (getEffectiveCastTime(skill) / 1000).toFixed(1) + 's', lbl: 'Cast' });
-                                  stats.push({ val: skill.range > 1 ? skill.range : 'Melee', lbl: skill.range > 1 ? 'Range' : '' });
-                                  
-                                  const rows = [];
-                                  for (let i = 0; i < stats.length; i += 2) {
-                                    rows.push(stats.slice(i, i + 2));
-                                  }
-                                  
-                                  return rows.map((row, i) => (
-                                    <div key={i} className="flex justify-between items-center border-b border-border-subtle/50 pb-0.5 last:border-0 last:pb-0">
-                                      <div className="flex items-center gap-1">
-                                        <span>{row[0].val}</span>
-                                        {row[0].lbl && <span>{row[0].lbl}</span>}
-                                      </div>
-                                      {row[1] && (
-                                        <div className="flex items-center gap-1 text-right">
-                                          <span>{row[1].val}</span>
-                                          {row[1].lbl && <span>{row[1].lbl}</span>}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ));
-                                })()}
-                              </div>
-                              {skill.effects.some(e => e.type === 'damage') && (
-                                <div className="mb-1 pb-1 border-b border-border-subtle space-y-0.5">
-                                  {skill.effects.filter(e => e.type === 'damage').map((effect, i) => {
-                                    const weaponDamage = useStatsStore.getState().getStat('WeaponDamage');
-                                    const weaponType = (useInventoryStore.getState().equipment['weapon1'] as any)?.damageType || 'Physical';
-                                    const mult = effect.damageMultiplier || 0;
-                                    const base = effect.baseValue || 0;
-                                    const totalAvg = base + (weaponDamage * mult);
-                                    const el = effect.element || (mult > 0 ? weaponType : 'Physical');
-                                    
-                                    if (skill.id === 'basic_attack') {
-                                      const min = Math.floor(totalAvg * 0.75);
-                                      const max = Math.ceil(totalAvg * 1.25);
-                                      return (
-                                      <div key={i} className="text-xs text-text-secondary">
-                                        {min} - {max} {el} Damage
-                                      </div>
-                                    );
-                                  }
-                                    
-                                    return (
-                                      <div key={i} className="text-xs text-text-secondary">
-                                        {Math.floor(totalAvg)} {el} Damage
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-
-                              <div className="text-xs text-text-secondary leading-snug">
-                                 {skill.description}
-                              </div>
-                            </div>
-                          );
+                          setContent(<SkillTooltip skill={skill} />);
                         }
                       }}
                       onMouseLeave={() => {
@@ -668,46 +622,58 @@ export function CombatOverlay() {
                       }}
                     >
                       {skill && IconComponent ? (
-                        <div className={`relative z-10 w-full h-full flex items-center justify-center ${outOfRange ? 'opacity-50' : ''}`}>
-                          <IconComponent className={`w-7 h-7 drop-shadow-md text-sky-400`} />
+                        <div className={`relative z-10 w-full h-full flex items-center justify-center transition-transform group-hover:scale-110 ${outOfRange ? 'opacity-50' : ''}`}>
+                          <IconComponent className={`mb-1.5 w-8 h-8 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] text-sky-400 ${isProcced ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]' : ''}`} />
                         </div>
                       ) : null}
 
-                      {/* Cooldown Overlay */}
+                      {/* Cooldown Overlay (FFXIV style: circular sweep inside a square slot) */}
                       {onCooldown && skill && (
-                        <div 
-                           className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none"
-                           style={{ background: `conic-gradient(transparent ${100 - activePercent}%, rgba(0,0,0,0.7) 0)` }}
-                        >
-                            <span className="text-white font-bold text-[0.625rem] z-30 [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
-                               {(Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000).toFixed(1)}
-                            </span>
-                           {isOnGcd && (
-                              <div className="absolute inset-0 border-2 border-border-strong/50 rounded-lg animate-pulse pointer-events-none" />
-                           )}
+                        <div className="absolute inset-0 z-20 pointer-events-none">
+                          {/* Dim the square slot corners */}
+                          <div className="absolute inset-0 bg-black/20 rounded-none" />
+                          
+                          {/* Centered circular sweep window (outline removed, scaled up) */}
+                          <div 
+                             className="absolute w-[2.75rem] h-[2.75rem] top-[0.125rem] left-[0.125rem] rounded-full overflow-hidden"
+                             style={{ background: `conic-gradient(from 0deg, transparent ${100 - activePercent}%, rgba(255,255,255,0.95) ${100 - activePercent}%, rgba(0,0,0,0.50) ${Math.min(100, 100 - activePercent + 2)}%, rgba(0,0,0,0.50) 100%)` }}
+                          />
+                          
+                          {/* Countdown Text */}
+                          <div className="absolute inset-0 flex items-center justify-center z-30">
+                             <span className="text-white font-bold text-xs [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
+                                {(() => {
+                                  const remainingSec = Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000;
+                                  return remainingSec < 2.0 ? remainingSec.toFixed(1) : remainingSec.toFixed(0);
+                                })()}
+                             </span>
+                          </div>
                         </div>
                       )}
                       
                       {/* Casting Overlay */}
                       {isCastingThis && skill && (
-                        <div className="absolute inset-0 bg-sky-900/40 z-20 overflow-hidden border border-sky-400/50">
+                        <div className="absolute inset-0 bg-sky-900/30 z-20 overflow-hidden pointer-events-none rounded-md">
                            <div 
-                             className="absolute bottom-0 left-0 w-full bg-sky-400/30 transition-none" 
+                             className="absolute bottom-0 left-0 w-full bg-sky-400/50 transition-none" 
                              style={{ height: `${castPercent}%` }} 
                            />
                         </div>
                       )}
-                      
-                      {/* Keybind */}
-                      <span className="absolute bottom-0.5 left-1 text-xs font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] z-30 pointer-events-none">
-                        {index + 1}
-                      </span>
                     </button>
+                    
+                    {/* Underline */}
+                    <div className="absolute bottom-0 left-[10%] w-[80%] h-[4px] bg-zinc-900 drop-shadow-md pointer-events-none" />
+                    
+                    {/* Floating Hotkey */}
+                    <div className={`absolute -bottom-5 w-4 h-4 bg-zinc-900 flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-[0_2px_4px_rgba(0,0,0,0.5)] pointer-events-none ${isBinding ? 'border border-accent text-accent' : ''}`}>
+                      {index + 1}
+                    </div>
 
                     {/* Skill Binding Menu */}
                     {isBinding && (
-                      <div className="skill-bind-menu absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-surface-deep border border-border-strong rounded-lg shadow-2xl z-[100]">
-                        <div className="p-2 border-b border-border-subtle bg-surface-deep rounded-t-lg">
+                      <div className="skill-bind-menu absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-[#141417]/93 backdrop-blur-md shadow-2xl z-[100] rounded-none border-none">
+                        <div className="p-2 border-b border-[#2a2a30]/40 bg-[#0c0c0f]/93 backdrop-blur-md rounded-none">
                           <h3 className="text-xs font-bold text-accent">Bind Skill to Slot {index + 1}</h3>
                         </div>
                         <div className="p-1 max-h-48 overflow-y-auto">
@@ -718,8 +684,8 @@ export function CombatOverlay() {
                             return (
                               <button
                                 key={act.id}
-                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors
-                                  hover:bg-surface-raised text-text-secondary hover:text-text-primary
+                                className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-none text-xs transition-colors
+                                  hover:bg-[#1e1e23] text-text-secondary hover:text-text-primary
                                 `}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -732,9 +698,9 @@ export function CombatOverlay() {
                               </button>
                             );
                           })}
-                          <div className="h-px w-full bg-border-subtle my-1" />
+                          <div className="h-px w-full bg-[#2a2a30]/40 my-1" />
                           <button
-                            className="w-full text-left px-2 py-1.5 rounded text-xs text-text-secondary hover:bg-surface-raised hover:text-text-secondary transition-colors"
+                            className="w-full text-left px-2 py-1.5 rounded-none text-xs text-text-secondary hover:bg-[#1e1e23] hover:text-text-primary transition-colors"
                             onClick={(e) => { e.stopPropagation(); bindSkill(index, null); setBindingSlotIndex(null); }}
                           >
                             (Clear Slot)
@@ -750,24 +716,21 @@ export function CombatOverlay() {
       </div>
 
           {/* Resources Container (Bottom Left) */}
-          <div className="absolute bottom-3 left-3 flex flex-col gap-1.5 z-40 pointer-events-auto w-[360px]">
+          <div className="absolute bottom-3 left-3 flex flex-col gap-[8px] z-40 pointer-events-auto w-[360px]">
             {/* Vitals Box */}
-            <div className="flex flex-col gap-1 drop-shadow-2xl">
+            <div className="flex flex-col gap-[8px] drop-shadow-2xl mb-[3px]">
               {/* Health Bar */}
               <div className="relative flex w-full items-center">
-                 <div className="relative w-full h-[1.25rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
+                 <div className="relative w-full h-[1.375rem] bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
                     {expectedHealAmount > 0 && (
                       <div 
-                        className="absolute top-0 left-0 h-full bg-red-400/70 border-r border-red-300/50 transition-all duration-75"
+                        className="absolute top-0 left-0 h-full bg-red-400/70 transition-all duration-75"
                         style={{ width: `${Math.min(100, ((currentHealth + expectedHealAmount) / maxHealth) * 100)}%` }}
                       />
                     )}
                     <div 
-                      className="absolute top-0 left-0 h-full transition-all duration-75 border-r border-red-950"
-                      style={{ 
-                        width: `${Math.min(100, (currentHealth / maxHealth) * 100)}%`,
-                        background: 'linear-gradient(to bottom, #dc2626 0%, #dc2626 50%, #991b1b 50%, #991b1b 100%)'
-                      }}
+                      className="absolute top-0 left-0 h-full bg-[#dc2626] transition-all duration-75"
+                      style={{ width: `${Math.min(100, (currentHealth / maxHealth) * 100)}%` }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[1px]">
                       {currentHealth > 0 ? Math.max(1, Math.floor(currentHealth)) : 0}/{maxHealth}
@@ -776,13 +739,10 @@ export function CombatOverlay() {
               </div>
 
               {/* Energy Bar */}
-              <div className="relative w-full h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
+              <div className="relative w-full h-[22px] bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
                  <div 
-                   className="absolute top-0 left-0 h-full transition-all duration-300 border-r border-yellow-950"
-                   style={{ 
-                     width: `${Math.min(100, (currentEnergy / maxEnergy) * 100)}%`,
-                     background: 'linear-gradient(to bottom, #eab308 0%, #eab308 50%, #ca8a04 50%, #ca8a04 100%)'
-                   }}
+                   className="absolute top-0 left-0 h-full bg-[#eab308] transition-all duration-300"
+                   style={{ width: `${Math.min(100, (currentEnergy / maxEnergy) * 100)}%` }}
                  />
                  <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
                    {Math.floor(currentEnergy)}/{maxEnergy}
@@ -791,13 +751,12 @@ export function CombatOverlay() {
 
               {/* Adrenaline Bar */}
               {isFighter && (
-                 <div className="relative w-full h-[0.875rem] bg-surface-deep border border-border-subtle overflow-hidden rounded-[0.125rem]">
+                 <div className="relative w-full h-[22px] bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
                     <div 
-                      className={`absolute top-0 left-0 h-full ${currentAdrenaline > 0 ? 'border-r border-orange-950' : ''}`}
+                      className="absolute top-0 left-0 h-full bg-[#f97316]"
                       style={{ 
                         display: currentAdrenaline > 0 ? 'block' : 'none',
-                        width: `${Math.min(100, (currentAdrenaline / maxAdrenaline) * 100)}%`,
-                        background: 'linear-gradient(to bottom, #f97316 0%, #f97316 50%, #c2410c 50%, #c2410c 100%)'
+                        width: `${Math.min(100, (currentAdrenaline / maxAdrenaline) * 100)}%`
                       }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
@@ -808,19 +767,14 @@ export function CombatOverlay() {
             </div>
 
             {/* XP Bar & Level */}
-            <div className="flex w-full items-center h-[0.5rem] -mt-0">
-               <div className="flex items-center justify-center bg-surface-deep w-4 h-4 rounded-full border border-border-subtle shrink-0 z-10">
-                 <span className="text-[0.55rem] text-white font-bold font-mono [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none">
-                   {level}
-                 </span>
-               </div>
-               <div className="relative flex-1 h-[0.5rem] bg-surface-deep overflow-hidden border-y border-r border-border-subtle rounded-r-[0.125rem] w-full shadow-inner opacity-90 -ml-[1px]">
+            <div className="flex w-full items-center h-[7px] gap-1">
+               <span className="text-[0.75rem] text-white font-bold font-mono [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none shrink-0 -translate-y-[1.5px]">
+                 {level}
+               </span>
+               <div className="relative flex-1 h-[7px] bg-black/40 overflow-hidden opacity-90 backdrop-blur-md rounded-none">
                   <div 
-                    className={`absolute top-0 left-0 h-full transition-all duration-300 ${currentXp > 0 ? 'border-r border-[#4c1d95]' : ''}`}
-                    style={{ 
-                      width: `${Math.min(100, (currentXp / xpRequired) * 100)}%`,
-                      background: 'linear-gradient(to bottom, #a78bfa 0%, #a78bfa 50%, #7c3aed 50%, #7c3aed 100%)'
-                    }}
+                    className="absolute top-0 left-0 h-full bg-white transition-all duration-300"
+                    style={{ width: `${Math.min(100, (currentXp / xpRequired) * 100)}%` }}
                   />
                </div>
             </div>
@@ -847,23 +801,22 @@ export function CombatOverlay() {
            </button>
         </div>
       )}
-      {/* Keybind Hints */}
-      <div className="absolute bottom-16 right-3 pointer-events-none z-50 flex flex-col gap-1 items-end opacity-75">
-         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider text-right">Move Diagonal</span>
-           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">Q E Z C</span>
+      <div className="absolute bottom-18 right-3 pointer-events-none z-50 flex flex-col gap-2.5 items-end opacity-90">
+         <div className="flex items-center gap-2">
+           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Move Diagonal</span>
+           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">Q E Z C</span>
          </div>
-         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider text-right">Health Potion</span>
-           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">R</span>
+         <div className="flex items-center gap-2">
+           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Health Potion</span>
+           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">R</span>
          </div>
-         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider text-right">Cycle Targets</span>
-           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">TAB</span>
+         <div className="flex items-center gap-2">
+           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Cycle Targets</span>
+           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">TAB</span>
          </div>
-         <div className="bg-surface-deep/80 border border-border-subtle rounded-md px-1.5 py-1 backdrop-blur-sm flex items-center gap-2 shadow-md">
-           <span className="text-[0.65rem] font-bold text-text-secondary uppercase tracking-wider text-right">Tactical Pause</span>
-           <span className="text-[0.55rem] font-black tracking-widest text-text-primary bg-surface-raised border border-border-strong rounded px-1.5 py-0.5 shadow-sm leading-none font-mono">SPACE</span>
+         <div className="flex items-center gap-2">
+           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Tactical Pause</span>
+           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">SPACE</span>
          </div>
       </div>
       
@@ -882,15 +835,19 @@ export function CombatOverlay() {
               }
             }}
             onMouseEnter={() => setContent(
-              <div className="w-52 bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1.5 text-left backdrop-blur-md pointer-events-none mb-2">
+              <div className="w-52 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
                 <div className="font-bold text-sm text-text-primary mb-1 tracking-tight">Town Portal (B)</div>
                 <div className="text-xs text-text-secondary leading-relaxed">
-                  Forfeit dungeon and return to town
+                   Forfeit dungeon and return to town
                 </div>
               </div>
             )}
             onMouseLeave={() => setContent(null)}
-            className="w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group bg-surface-deep border-border-subtle text-text-secondary hover:text-red-400 hover:border-red-400"
+            className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group transition-all bg-surface-deep/93 shadow-md rounded-none border ${
+              castingSkillId === 'portal_skill'
+                ? 'border-accent text-accent shadow-[0_0_8px_rgba(56,189,248,0.2)]'
+                : 'border-transparent text-text-secondary hover:ring-1 hover:ring-accent'
+            }`}
           >
             <IconWhirl className="w-5 h-5" />
           </button>
@@ -906,27 +863,22 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1 text-left backdrop-blur-md pointer-events-none mb-2">
+            <div className="w-auto bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Inventory (I)
               </div>
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'inventory')
-              ? 'text-accent border-accent bg-surface-deep'
-              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
+              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent shadow-md'
           }`}
         >
           <Backpack className="w-5 h-5" />
           {attributePoints > 0 && (
-             <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-950 rounded-full z-50 flex items-center justify-center">
-                <div className="absolute w-4 h-4 bg-red-600 rounded-full animate-pulse transform-gpu"></div>
-                <span className="relative text-white text-[0.6rem] font-bold leading-none mt-[1px]">
-                  {attributePoints}
-                </span>
-             </div>
+             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)] animate-pulse z-50" />
           )}
         </button>
 
@@ -941,27 +893,22 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1 text-left backdrop-blur-md pointer-events-none mb-2">
+            <div className="w-auto bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Skills (K)
               </div>
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'active_skills')
-              ? 'text-accent border-accent bg-surface-deep'
-              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
+              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent shadow-md'
           }`}
         >
           <Sparkles className="w-5 h-5" />
           {activeSkillPoints > 0 && (
-             <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-950 rounded-full z-50 flex items-center justify-center">
-                <div className="absolute w-4 h-4 bg-red-600 rounded-full animate-pulse transform-gpu"></div>
-                <span className="relative text-white text-[0.6rem] font-bold leading-none mt-[1px]">
-                  {activeSkillPoints}
-                </span>
-             </div>
+             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)] animate-pulse z-50" />
           )}
         </button>
 
@@ -976,27 +923,22 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-surface-overlay border border-border-strong shadow-2xl rounded-lg px-2 py-1 text-left backdrop-blur-md pointer-events-none mb-2">
+            <div className="w-auto bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Passives (P)
               </div>
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 border rounded-xl shadow-lg transition-colors flex items-center justify-center flex-col gap-0.5 group relative ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'skills')
-              ? 'text-accent border-accent bg-surface-deep'
-              : 'bg-surface-deep border-border-subtle text-text-secondary hover:text-accent hover:border-accent'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
+              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent shadow-md'
           }`}
         >
           <BookOpen className="w-5 h-5" />
           {passivePoints > 0 && (
-             <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-zinc-950 rounded-full z-50 flex items-center justify-center">
-                <div className="absolute w-4 h-4 bg-red-600 rounded-full animate-pulse transform-gpu"></div>
-                <span className="relative text-white text-[0.6rem] font-bold leading-none mt-[1px]">
-                  {passivePoints}
-                </span>
-             </div>
+             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)] animate-pulse z-50" />
           )}
         </button>
       </div>

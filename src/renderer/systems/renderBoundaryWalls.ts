@@ -4,6 +4,7 @@ import { projectTileToScreen } from '../../engine/world/screenProjection';
 import type { ProjectionParams } from '../../engine/world/screenProjection';
 import { getTileLighting, type PointLight } from '../utils/lighting';
 import { useLightingStore } from '../../store/useLightingStore';
+import { getBiome } from '../../data/biomes';
 
 const FLOOR_PERSPECTIVE_PX = 2500;
 const FLOOR_TILT_DEG = 52;
@@ -38,7 +39,6 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
   let lastExpCount = -1;
 
   function rebuild(_grid: GridMap) {
-    // Force rebuild on grid change
     lastPanX = -9999;
   }
 
@@ -69,16 +69,25 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
     };
 
     const now = Date.now();
-    // Pulse every ~3.7 seconds (0.75 +/- 0.25)
+    // Pulse every ~3.7 seconds (0.75 +/- 0.25). Driven purely by Container.alpha so it
+    // stays perfectly smooth every frame regardless of whether the (expensive) wall
+    // geometry below gets rebuilt this frame.
     container.alpha = 0.75 + 0.25 * Math.sin(now / 600);
 
-    // Skip expensive geometry rebuild if camera and vision hasn't moved
-    if (panX === lastPanX && panY === lastPanY && visibleTiles.size === lastVisCount && exploredTiles.size === lastExpCount) {
+    // Skip expensive geometry rebuild if camera and vision haven't meaningfully moved.
+    // Pan is rounded to whole pixels because the camera continuously lerps toward the
+    // player by fractional amounts every frame — comparing raw floats meant this almost
+    // never matched while the camera was easing, forcing a full clear+redraw (dozens of
+    // fill/stroke calls) on every single frame during movement, which dropped the
+    // framerate and made the alpha pulse above look choppy/stuttery.
+    const roundedPanX = Math.round(panX);
+    const roundedPanY = Math.round(panY);
+    if (roundedPanX === lastPanX && roundedPanY === lastPanY && visibleTiles.size === lastVisCount && exploredTiles.size === lastExpCount) {
       return;
     }
 
-    lastPanX = panX;
-    lastPanY = panY;
+    lastPanX = roundedPanX;
+    lastPanY = roundedPanY;
     lastVisCount = visibleTiles.size;
     lastExpCount = exploredTiles.size;
 
@@ -94,9 +103,22 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
       return (r << 16) | (g << 8) | b;
     };
 
+    const { ambientDarkness, memoryFogOpacity } = useLightingStore.getState();
+    const biome = getBiome(grid.environment);
+    const baseWallColor = biome.wallColor ?? 0x0c4a6e;
+    const baseGlowColor = biome.wallGlowColor ?? 0x0284c7;
+    const baseLineColor = biome.wallLineColor ?? 0x38bdf8;
+
+    const isTown = grid.environment === 'town';
+    const ctx = {
+      isTown,
+      playerLightRadius: useLightingStore.getState().playerLightRadiusDungeon,
+      minBrightness: useLightingStore.getState().minBrightness,
+      entityAmbient: biome.entityAmbient,
+      ambientBaseline: biome.ambientBaseline,
+    };
+
     const getBrightness = (x: number, y: number) => {
-      // For boundaries, if they are adjacent to a visible tile, they are visible.
-      // Easiest is to check the tile itself or clamp to grid
       const clampX = Math.max(0, Math.min(w - 1, Math.floor(x)));
       const clampY = Math.max(0, Math.min(h - 1, Math.floor(y)));
       
@@ -104,18 +126,16 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
       const isExplored = exploredTiles.has(`${clampX},${clampY}`);
       
       if (isVisible) {
-         const lighting = getTileLighting(clampX, clampY, playerPos, pointLights);
-         const { ambientDarkness } = useLightingStore.getState();
+         const lighting = getTileLighting(clampX, clampY, playerPos, pointLights, ctx);
          const fogAlpha = ambientDarkness * (1.0 - lighting.intensity);
-          return { brightness: Math.max(0, 1.0 - fogAlpha) };
+         return { brightness: Math.max(0, 1.0 - fogAlpha), isMemory: false };
       }
       
       if (isExplored) {
-         const { memoryFogOpacity } = useLightingStore.getState();
-         return { brightness: Math.max(0, 1.0 - memoryFogOpacity) };
+         return { brightness: Math.max(0.15, 1.0 - memoryFogOpacity), isMemory: true };
       }
       
-      return { brightness: 0.0 };
+      return { brightness: 0.0, isMemory: false };
     };
 
     const drawWallPlane = (x1: number, y1: number, x2: number, y2: number) => {
@@ -126,17 +146,27 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
 
       const lightResult = getBrightness(Math.min(x1, x2), Math.min(y1, y2));
       let brightness = lightResult.brightness;
-      // South edges (x=w or y=h) overlap the floor in screen space, so dim them to be less intrusive
-      if (x1 === w || y1 === h) {
+      const isMemory = lightResult.isMemory;
+      
+      // Hide undiscovered/unexplored boundary walls completely
+      if (brightness <= 0.0) {
+        return;
+      }
+
+      // South edge (y=h) overlaps the floor in screen space, so dim it to be less intrusive.
+      // Note: only the bottom wall folds over the floor visually — the right wall (x=w)
+      // does not, so it must not be darkened here (this previously made right-side walls
+      // look darker than the left).
+      if (y1 === h) {
         brightness *= 0.67;
       }
 
-      // Mix the natural wall color with the light color, maintaining brightness
-      const basePlane = 0x0c4a6e;
-      const planeColor = applyLighting(basePlane, brightness);
+      const colorBrightness = isMemory ? Math.max(brightness, 0.45) : Math.max(brightness, 0.35);
+      const planeColor = applyLighting(baseWallColor, colorBrightness);
+      const glowColor = applyLighting(baseGlowColor, colorBrightness);
 
-      const baseGlow = 0x0284c7;
-      const glowColor = applyLighting(baseGlow, brightness);
+      const fillAlpha = isMemory ? 0.08 : 0.45;
+      const glowAlpha = isMemory ? 0.08 : 0.2;
 
       // Plane
       wallsGraphics.moveTo(b1.screenX, b1.screenY);
@@ -144,29 +174,36 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
       wallsGraphics.lineTo(t2.x, t2.y);
       wallsGraphics.lineTo(t1.x, t1.y);
       wallsGraphics.closePath();
-      wallsGraphics.fill({ color: planeColor, alpha: 0.45 }); 
+      wallsGraphics.fill({ color: planeColor, alpha: fillAlpha }); 
 
       // Bottom perimeter line
-      wallsGraphics.setStrokeStyle({ color: glowColor, alpha: 0.2, width: 2 });
+      wallsGraphics.setStrokeStyle({ color: glowColor, alpha: glowAlpha, width: 2 });
       wallsGraphics.moveTo(b1.screenX, b1.screenY);
       wallsGraphics.lineTo(b2.screenX, b2.screenY);
       wallsGraphics.stroke();
     };
 
-    const drawVerticalLine = (x: number, y: number, res1: { brightness: number }, res2: { brightness: number }) => {
+    const drawVerticalLine = (x: number, y: number, res1: { brightness: number; isMemory?: boolean }, res2: { brightness: number; isMemory?: boolean }) => {
       let brightness = Math.max(res1.brightness, res2.brightness);
+      const isMemory = res1.isMemory || res2.isMemory;
       
-      if (x === w || y === h) {
-        brightness *= 0.67;
+      // Skip drawing vertical lines in unexplored areas
+      if (brightness <= 0.0) {
+        return;
       }
 
-      const baseLine = 0x38bdf8;
-      const lineColor = applyLighting(baseLine, brightness);
+      if (y === h) {
+        brightness *= 0.67;
+      }
+      
+      const colorBrightness = isMemory ? Math.max(brightness, 0.45) : Math.max(brightness, 0.35);
+      const lineColor = applyLighting(baseLineColor, colorBrightness);
+      const lineAlpha = isMemory ? 0.06 : 0.15;
       
       const base = projectTileToScreen(x - 0.5, y - 0.5, params);
       const top = { x: base.screenX, y: base.screenY - WALL_HEIGHT_SCREEN_PX * base.scale };
       
-      wallsGraphics.setStrokeStyle({ color: lineColor, alpha: 0.15, width: 2 });
+      wallsGraphics.setStrokeStyle({ color: lineColor, alpha: lineAlpha, width: 2 });
       wallsGraphics.moveTo(base.screenX, base.screenY);
       wallsGraphics.lineTo(top.x, top.y);
       wallsGraphics.stroke();
@@ -182,7 +219,7 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
       drawWallPlane(w, y, w, y + 1); // Right
     }
 
-    const def = { brightness: 0.1 };
+    const def = { brightness: 0.0 };
     // Draw vertical lines exactly once per vertex
     for (let x = 0; x <= w; x++) {
       const bLeft = x > 0 ? getBrightness(x - 1, 0) : def;

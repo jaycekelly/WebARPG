@@ -250,12 +250,35 @@ export class SkillExecutor {
               ).length;
             };
 
+            const activeTargetId = playerState.activeTargetId;
+            const activeTarget = activeTargetId ? worldState.enemies.find(e => e.id === activeTargetId && !e.isDead) : null;
+
+            const doesDirHitActive = (dirTile: {x: number, y: number}): boolean => {
+              if (!activeTarget) return true;
+              const testTiles = getAoETiles(
+                playerPos,
+                dirTile,
+                effectiveAoeParams!.shape,
+                effectiveAoeParams!.radius,
+                effectiveAoeParams!.respectWalls || false,
+                isSolid,
+                worldState.grid.width,
+                worldState.grid.height
+              );
+              return testTiles.some(pt => pt.x === activeTarget.position.x && pt.y === activeTarget.position.y);
+            };
+
             const rawTarget = finalTargetPos || playerPos;
             let bestDir = cardinals[0];
             let bestScore = -1;
             let bestProximity = Infinity;
 
+            const hasHitsForActive = activeTarget ? cardinals.some(dir => doesDirHitActive(dir)) : false;
+
             for (const dir of cardinals) {
+              if (hasHitsForActive && !doesDirHitActive(dir)) {
+                continue; // never exclude the current target
+              }
               const score = scoreDirection(dir);
               const proximity = Math.abs(dir.x - rawTarget.x) + Math.abs(dir.y - rawTarget.y);
               if (score > bestScore || (score === bestScore && proximity < bestProximity)) {

@@ -117,6 +117,7 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     { id: 'base_dexterity', sourceId: 'base_character', stat: 'Dexterity', type: 'flat', value: 5 },
     { id: 'base_intelligence', sourceId: 'base_character', stat: 'Intelligence', type: 'flat', value: 5 },
     { id: 'base_vitality', sourceId: 'base_character', stat: 'Vitality', type: 'flat', value: 5 },
+    { id: 'base_crit_multiplier', sourceId: 'base_character', stat: 'CriticalStrikeMultiplier', type: 'flat', value: 150 },
   ],
 
   addModifier: (mod) => set((state) => ({

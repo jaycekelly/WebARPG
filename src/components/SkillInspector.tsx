@@ -2,7 +2,9 @@ import { SKILLS } from '../data/skills';
 import { useActiveSkillStore } from '../store/useActiveSkillStore';
 import { GENERIC_DIALS, getMorphOptionsForSkill } from '../data/skills/upgrades';
 import { ICONS } from './IconLibrary';
-import { ChevronLeft, Lock, Check } from 'lucide-react';
+import { ChevronLeft, Check } from 'lucide-react';
+
+import { usePlayerStore } from '../store/usePlayerStore';
 
 interface SkillInspectorProps {
   skillId: string;
@@ -11,7 +13,8 @@ interface SkillInspectorProps {
 
 export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
   const skill = SKILLS[skillId];
-  const { skillRanks, skillDials, skillMorphs } = useActiveSkillStore(state => state);
+  const { skillRanks, skillDials, skillMorphs, allocateDial, allocateMorph } = useActiveSkillStore(state => state);
+  const activeSkillPoints = usePlayerStore(state => state.activeSkillPoints);
   const rank = skillRanks[skillId] || 0;
   const chosenDials = skillDials[skillId] || {};
   const chosenMorphs = skillMorphs[skillId] || {};
@@ -25,13 +28,19 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
     const isNext = rank + 1 === rankIdx;
     const isMorph = rankIdx === 3 || rankIdx === 6;
     const cost = RANK_COSTS[rankIdx - 1];
+    const canAfford = activeSkillPoints >= cost;
 
     return (
-      <div key={rankIdx} className={`relative flex flex-col pl-6 ${rankIdx !== 6 ? 'pb-6 border-l border-border-subtle ml-3' : 'pb-2 ml-3'}`}>
+      <div key={rankIdx} className={`relative flex flex-col pl-6 ${rankIdx !== 6 ? 'pb-6 border-l border-[#2a2a30]/40 ml-3' : 'pb-2 ml-3'}`}>
         {/* Timeline Node */}
-        <div className={`absolute -left-[12px] -top-0.5 w-4 h-4 rounded-full border-2 bg-surface-deep z-10 flex items-center justify-center ${isUnlocked ? 'border-accent text-accent' : isNext ? 'border-accent animate-pulse' : 'border-border-strong text-text-muted'}`}>
+        <div className={`absolute -left-[12px] -top-0.5 w-4 h-4 z-10 flex items-center justify-center rounded-none border ${
+          isUnlocked 
+            ? 'bg-accent/10 border-accent text-accent' 
+            : isNext && canAfford
+              ? 'bg-[#1c1c21] border-accent/90 animate-subtle-pulse text-accent shadow-[0_0_6px_rgba(56,189,248,0.3)]' 
+              : 'bg-[#0c0c0f] border-[#2a2a30]/20 text-text-muted'
+        }`}>
           {isUnlocked && <Check className="w-2.5 h-2.5" />}
-          {!isUnlocked && !isNext && <Lock className="w-2 h-2 opacity-50" />}
         </div>
 
         {/* Rank Header */}
@@ -50,22 +59,29 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
           {!isMorph && GENERIC_DIALS.map((dial) => {
             const Icon = ICONS[dial.icon] || ICONS['Flame'];
             const isChosen = chosenDials[rankIdx] === dial.id;
-            const notChosenButUnlocked = isUnlocked && !isChosen;
 
             return (
               <div
                 key={dial.id}
-                className={`flex flex-col p-2 rounded-lg border transition-all h-max ${
-                  isChosen ? 'border-accent bg-accent/20 shadow-[0_0_8px_rgba(56,189,248,0.2)]' : 
-                  notChosenButUnlocked ? 'border-border-strong bg-surface-deep opacity-50 grayscale' : 
-                  isNext ? 'border-border-strong bg-surface-base' : 
-                  'border-border-subtle bg-surface-deep opacity-60'
+                onClick={() => {
+                  if (isNext && canAfford) {
+                    allocateDial(skillId, rankIdx, dial.id);
+                  }
+                }}
+                className={`flex flex-col p-2 transition-all h-max rounded-none border ${
+                  isChosen 
+                    ? 'bg-accent/10 border-accent text-accent shadow-sm' : 
+                  isNext 
+                    ? canAfford
+                      ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] cursor-pointer text-text-primary'
+                      : 'border-[#2a2a30]/40 bg-[#1c1c21] hover:border-border-strong hover:bg-[#1e1e23] cursor-pointer text-text-secondary shadow-sm'
+                    : 'bg-[#0c0c0f] border-transparent text-text-muted opacity-30 grayscale'
                 }`}
               >
                 <div className="flex justify-between items-center mb-1">
-                  <div className={`flex items-center gap-1.5 ${isChosen ? 'text-text-primary' : 'text-text-primary'}`}>
-                    <Icon className={`w-3.5 h-3.5 ${isChosen ? 'text-accent' : 'text-accent'}`} />
-                    <span className="font-bold text-[11px] leading-tight">{dial.name}</span>
+                  <div className={`flex items-center gap-1.5 ${isChosen || (isNext && canAfford) ? 'text-accent' : 'text-text-secondary'}`}>
+                    <Icon className={`w-3.5 h-3.5 ${isChosen || (isNext && canAfford) ? 'text-accent' : 'text-text-muted'}`} />
+                    <span className="font-bold text-[11px] leading-tight text-text-primary">{dial.name}</span>
                   </div>
                   {isChosen && <Check className="w-3 h-3 text-accent" />}
                 </div>
@@ -77,22 +93,29 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
           {isMorph && getMorphOptionsForSkill(skillId, rankIdx).map((morph) => {
             const Icon = ICONS[morph.icon] || ICONS['Flame'];
             const isChosen = chosenMorphs[rankIdx] === morph.id;
-            const notChosenButUnlocked = isUnlocked && !isChosen;
 
             return (
               <div
                 key={morph.id}
-                className={`flex flex-col p-2 rounded-lg border transition-all h-max ${
-                  isChosen ? 'border-accent bg-accent/20 shadow-[0_0_8px_rgba(56,189,248,0.2)]' : 
-                  notChosenButUnlocked ? 'border-border-strong bg-surface-deep opacity-50 grayscale' : 
-                  isNext ? 'border-accent/80 bg-surface-base' : 
-                  'border-border-subtle bg-surface-deep opacity-60'
+                onClick={() => {
+                  if (isNext && canAfford) {
+                    allocateMorph(skillId, rankIdx, morph.id);
+                  }
+                }}
+                className={`flex flex-col p-2 transition-all h-max rounded-none border ${
+                  isChosen 
+                    ? 'bg-accent/10 border-accent text-accent shadow-sm' : 
+                  isNext 
+                    ? canAfford
+                      ? 'border-accent/90 bg-[#1c1c21] animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-[#1e1e23] cursor-pointer text-text-primary'
+                      : 'border-[#2a2a30]/40 bg-[#1c1c21] hover:border-border-strong hover:bg-[#1e1e23] cursor-pointer text-text-secondary shadow-sm'
+                    : 'bg-[#0c0c0f] border-transparent text-text-muted opacity-30 grayscale'
                 }`}
               >
                 <div className="flex justify-between items-center mb-1">
-                  <div className={`flex items-center gap-1.5 ${isChosen ? 'text-text-primary' : 'text-text-primary'}`}>
-                    <Icon className={`w-3.5 h-3.5 ${isChosen ? 'text-accent' : 'text-accent'}`} />
-                    <span className="font-bold text-[11px] leading-tight">{morph.name}</span>
+                  <div className={`flex items-center gap-1.5 ${isChosen || (isNext && canAfford) ? 'text-accent' : 'text-text-secondary'}`}>
+                    <Icon className={`w-3.5 h-3.5 ${isChosen || (isNext && canAfford) ? 'text-accent' : 'text-text-muted'}`} />
+                    <span className="font-bold text-[11px] leading-tight text-text-primary">{morph.name}</span>
                   </div>
                   {isChosen && <Check className="w-3 h-3 text-accent" />}
                 </div>
@@ -108,26 +131,27 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
   return (
     <div className="flex flex-col w-full h-full animate-in slide-in-from-right-4 fade-in duration-300">
       {/* Header */}
-      <div className="flex items-center gap-2 mb-2 shrink-0 px-2 pt-0">
-        <button 
-          onClick={onBack}
-          className="p-1 rounded-lg hover:bg-surface-raised border border-transparent hover:border-border-subtle transition-colors text-text-secondary hover:text-text-primary"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div className="flex flex-col">
-          <span className="text-xs text-text-secondary uppercase tracking-widest font-bold">Skill Inspector</span>
-          <span className="text-sm font-black text-accent">{skill.name}</span>
+      <div className="flex justify-between items-center shrink-0 mb-2">
+        <div className="flex gap-2">
+          <button 
+            onClick={onBack}
+            className="w-7 h-7 bg-[#0c0c0f] hover:bg-[#1c1c21] transition-all rounded-none text-text-secondary hover:text-accent border border-[#2a2a30]/40 hover:border-accent hover:ring-1 hover:ring-accent flex items-center justify-center shrink-0"
+          >
+            <ChevronLeft className="w-4 h-4" />
+          </button>
+          <div className="flex flex-col justify-center">
+            <span className="text-[10px] text-text-secondary uppercase tracking-widest font-black leading-none mb-0.5">Skill Inspector</span>
+            <span className="text-xs font-black text-accent leading-none">{skill.name}</span>
+          </div>
         </div>
-        <div className="ml-auto text-right">
-          <div className="text-[10px] text-text-secondary uppercase tracking-widest font-bold">Current Rank</div>
-          <div className="text-sm font-black text-text-primary">{rank}/6</div>
+        <div className="text-right">
+          <div className="text-[10px] text-text-secondary uppercase tracking-widest font-bold leading-none mb-0.5">Current Rank</div>
+          <div className="text-xs font-black text-text-primary leading-none">{rank}/6</div>
         </div>
       </div>
 
-      {/* Timeline Container */}
-      <div className="flex-1 overflow-y-auto custom-scrollbar px-2 pb-4">
-        <div className="bg-surface-deep/40 rounded-xl border border-border-subtle p-4 pb-0 pt-4">
+      <div className="flex-1 overflow-y-auto custom-scrollbar pl-1 pr-2 pb-4 flex justify-center">
+        <div className="bg-transparent pl-1 pr-4 pb-0 pt-4 w-full max-w-xl">
           {[1, 2, 3, 4, 5, 6].map(r => renderRankRow(r))}
         </div>
       </div>

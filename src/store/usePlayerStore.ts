@@ -136,6 +136,11 @@ export const usePlayerStore = create<PlayerState>()(
       newIgnored = newIgnored.filter(ignored => ignored !== id);
     }
     
+    // Clear queued action if target is deselected/cancelled
+    if (id === null) {
+      useCombatStore.getState().clearQueue();
+    }
+    
     return { activeTargetId: id, ignoredTargetIds: newIgnored };
   }),
 

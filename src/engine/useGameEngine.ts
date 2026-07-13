@@ -124,7 +124,7 @@ export function useGameEngine() {
 
       // Adrenaline Decay: no decay in-combat
       if (isOutOfCombat && playerState.currentAdrenaline > 0) {
-        const decayAmount = 20 * dtSec;
+        const decayAmount = 5 * dtSec;
         usePlayerStore.getState().decayAdrenaline(decayAmount);
       }
 
@@ -168,7 +168,10 @@ export function useGameEngine() {
       const { castingSkillId, castEndTime, setCasting } = combatState;
       
       // Prevent anything if dead
-      if (currentHealth <= 0) return;
+      if (currentHealth <= 0) {
+        if (combatState.queuedAction) combatState.clearQueue();
+        return;
+      }
 
       // Handle Input Queue
       const { queuedAction, clearQueue } = combatState;
