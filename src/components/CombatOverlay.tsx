@@ -232,7 +232,7 @@ export function CombatOverlay() {
         {target && (
           <div className="flex flex-col items-center w-[13.1875rem] relative pointer-events-auto animate-[fadeIn_0.3s_ease-out] select-none">
             <div className="font-bold text-text-primary text-sm mb-1.5 leading-none text-center [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">{target.name}</div>
-            <div className="relative h-[0.875rem] w-full bg-surface-base rounded-none overflow-hidden border border-border-subtle/40 shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+            <div className="relative h-[0.875rem] w-full bg-surface-base rounded-none overflow-hidden border border-border-subtle/40 shadow-depth-md">
               <div 
                 className="absolute top-0 left-0 h-full transition-all duration-150 border-r border-red-950 z-20 bg-red-600"
                 style={{ 
@@ -292,7 +292,7 @@ export function CombatOverlay() {
            const mtClass = hasTopMessage ? '-mt-[15.5rem]' : '-mt-[14rem]';
            return (
              <div key={msg.id} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${mtClass} pointer-events-none z-50 flex flex-col items-center ${isLevelUp ? 'animate-[levelUpFade_3s_ease-in-out_forwards]' : 'animate-in fade-in slide-in-from-bottom-2 duration-500'}`}>
-               <span className={isLevelUp ? "font-sans text-accent font-black text-2xl uppercase tracking-[0.2em] drop-shadow-[0_0_12px_rgba(56,189,248,0.8)]" : "font-sans text-amber-500 font-bold text-sm [text-shadow:2px_2px_1px_rgba(0,0,0,1)]"}>
+               <span className={isLevelUp ? "font-sans text-accent font-black text-2xl uppercase tracking-[0.2em] drop-shadow-glow-accent" : "font-sans text-amber-500 font-bold text-sm [text-shadow:2px_2px_1px_rgba(0,0,0,1)]"}>
                  {msg.text}
                </span>
              </div>
@@ -455,7 +455,7 @@ export function CombatOverlay() {
                           }
                         }}
                         onMouseEnter={() => setContent(
-                          <div className="w-52 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
+                          <div className="w-52 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-depth-md rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
                             <div className="font-bold text-sm text-red-400 mb-1">
                               Healing Flask
                             </div>
@@ -469,7 +469,7 @@ export function CombatOverlay() {
                         )}
                        onMouseLeave={() => setContent(null)}
                       >
-                         <FlaskConical className="mt-1 w-6 h-6 text-red-500 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] z-10 transition-transform group-hover:scale-110" />
+                         <FlaskConical className="mt-1 w-6 h-6 text-red-500 drop-shadow-icon z-10 transition-transform group-hover:scale-110" />
                       </button>
                       
                       {now - lastFlaskTime < 30000 && (() => {
@@ -498,7 +498,7 @@ export function CombatOverlay() {
                    </div>
                   
                   {/* Floating Hotkey */}
-                  <div className="absolute -bottom-5 w-4 h-4 bg-surface-overlay flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-[0_2px_4px_rgba(0,0,0,0.5)] pointer-events-none">
+                  <div className="absolute -bottom-5 w-4 h-4 bg-surface-overlay flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-depth-md-sm pointer-events-none">
                     R
                   </div>
                   {/* Underline */}
@@ -629,7 +629,7 @@ export function CombatOverlay() {
                       >
                         {skill && IconComponent ? (
                           <div className="relative z-10 w-full h-full flex items-center justify-center transition-transform group-hover:scale-110">
-                            <IconComponent className={`mb-1.5 w-8 h-8 drop-shadow-[0_4px_4px_rgba(0,0,0,0.8)] text-sky-400 ${isProcced ? 'drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]' : ''}`} />
+                            <IconComponent className={`mb-1.5 w-8 h-8 drop-shadow-icon text-sky-400 ${isProcced ? 'drop-shadow-glow-accent' : ''}`} />
                           </div>
                         ) : null}
                       </button>
@@ -673,7 +673,7 @@ export function CombatOverlay() {
                     <div className="absolute bottom-0 left-[10%] w-[80%] h-[4px] bg-surface-overlay drop-shadow-md pointer-events-none" />
                     
                     {/* Floating Hotkey */}
-                    <div className={`absolute -bottom-5 w-4 h-4 bg-surface-overlay flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-[0_2px_4px_rgba(0,0,0,0.5)] pointer-events-none ${isBinding ? 'border border-accent text-accent' : ''}`}>
+                    <div className={`absolute -bottom-5 w-4 h-4 bg-surface-overlay flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-depth-md-sm pointer-events-none ${isBinding ? 'border border-accent text-accent' : ''}`}>
                       {index + 1}
                     </div>
 
@@ -793,7 +793,7 @@ export function CombatOverlay() {
       {/* Death Screen */}
       {currentHealth <= 0 && (
         <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center pointer-events-auto animate-in fade-in duration-1000">
-           <h1 className="text-red-600 font-black text-6xl uppercase tracking-[0.5em] drop-shadow-[0_0_20px_rgba(220,38,38,0.8)] mb-8">You Died</h1>
+           <h1 className="text-red-600 font-black text-6xl uppercase tracking-[0.5em] drop-shadow-glow-red-strong mb-8">You Died</h1>
            <p className="text-text-secondary text-lg mb-8 max-w-md text-center">Your run has ended. All dungeon progress and unbanked items have been lost.</p>
            <button 
              onClick={() => {
@@ -802,24 +802,24 @@ export function CombatOverlay() {
                usePlayerStore.getState().setTarget(null, true);
                window.location.reload();
              }}
-             className="px-8 py-3 bg-surface-deep border border-red-900/50 hover:border-red-500 text-red-500 hover:text-red-400 hover:shadow-[0_0_15px_rgba(239,68,68,0.3)] rounded-lg font-bold text-lg transition-all cursor-pointer"
+             className="px-8 py-3 bg-surface-deep border border-red-900/50 hover:border-red-500 text-red-500 hover:text-red-400 hover:shadow-glow-red rounded-lg font-bold text-lg transition-all cursor-pointer"
            >
              Respawn in Town
            </button>
         </div>
       )}
-      <div className="absolute bottom-18 right-3 pointer-events-none z-50 flex flex-col gap-2.5 items-end opacity-90">
+      <div className="absolute top-3 left-3 pointer-events-none z-50 flex flex-col gap-2.5 items-start opacity-[0.93]">
          <div className="flex items-center gap-2">
-           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Move Diagonal</span>
-           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">Q E Z C</span>
+           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 leading-none font-mono drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">Q E Z C</span>
+           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-left drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">Move Diagonal</span>
          </div>
          <div className="flex items-center gap-2">
-           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Cycle Targets</span>
-           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">TAB</span>
+           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 leading-none font-mono drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">SPACE</span>
+           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-left drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">Tactical Pause</span>
          </div>
          <div className="flex items-center gap-2">
-           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Tactical Pause</span>
-           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">SPACE</span>
+           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 leading-none font-mono drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">TAB</span>
+           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-left drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">Cycle Targets</span>
          </div>
       </div>
       
@@ -838,7 +838,7 @@ export function CombatOverlay() {
               }
             }}
             onMouseEnter={() => setContent(
-              <div className="w-52 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
+              <div className="w-52 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-depth-md rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
                 <div className="font-bold text-sm text-text-primary mb-1 tracking-tight">Town Portal (B)</div>
                 <div className="text-xs text-text-secondary leading-relaxed">
                    Forfeit dungeon and return to town
@@ -846,9 +846,9 @@ export function CombatOverlay() {
               </div>
             )}
             onMouseLeave={() => setContent(null)}
-            className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group transition-all bg-surface-deep/93 rounded-none border shadow-[0_4px_12px_rgba(0,0,0,0.6)] ${
+            className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group transition-all bg-surface-deep/93 rounded-none border shadow-depth-md ${
               castingSkillId === 'portal_skill'
-                ? 'border-accent text-accent shadow-[0_0_8px_rgba(56,189,248,0.2),_0_4px_12px_rgba(0,0,0,0.6)]'
+                ? 'border-accent text-accent shadow-depth-md-glow'
                 : 'border-transparent text-text-secondary hover:ring-1 hover:ring-accent'
             }`}
           >
@@ -866,22 +866,22 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
+            <div className="w-auto bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-depth-md rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Inventory (I)
               </div>
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border shadow-[0_4px_12px_rgba(0,0,0,0.6)] ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border shadow-depth-md ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'inventory')
-              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2),_0_4px_12px_rgba(0,0,0,0.6)]'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-depth-md-glow'
               : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent'
           }`}
         >
           <Backpack className="w-5 h-5" />
           {attributePoints > 0 && (
-             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)] animate-pulse z-50" />
+             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-glow-red animate-pulse z-50" />
           )}
         </button>
 
@@ -896,22 +896,22 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
+            <div className="w-auto bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-depth-md rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Skills (K)
               </div>
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border shadow-[0_4px_12px_rgba(0,0,0,0.6)] ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border shadow-depth-md ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'active_skills')
-              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2),_0_4px_12px_rgba(0,0,0,0.6)]'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-depth-md-glow'
               : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent'
           }`}
         >
           <Sparkles className="w-5 h-5" />
           {activeSkillPoints > 0 && (
-             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)] animate-pulse z-50" />
+             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-glow-red animate-pulse z-50" />
           )}
         </button>
 
@@ -926,22 +926,22 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
+            <div className="w-auto bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-depth-md rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Passives (P)
               </div>
             </div>
           )}
           onMouseLeave={() => setContent(null)}
-          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border shadow-[0_4px_12px_rgba(0,0,0,0.6)] ${
+          className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border shadow-depth-md ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'skills')
-              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2),_0_4px_12px_rgba(0,0,0,0.6)]'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-depth-md-glow'
               : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent'
           }`}
         >
           <BookOpen className="w-5 h-5" />
           {passivePoints > 0 && (
-             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.9)] animate-pulse z-50" />
+             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 shadow-glow-red animate-pulse z-50" />
           )}
         </button>
       </div>

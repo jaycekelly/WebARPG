@@ -87,7 +87,7 @@ export function ActiveSkillPanel() {
                 onClick={() => handleTabClick('primary')}
                 className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
                   ${activeTab === 'primary' 
-                    ? 'border border-accent bg-surface-overlay text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                    ? 'border border-accent bg-surface-overlay text-accent font-black shadow-glow-accent' 
                     : 'border border-border-subtle/40 bg-surface-base text-text-secondary hover:bg-surface-raised hover:border-border-strong hover:text-text-primary'}`}
               >
                 <span>{playerClass}</span>
@@ -100,7 +100,7 @@ export function ActiveSkillPanel() {
                   onClick={() => handleTabClick('secondary')}
                   className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
                     ${activeTab === 'secondary' 
-                      ? 'border border-accent bg-surface-overlay text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                      ? 'border border-accent bg-surface-overlay text-accent font-black shadow-glow-accent' 
                       : 'border border-border-subtle/40 bg-surface-base text-text-secondary hover:bg-surface-raised hover:border-border-strong hover:text-text-primary'}`}
                 >
                   <span>{secondaryClass}</span>
@@ -114,7 +114,7 @@ export function ActiveSkillPanel() {
                     onClick={() => handleTabClick('select_secondary')}
                     className={`px-3 py-1.5 text-xs font-bold transition-all rounded-none active:scale-[0.98]
                       ${activeTab === 'select_secondary' 
-                        ? 'border border-accent bg-surface-overlay text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                        ? 'border border-accent bg-surface-overlay text-accent font-black shadow-glow-accent' 
                         : 'border border-border-subtle/40 bg-surface-base text-text-secondary hover:bg-surface-raised hover:border-border-strong hover:text-text-primary'}`}
                   >
                     Select 2nd Class
@@ -185,7 +185,7 @@ export function ActiveSkillPanel() {
                 className={`relative flex flex-col p-2.5 transition-all h-24 rounded-none border
                   ${isUnlocked 
                     ? isSelected 
-                      ? 'border-accent bg-surface-raised text-accent shadow-[0_0_8px_rgba(56,189,248,0.15)] active:scale-[0.98]' 
+                      ? 'border-accent bg-surface-raised text-accent shadow-glow-accent active:scale-[0.98]' 
                       : 'border-transparent bg-surface-base text-text-secondary hover:text-text-primary hover:bg-surface-raised hover:border-accent active:scale-[0.98]'
                     : 'opacity-40 grayscale border border-transparent bg-surface-base/30'
                   }`}
@@ -195,7 +195,7 @@ export function ActiveSkillPanel() {
                     <Icon className={`w-4 h-4 shrink-0 ${isEquipped ? 'text-accent' : 'text-text-secondary'}`} />
                     <span className="font-bold text-xs text-text-primary truncate">{skill.name}</span>
                     {isEquipped && (
-                      <span className="text-[9px] font-black w-4 h-4 flex items-center justify-center bg-accent/20 border border-accent/40 text-accent uppercase tracking-wider shrink-0 leading-none shadow-[0_0_4px_rgba(56,189,248,0.15)]">
+                      <span className="text-[9px] font-black w-4 h-4 flex items-center justify-center bg-accent/20 border border-accent/40 text-accent uppercase tracking-wider shrink-0 leading-none shadow-glow-accent">
                         E
                       </span>
                     )}
@@ -232,7 +232,7 @@ export function ActiveSkillPanel() {
                           key={pipRank}
                           className={`h-2 transition-all rounded-none border
                             ${isFilled 
-                              ? 'bg-accent border-accent/80 shadow-[0_0_4px_rgba(56,189,248,0.5)]' 
+                              ? 'bg-accent border-accent/80 shadow-glow-accent-strong' 
                               : isMorph 
                                 ? 'bg-emerald-950 border-accent/30' 
                                 : 'bg-border-subtle border-border-strong/30'}
@@ -254,7 +254,7 @@ export function ActiveSkillPanel() {
 
       {/* Detail Footer */}
       {selectedSkillId && (
-        <div ref={footerRef} className="absolute bottom-0 left-0 right-0 border-t border-accent/30 bg-surface-deep/93 backdrop-blur-md p-3.5 shrink-0 flex flex-col animate-in slide-in-from-bottom-6 duration-300 ease-out z-50 shadow-[0_-8px_32px_rgba(0,0,0,0.7)] rounded-none">
+        <div ref={footerRef} className="absolute bottom-0 left-0 right-0 border-t border-accent/30 bg-surface-deep/93 backdrop-blur-md p-3.5 shrink-0 flex flex-col animate-in slide-in-from-bottom-6 duration-300 ease-out z-50 shadow-depth-lg rounded-none">
           <button 
             onClick={() => setSelectedSkillId(null)}
             className="absolute top-2.5 right-2.5 text-text-muted hover:text-text-primary transition-colors"
@@ -300,7 +300,7 @@ export function ActiveSkillPanel() {
                         onClick={() => allocateDial(selectedSkillId, nextRank, dial.id)}
                         className={`flex flex-col items-center justify-center p-2 text-center rounded-none border transition-all duration-200
                           ${canAfford 
-                            ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-surface-overlay active:scale-[0.98] text-text-primary' 
+                            ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-glow-accent hover:border-accent hover:bg-surface-overlay active:scale-[0.98] text-text-primary' 
                             : 'border-border-subtle/20 bg-surface-base/30 text-text-muted opacity-50'}`}
                       >
                         <span className="font-bold text-text-primary text-[11px] mb-1 leading-tight">{dial.name}</span>
@@ -317,7 +317,7 @@ export function ActiveSkillPanel() {
                         onClick={() => allocateMorph(selectedSkillId, nextRank, morph.id)}
                         className={`flex flex-col items-center justify-center p-2 text-center rounded-none border transition-all duration-200
                           ${canAfford 
-                            ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-surface-overlay active:scale-[0.98] text-text-primary' 
+                            ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-glow-accent hover:border-accent hover:bg-surface-overlay active:scale-[0.98] text-text-primary' 
                             : 'border-border-subtle/20 bg-surface-base/30 text-text-muted opacity-50'}`}
                       >
                         <span className="font-bold text-text-primary text-[11px] mb-1 leading-tight">{morph.name}</span>

@@ -47,6 +47,24 @@
 
   /* Accent */
   --color-accent:          #38bdf8;   /* sky-400 */
+
+  /* Shadows (Depth Tiers) */
+  --shadow-depth-sm:       0 2px 6px rgba(0, 0, 0, 0.4);
+  --shadow-depth-md:       0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-depth-lg:       0 8px 32px rgba(0, 0, 0, 0.7);
+  --shadow-vignette:       0 0 100px rgba(0, 0, 0, 0.9);
+
+  /* Combined UI + Glow */
+  --shadow-ui-glow:        0 0 8px rgba(56, 189, 248, 0.25), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --drop-shadow-icon:      0 4px 4px rgba(0, 0, 0, 0.8);
+  --drop-shadow-text:      0 2px 4px rgba(0, 0, 0, 0.8);
+
+  /* Glows */
+  --shadow-glow-accent:    0 0 8px rgba(56, 189, 248, 0.25);
+  --shadow-glow-accent-strong: 0 0 12px rgba(56, 189, 248, 0.4);
+  --drop-shadow-glow-accent: 0 0 8px rgba(56, 189, 248, 0.8);
+  --shadow-glow-red:       0 0 6px rgba(239, 68, 68, 0.8);
+  --shadow-glow-red-strong: 0 0 20px rgba(239, 68, 68, 0.8);
 }
 
 @layer base {

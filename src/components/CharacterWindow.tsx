@@ -33,7 +33,7 @@ export function CharacterWindow() {
       >
         {/* Stats Popout */}
         {statsPopoutOpen && characterWindowTab === 'inventory' && (
-          <div className="absolute right-[calc(100%+0.5rem)] w-[15rem] h-[34rem] rounded-none z-30 overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] animate-in slide-in-from-right-8 fade-in duration-[400ms]">
+          <div className="absolute right-[calc(100%+0.5rem)] w-[15rem] h-[34rem] rounded-none z-30 overflow-hidden shadow-depth-lg animate-in slide-in-from-right-8 fade-in duration-[400ms]">
             {/* Background layer */}
             <div className="absolute inset-0 bg-surface-deep/93 backdrop-blur-[2px] z-10" />
             {/* Content layer */}
@@ -44,7 +44,7 @@ export function CharacterWindow() {
         )}
 
         {/* Main Window */}
-        <div className="absolute inset-0 rounded-none z-40 overflow-hidden shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)]">
+        <div className="absolute inset-0 rounded-none z-40 overflow-hidden shadow-depth-lg">
           {/* Background layer */}
           <div className="absolute inset-0 bg-surface-deep/93 backdrop-blur-[2px] z-10" />
           
@@ -61,7 +61,7 @@ export function CharacterWindow() {
                     <span className="relative">
                       Inventory
                       {attributePoints > 0 && (
-                         <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse" />
+                         <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-glow-red animate-pulse" />
                       )}
                     </span>
                   </span>
@@ -78,7 +78,7 @@ export function CharacterWindow() {
                     <span className="relative">
                       Skills
                       {activeSkillPoints > 0 && (
-                         <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse" />
+                         <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-glow-red animate-pulse" />
                       )}
                     </span>
                   </span>
@@ -95,7 +95,7 @@ export function CharacterWindow() {
                     <span className="relative">
                       Passives
                       {passivePoints > 0 && (
-                         <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.8)] animate-pulse" />
+                         <span className="absolute -right-3 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-red-500 shadow-glow-red animate-pulse" />
                       )}
                     </span>
                   </span>
@@ -132,7 +132,7 @@ export function CharacterWindow() {
       {/* Absolute Gold in Bottom Right */}
       {characterWindowTab === 'inventory' && (
         <div className="absolute bottom-1.5 right-[28px] flex justify-end items-center pointer-events-none">
-           <span className="text-white text-[15px] font-bold font-mono mr-1.5 drop-shadow-[0_1px_1px_rgba(0,0,0,1)]">{gold.toLocaleString()}</span>
+           <span className="text-white text-[15px] font-bold font-mono mr-1.5 drop-shadow-text">{gold.toLocaleString()}</span>
            <Coins className="w-3 h-3 text-white opacity-80" />
         </div>
       )}

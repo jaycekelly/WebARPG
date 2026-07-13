@@ -9,7 +9,7 @@ interface SkillTooltipProps {
 
 export function SkillTooltip({ skill }: SkillTooltipProps) {
   return (
-    <div className="w-56 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none animate-in fade-in duration-200">
+    <div className="w-56 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-depth-md rounded-none px-2 py-1.5 text-left pointer-events-none animate-in fade-in duration-200">
       <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
       <div className="flex flex-col text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-border-subtle/40 uppercase tracking-widest gap-1">
         {(() => {

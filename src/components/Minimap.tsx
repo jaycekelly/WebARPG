@@ -96,12 +96,12 @@ export function Minimap() {
     >
       <div
         ref={containerRef}
-        className="relative shadow-[0_2px_10px_rgba(0,0,0,0.45)] overflow-hidden"
+        className="relative shadow-depth-md overflow-hidden"
         style={{ width: CORNER_SIZE_PX, height: CORNER_SIZE_PX }}
       >
         <canvas ref={canvasRef} className="block" />
       </div>
-      <div className="mt-1.5 text-[20px] font-medium tracking-wide text-zinc-100 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)]">
+      <div className="mt-1 text-[20px] font-medium tracking-wide text-zinc-100 drop-shadow-text">
         {areaName}
       </div>
     </button>

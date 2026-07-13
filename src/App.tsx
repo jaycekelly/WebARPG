@@ -42,7 +42,7 @@ const GameOverScreen = () => {
   if (currentHealth > 0) return null;
   return (
     <div className="absolute inset-0 z-[9999] bg-black flex flex-col items-center justify-center animate-in fade-in duration-1000">
-       <div className="text-red-600 text-6xl font-black uppercase tracking-widest mb-4 drop-shadow-[0_0_20px_rgba(220,38,38,0.8)]">You Died</div>
+       <div className="text-red-600 text-6xl font-black uppercase tracking-widest mb-4 drop-shadow-glow-red-strong">You Died</div>
        <div className="text-text-secondary text-sm font-bold uppercase tracking-widest animate-pulse">Press any key to load last save</div>
     </div>
   );
@@ -284,7 +284,7 @@ function App() {
   if (location === 'editor') {
     return (
       <div className="flex w-full h-full items-center justify-center bg-black overflow-hidden">
-        <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
+        <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-vignette">
           <DataEditorView />
           <GlobalTooltip />
           <GlobalMessages />
@@ -295,7 +295,7 @@ function App() {
 
   return (
     <div className="flex w-full h-full items-center justify-center bg-black overflow-hidden">
-      <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-[0_0_100px_rgba(0,0,0,0.8)]">
+      <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-vignette">
         
         {(location === 'dungeon' || location === 'town') && <DungeonView />}
         {location === 'town' && <TownView />}

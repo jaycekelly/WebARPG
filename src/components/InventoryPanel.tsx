@@ -117,7 +117,7 @@ export function InventoryPanel() {
                     className="text-accent/40 group-hover:text-accent transition-colors" 
                   />
                 </svg>
-                <span className="relative text-[26px] font-black text-accent drop-shadow-[0_0_5px_rgba(56,189,248,0.6)] z-10 leading-none pt-[1px]">{level}</span>
+                <span className="relative text-[26px] font-black text-accent drop-shadow-glow-accent z-10 leading-none pt-[1px]">{level}</span>
               </div>
               <div className="flex-1 h-px bg-black" />
             </div>
@@ -133,7 +133,7 @@ export function InventoryPanel() {
                       attr === 'Intelligence' ? 'Gives 1 energy per point' :
                       'Gives 4 hp per point';
                     setHoveredCustom(
-                      <div className="w-60 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
+                      <div className="w-60 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-depth-md rounded-none px-2 py-1.5 text-left pointer-events-none">
                         <div className="text-xs text-text-secondary leading-relaxed">
                           {desc}
                         </div>
@@ -150,7 +150,7 @@ export function InventoryPanel() {
                    {attributePoints > 0 && (
                      <button 
                        onClick={(e) => allocateAttribute(attr, e.shiftKey ? 5 : 1)}
-                       className="w-5 h-5 rounded-none bg-accent/20 hover:bg-accent/40 text-accent border border-accent/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 shrink-0 shadow-[0_0_8px_rgba(56,189,248,0.4)] animate-pulse ml-0.5"
+                       className="w-5 h-5 rounded-none bg-accent/20 hover:bg-accent/40 text-accent border border-accent/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 shrink-0 shadow-glow-accent-strong animate-pulse ml-0.5"
                      >
                        <Plus className="w-3 h-3" />
                      </button>
@@ -165,7 +165,7 @@ export function InventoryPanel() {
                  onClick={() => setStatsPopoutOpen(!statsPopoutOpen)}
                  className={`flex items-center gap-1 py-1.5 pl-1.5 pr-3.5 transition-all rounded-none group ring-1 ring-inset ${
                    statsPopoutOpen 
-                     ? 'bg-surface-overlay ring-accent text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.25)]' 
+                     ? 'bg-surface-overlay ring-accent text-accent font-black shadow-glow-accent' 
                      : 'bg-surface-base ring-border-subtle/20 hover:ring-accent/40 hover:bg-surface-overlay text-text-secondary hover:text-text-primary'
                  }`}
                >
@@ -200,7 +200,7 @@ export function InventoryPanel() {
                 <div 
                   className="absolute right-[-9px] top-1/2 -translate-y-1/2 bg-transparent z-20"
                   onMouseEnter={() => setHoveredCustom(
-                    <div className="bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none whitespace-nowrap">
+                    <div className="bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-depth-md rounded-none px-2 py-1.5 text-left pointer-events-none whitespace-nowrap">
                       <div className="text-xs text-text-secondary leading-relaxed">
                         Swap weapon set
                       </div>

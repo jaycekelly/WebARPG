@@ -37,7 +37,7 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
           isUnlocked 
             ? 'bg-accent/10 border-accent text-accent' 
             : isNext && canAfford
-              ? 'bg-surface-raised border-accent/90 animate-subtle-pulse text-accent shadow-[0_0_6px_rgba(56,189,248,0.3)]' 
+              ? 'bg-surface-raised border-accent/90 animate-subtle-pulse text-accent shadow-glow-accent' 
               : 'bg-surface-base border-border-subtle/20 text-text-muted'
         }`}>
           {isUnlocked && <Check className="w-2.5 h-2.5" />}
@@ -73,7 +73,7 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
                     ? 'bg-accent/10 border-accent text-accent shadow-sm' : 
                   isNext 
                     ? canAfford
-                      ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-surface-overlay text-text-primary'
+                      ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-glow-accent hover:border-accent hover:bg-surface-overlay text-text-primary'
                       : 'border-border-subtle/40 bg-surface-raised hover:border-border-strong hover:bg-surface-overlay text-text-secondary shadow-sm'
                     : 'bg-surface-base border-transparent text-text-muted opacity-30 grayscale'
                 }`}
@@ -107,7 +107,7 @@ export function SkillInspector({ skillId, onBack }: SkillInspectorProps) {
                     ? 'bg-accent/10 border-accent text-accent shadow-sm' : 
                   isNext 
                     ? canAfford
-                      ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)] hover:border-accent hover:bg-surface-overlay text-text-primary'
+                      ? 'border-accent/90 bg-surface-raised animate-subtle-pulse shadow-glow-accent hover:border-accent hover:bg-surface-overlay text-text-primary'
                       : 'border-border-subtle/40 bg-surface-raised hover:border-border-strong hover:bg-surface-overlay text-text-secondary shadow-sm'
                     : 'bg-surface-base border-transparent text-text-muted opacity-30 grayscale'
                 }`}

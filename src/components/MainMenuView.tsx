@@ -142,7 +142,7 @@ export const MainMenuView = () => {
                                         key={cls}
                                         disabled={!isEnabled}
                                         onClick={() => setSelectedClass(cls)}
-                                        className={`py-1.5 px-1 rounded-none text-xs font-bold transition-all ${!isEnabled ? 'opacity-30 bg-surface-raised/45 text-text-muted border border-transparent' : isSelected ? 'bg-surface-overlay border border-accent text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' : 'border border-transparent bg-surface-raised hover:bg-surface-overlay hover:border-accent hover:ring-1 hover:ring-accent text-text-secondary hover:text-text-primary active:scale-[0.98]'}`}
+                                        className={`py-1.5 px-1 rounded-none text-xs font-bold transition-all ${!isEnabled ? 'opacity-30 bg-surface-raised/45 text-text-muted border border-transparent' : isSelected ? 'bg-surface-overlay border border-accent text-accent font-black shadow-glow-accent' : 'border border-transparent bg-surface-raised hover:bg-surface-overlay hover:border-accent hover:ring-1 hover:ring-accent text-text-secondary hover:text-text-primary active:scale-[0.98]'}`}
                                     >
                                         {cls}
                                     </button>

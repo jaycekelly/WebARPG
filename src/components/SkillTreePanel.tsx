@@ -74,7 +74,7 @@ export function SkillTreePanel() {
 
       if (pointsSpent === 0) {
         return (
-          <div className="w-56 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none animate-in fade-in duration-200">
+          <div className="w-56 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-depth-md rounded-none px-2 py-1.5 text-left pointer-events-none animate-in fade-in duration-200">
              <div className="font-bold text-sm text-sky-400 mb-1">{node.name}</div>
              <div className="text-[10px] text-text-secondary uppercase tracking-widest mb-0.5 font-bold">
                Next Rank
@@ -85,7 +85,7 @@ export function SkillTreePanel() {
       }
 
       return (
-        <div className="w-56 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none animate-in fade-in duration-200">
+        <div className="w-56 bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-depth-md rounded-none px-2 py-1.5 text-left pointer-events-none animate-in fade-in duration-200">
            <div className="font-bold text-sm text-sky-400 mb-1">{node.name}</div>
            <div className="text-[10px] text-text-secondary uppercase tracking-widest mb-0.5 font-bold">
              Rank {pointsSpent}/{node.maxPoints}
@@ -119,7 +119,7 @@ export function SkillTreePanel() {
       >
         <div className={`relative w-10 h-10 flex items-center justify-center transition-all rounded-none border hover:border-accent
             ${canAfford && isUnlocked && !isMaxed 
-              ? 'bg-surface-raised border-accent/90 animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)]' 
+              ? 'bg-surface-raised border-accent/90 animate-subtle-pulse shadow-glow-accent' 
               : isUnlocked ? 'bg-surface-raised border-border-subtle/40' : 'bg-surface-base/60 border-border-subtle/20'}
         `}>
            <Icon className={`w-6 h-6 ${node.type === 'active' ? 'text-blue-500' : 'text-sky-400'} ${!isUnlocked ? 'opacity-40' : ''}`} />
@@ -142,7 +142,7 @@ export function SkillTreePanel() {
             onClick={() => setActiveTab('primary')}
             className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
               ${activeTab === 'primary' 
-                ? 'border border-accent bg-surface-overlay text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                ? 'border border-accent bg-surface-overlay text-accent font-black shadow-glow-accent' 
                 : 'border border-border-subtle/40 bg-surface-base text-text-secondary hover:bg-surface-raised hover:border-border-strong hover:text-text-primary'}`}
           >
             <span>{playerClass}</span>
@@ -155,7 +155,7 @@ export function SkillTreePanel() {
               onClick={() => setActiveTab('secondary')}
               className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
                 ${activeTab === 'secondary' 
-                  ? 'border border-accent bg-surface-overlay text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                  ? 'border border-accent bg-surface-overlay text-accent font-black shadow-glow-accent' 
                   : 'border border-border-subtle/40 bg-surface-base text-text-secondary hover:bg-surface-raised hover:border-border-strong hover:text-text-primary'}`}
             >
               <span>{secondaryClass}</span>
@@ -169,7 +169,7 @@ export function SkillTreePanel() {
                   onClick={() => setActiveTab('select_secondary')}
                   className={`px-3 py-1.5 text-xs font-bold transition-all rounded-none active:scale-[0.98]
                     ${activeTab === 'select_secondary' 
-                      ? 'border border-accent bg-surface-overlay text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                      ? 'border border-accent bg-surface-overlay text-accent font-black shadow-glow-accent' 
                       : 'border border-border-subtle/40 bg-surface-base text-text-secondary hover:bg-surface-raised hover:border-border-strong hover:text-text-primary'}`}
                 >
                   Select 2nd Class
