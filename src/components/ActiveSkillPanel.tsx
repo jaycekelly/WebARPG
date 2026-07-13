@@ -1,14 +1,14 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useActiveSkillStore } from '../store/useActiveSkillStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useTooltipStore } from '../store/useTooltipStore';
-import { getEffectiveEnergyCost, getEffectiveCastTime } from '../engine/input/InputHandler';
 import type { Skill } from '../engine/skills/types';
 import { SKILLS } from '../data/skills';
 import { GENERIC_DIALS, getMorphOptionsForSkill } from '../data/skills/upgrades';
 import { ICONS } from './IconLibrary';
 import { Flame, X, Menu } from 'lucide-react';
 import { SkillInspector } from './SkillInspector';
+import { SkillTooltip } from './SkillTooltip';
 
 export function ActiveSkillPanel() {
   const [activeTab, setActiveTab] = useState<'primary' | 'secondary' | 'select_secondary'>('primary');
@@ -19,6 +19,23 @@ export function ActiveSkillPanel() {
   const { playerClass, secondaryClass, activeSkillPoints, boundSkills, level } = usePlayerStore();
   const { skillRanks, allocateDial, allocateMorph } = useActiveSkillStore();
   const { setContent } = useTooltipStore();
+
+  const footerRef = useRef<HTMLDivElement>(null);
+  const [footerHeight, setFooterHeight] = useState(176);
+
+  useEffect(() => {
+    if (selectedSkillId) {
+      const measure = () => {
+        if (footerRef.current) {
+          setFooterHeight(footerRef.current.offsetHeight);
+        }
+      };
+      measure();
+      const observer = new ResizeObserver(measure);
+      if (footerRef.current) observer.observe(footerRef.current);
+      return () => observer.disconnect();
+    }
+  }, [selectedSkillId]);
 
   const availableClasses: any[] = (['Fighter', 'Rogue', 'Ranger', 'Mage'] as any[]).filter(c => c !== playerClass);
   const selectedPreviewClass = previewClass || availableClasses[0];
@@ -48,43 +65,7 @@ export function ActiveSkillPanel() {
   };
 
   const handleMouseEnter = (skill: Skill) => {
-    setContent(
-      <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
-        <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
-        <div className="flex flex-col text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#2a2a30]/40 uppercase tracking-widest gap-1">
-          {(() => {
-            const stats = [];
-            if (getEffectiveEnergyCost(skill) > 0) stats.push({ val: getEffectiveEnergyCost(skill), lbl: 'Energy' });
-            if (skill.adrenalineCost) stats.push({ val: skill.adrenalineCost, lbl: 'Adrenaline' });
-            if (skill.cooldownMs) stats.push({ val: (skill.cooldownMs / 1000).toFixed(1), lbl: 'CD' });
-            if (skill.castTime) {
-              const castSec = getEffectiveCastTime(skill) / 1000;
-              stats.push({ val: (castSec < 2.0 ? castSec.toFixed(1) : castSec.toFixed(0)) + 's', lbl: 'Cast' });
-            }
-            if (skill.range > 0) stats.push({ val: skill.range, lbl: 'Range' });
-            else stats.push({ val: 'Melee', lbl: 'Range' });
-
-            // Partition into rows of 2
-            const rows = [];
-            for (let i = 0; i < stats.length; i += 2) {
-              rows.push(stats.slice(i, i + 2));
-            }
-
-            return rows.map((row, rIdx) => (
-              <div key={rIdx} className={`flex justify-between items-center ${rIdx > 0 ? 'border-t border-[#2a2a30]/20 pt-1' : ''}`}>
-                {row.map((stat, sIdx) => (
-                  <div key={sIdx} className="flex gap-1.5">
-                    <span className="text-text-muted font-bold">{stat.lbl}:</span>
-                    <span className="text-text-secondary font-black">{stat.val}</span>
-                  </div>
-                ))}
-              </div>
-            ));
-          })()}
-        </div>
-        <div className="text-[11px] text-text-secondary leading-snug mt-1.5 whitespace-pre-wrap">{skill.description}</div>
-      </div>
-    );
+    setContent(<SkillTooltip skill={skill} />);
   };
 
   const handleMouseLeave = () => {
@@ -106,7 +87,7 @@ export function ActiveSkillPanel() {
                 onClick={() => handleTabClick('primary')}
                 className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
                   ${activeTab === 'primary' 
-                    ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                    ? 'border border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
                     : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
               >
                 <span>{playerClass}</span>
@@ -119,7 +100,7 @@ export function ActiveSkillPanel() {
                   onClick={() => handleTabClick('secondary')}
                   className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
                     ${activeTab === 'secondary' 
-                      ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                      ? 'border border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
                       : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
                 >
                   <span>{secondaryClass}</span>
@@ -133,7 +114,7 @@ export function ActiveSkillPanel() {
                     onClick={() => handleTabClick('select_secondary')}
                     className={`px-3 py-1.5 text-xs font-bold transition-all rounded-none active:scale-[0.98]
                       ${activeTab === 'select_secondary' 
-                        ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                        ? 'border border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
                         : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
                   >
                     Select 2nd Class
@@ -148,7 +129,10 @@ export function ActiveSkillPanel() {
             </div>
           </div>
           {/* Skill List */}
-          <div className={`flex-1 overflow-y-auto bg-transparent px-0 pt-[2px] custom-scrollbar relative ${selectedSkillId ? 'pb-44' : 'pb-2'}`}>
+          <div 
+            className="flex-1 overflow-y-auto bg-transparent px-0 pt-[2px] custom-scrollbar relative"
+            style={{ paddingBottom: selectedSkillId ? `${footerHeight + 8}px` : '8px' }}
+          >
              {activeTab === 'select_secondary' && (
                  <div className="absolute top-0 left-0 right-0 z-40 bg-[#141417]/93 backdrop-blur-md p-3 flex flex-col items-center animate-in slide-in-from-top-4 shadow-2xl rounded-none">
                      <div className="text-[10px] font-black uppercase tracking-widest text-text-secondary mb-2">Select Secondary Class</div>
@@ -202,7 +186,7 @@ export function ActiveSkillPanel() {
                   ${isUnlocked 
                     ? isSelected 
                       ? 'border-accent bg-[#1c1c21] text-accent shadow-[0_0_8px_rgba(56,189,248,0.15)] active:scale-[0.98]' 
-                      : 'border-transparent bg-[#0c0c0f] text-text-secondary hover:text-text-primary hover:bg-[#1c1c21] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98]'
+                      : 'border-transparent bg-[#0c0c0f] text-text-secondary hover:text-text-primary hover:bg-[#1c1c21] hover:border-accent active:scale-[0.98]'
                     : 'opacity-40 grayscale border border-transparent bg-[#0c0c0f]/30'
                   }`}
               >
@@ -270,7 +254,7 @@ export function ActiveSkillPanel() {
 
       {/* Detail Footer */}
       {selectedSkillId && (
-        <div className="absolute bottom-0 left-0 right-0 border-t border-accent/30 bg-surface-deep/93 backdrop-blur-md p-3.5 shrink-0 flex flex-col animate-in slide-in-from-bottom-6 duration-300 ease-out z-50 shadow-[0_-8px_32px_rgba(0,0,0,0.7)] rounded-none">
+        <div ref={footerRef} className="absolute bottom-0 left-0 right-0 border-t border-accent/30 bg-surface-deep/93 backdrop-blur-md p-3.5 shrink-0 flex flex-col animate-in slide-in-from-bottom-6 duration-300 ease-out z-50 shadow-[0_-8px_32px_rgba(0,0,0,0.7)] rounded-none">
           <button 
             onClick={() => setSelectedSkillId(null)}
             className="absolute top-2.5 right-2.5 text-text-muted hover:text-text-primary transition-colors"

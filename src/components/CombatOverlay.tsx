@@ -17,6 +17,7 @@ import { SKILLS } from '../data/skills';
 import { setRunState } from '../store/storage';
 
 import { ICONS } from './IconLibrary';
+import { SkillTooltip } from './SkillTooltip';
 
 const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => {
   return Math.max(Math.abs(p1.x - p2.x), Math.abs(p1.y - p2.y));
@@ -453,15 +454,15 @@ export function CombatOverlay() {
                       }
                     }}
                     onMouseEnter={() => setContent(
-                      <div className="w-52 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
-                        <div className="font-bold text-red-400 mb-1">
+                      <div className="w-52 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
+                        <div className="font-bold text-sm text-red-400 mb-1">
                           Healing Flask
                         </div>
                         <div className="text-[0.625rem] text-text-secondary pb-1 mb-1 border-b border-[#2a2a30]/40 uppercase tracking-widest">
                           30.0 CD
                         </div>
-                        <div className="text-xs text-text-primary leading-snug mb-1">
-                          Restores <span className="text-red-400 font-bold">30%</span> of your maximum health over <span className="text-text-primary font-bold">2 seconds</span>.
+                        <div className="text-xs text-text-secondary leading-snug mb-1">
+                          Restores <span className="text-red-400 font-bold">30%</span> of your maximum health over <span className="text-text-secondary font-bold">2 seconds</span>.
                         </div>
                       </div>
                     )}
@@ -613,76 +614,7 @@ export function CombatOverlay() {
                       }}
                       onMouseEnter={() => {
                         if (!isBinding && skill) {
-                          setContent(
-                            <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
-                              <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
-                              <div className="flex flex-col text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#2a2a30]/40 uppercase tracking-widest gap-1">
-                                {(() => {
-                                  const stats = [];
-                                  if (getEffectiveEnergyCost(skill) > 0) stats.push({ val: getEffectiveEnergyCost(skill), lbl: 'Energy' });
-                                  if (skill.adrenalineCost) stats.push({ val: skill.adrenalineCost, lbl: 'Adrenaline' });
-                                  if (skill.cooldownMs) stats.push({ val: (skill.cooldownMs / 1000).toFixed(1), lbl: 'CD' });
-                                  if (skill.castTime) {
-                                    const castSec = getEffectiveCastTime(skill) / 1000;
-                                    stats.push({ val: (castSec < 2.0 ? castSec.toFixed(1) : castSec.toFixed(0)) + 's', lbl: 'Cast' });
-                                  }
-                                  stats.push({ val: skill.range > 1 ? skill.range : 'Melee', lbl: skill.range > 1 ? 'Range' : '' });
-                                  
-                                  const rows = [];
-                                  for (let i = 0; i < stats.length; i += 2) {
-                                    rows.push(stats.slice(i, i + 2));
-                                  }
-                                  
-                                  return rows.map((row, i) => (
-                                    <div key={i} className="flex justify-between items-center border-b border-[#2a2a30]/40 pb-0.5 last:border-0 last:pb-0">
-                                      <div className="flex items-center gap-1">
-                                        <span>{row[0].val}</span>
-                                        {row[0].lbl && <span>{row[0].lbl}</span>}
-                                      </div>
-                                      {row[1] && (
-                                        <div className="flex items-center gap-1 text-right">
-                                          <span>{row[1].val}</span>
-                                          {row[1].lbl && <span>{row[1].lbl}</span>}
-                                        </div>
-                                      )}
-                                    </div>
-                                  ));
-                                })()}
-                              </div>
-                              {skill.effects.some(e => e.type === 'damage') && (
-                                <div className="mb-1 pb-1 border-b border-[#2a2a30]/40 space-y-0.5">
-                                  {skill.effects.filter(e => e.type === 'damage').map((effect, i) => {
-                                    const weaponDamage = useStatsStore.getState().getStat('WeaponDamage');
-                                    const weaponType = (useInventoryStore.getState().equipment['weapon1'] as any)?.damageType || 'Physical';
-                                    const mult = effect.damageMultiplier || 0;
-                                    const base = effect.baseValue || 0;
-                                    const totalAvg = base + (weaponDamage * mult);
-                                    const el = effect.element || (mult > 0 ? weaponType : 'Physical');
-                                    
-                                    if (skill.id === 'basic_attack') {
-                                      const min = Math.floor(totalAvg * 0.75);
-                                      const max = Math.ceil(totalAvg * 1.25);
-                                      return (
-                                      <div key={i} className="text-xs text-text-secondary">
-                                        {min} - {max} {el} Damage
-                                      </div>
-                                    );
-                                  }
-                                    
-                                    return (
-                                      <div key={i} className="text-xs text-text-secondary">
-                                        {Math.floor(totalAvg)} {el} Damage
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              )}
-
-                              <div className="text-xs text-text-secondary leading-snug">
-                                 {skill.description}
-                              </div>
-                            </div>
-                          );
+                          setContent(<SkillTooltip skill={skill} />);
                         }
                       }}
                       onMouseLeave={() => {

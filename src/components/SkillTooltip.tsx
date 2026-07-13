@@ -1,5 +1,7 @@
 import type { Skill } from '../engine/skills/types';
 import { getEffectiveCastTime, getEffectiveEnergyCost } from '../engine/input/InputHandler';
+import { useStatsStore } from '../store/useStatsStore';
+import { useInventoryStore } from '../store/useInventoryStore';
 
 interface SkillTooltipProps {
   skill: Skill;
@@ -7,7 +9,7 @@ interface SkillTooltipProps {
 
 export function SkillTooltip({ skill }: SkillTooltipProps) {
   return (
-    <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
+    <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none animate-in fade-in duration-200">
       <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
       <div className="flex flex-col text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#2a2a30]/40 uppercase tracking-widest gap-1">
         {(() => {
@@ -19,28 +21,60 @@ export function SkillTooltip({ skill }: SkillTooltipProps) {
             const castSec = getEffectiveCastTime(skill) / 1000;
             stats.push({ val: (castSec < 2.0 ? castSec.toFixed(1) : castSec.toFixed(0)) + 's', lbl: 'Cast' });
           }
-          if (skill.range > 0) stats.push({ val: skill.range, lbl: 'Range' });
-          else stats.push({ val: 'Melee', lbl: 'Range' });
+          stats.push({ val: skill.range > 1 ? skill.range : 'Melee', lbl: skill.range > 1 ? 'Range' : '' });
 
-          // Partition into rows of 2
           const rows = [];
           for (let i = 0; i < stats.length; i += 2) {
             rows.push(stats.slice(i, i + 2));
           }
 
-          return rows.map((row, rIdx) => (
-            <div key={rIdx} className={`flex justify-between items-center ${rIdx > 0 ? 'border-t border-[#2a2a30]/20 pt-1' : ''}`}>
-              {row.map((stat, sIdx) => (
-                <div key={sIdx} className="flex gap-1.5">
-                  <span className="text-text-muted font-bold">{stat.lbl}:</span>
-                  <span className="text-text-secondary font-black">{stat.val}</span>
+          return rows.map((row, i) => (
+            <div key={i} className="flex justify-between items-center border-b border-[#2a2a30]/40 pb-0.5 last:border-0 last:pb-0">
+              <div className="flex items-center gap-1">
+                <span>{row[0].val}</span>
+                {row[0].lbl && <span>{row[0].lbl}</span>}
+              </div>
+              {row[1] && (
+                <div className="flex items-center gap-1 text-right">
+                  <span>{row[1].val}</span>
+                  {row[1].lbl && <span>{row[1].lbl}</span>}
                 </div>
-              ))}
+              )}
             </div>
           ));
         })()}
       </div>
-      <div className="text-[11px] text-text-secondary leading-snug mt-1.5 whitespace-pre-wrap">{skill.description}</div>
+      {skill.effects.some(e => e.type === 'damage') && (
+        <div className="mb-1 pb-1 border-b border-[#2a2a30]/40 space-y-0.5">
+          {skill.effects.filter(e => e.type === 'damage').map((effect, i) => {
+            const weaponDamage = useStatsStore.getState().getStat('WeaponDamage');
+            const weaponType = (useInventoryStore.getState().equipment['weapon1'] as any)?.damageType || 'Physical';
+            const mult = effect.damageMultiplier || 0;
+            const base = effect.baseValue || 0;
+            const totalAvg = base + (weaponDamage * mult);
+            const el = effect.element || (mult > 0 ? weaponType : 'Physical');
+
+            if (skill.id === 'basic_attack') {
+              const min = Math.floor(totalAvg * 0.75);
+              const max = Math.ceil(totalAvg * 1.25);
+              return (
+                <div key={i} className="text-xs text-text-secondary">
+                  {min} - {max} {el} Damage
+                </div>
+              );
+            }
+
+            return (
+              <div key={i} className="text-xs text-text-secondary">
+                {Math.floor(totalAvg)} {el} Damage
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div className="text-xs text-text-secondary leading-snug">
+        {skill.description}
+      </div>
     </div>
   );
 }

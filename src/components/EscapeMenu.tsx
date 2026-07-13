@@ -51,7 +51,7 @@ export function EscapeMenu() {
                <>
                   <button 
                      onClick={handleResume}
-                     className="w-full py-2 px-4 bg-[#1c1c21] border border-transparent text-accent hover:text-white hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none text-sm font-bold text-center mb-2"
+                     className="w-full py-2 px-4 bg-[#1c1c21] border border-transparent text-text-secondary hover:text-text-primary hover:bg-[#1e1e23] hover:border-accent hover:ring-1 hover:ring-accent active:scale-[0.98] transition-all rounded-none text-sm font-bold text-center mb-2"
                   >
                      Resume Game
                   </button>

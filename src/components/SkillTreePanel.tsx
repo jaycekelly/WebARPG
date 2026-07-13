@@ -52,17 +52,51 @@ export function SkillTreePanel() {
         return <SkillTooltip skill={activeSkill} />;
       }
 
+      const showNextRank = pointsSpent > 0 && pointsSpent < node.maxPoints;
+
+      const renderModifiers = (rankVal: number) => {
+        if (!node.statModifiers) return null;
+        return (
+          <div className="flex flex-col gap-0.5 text-xs text-text-secondary font-medium">
+            {node.statModifiers.map((mod, i) => {
+               const val = mod.value * rankVal;
+               const formattedStat = mod.stat === 'StrikeDamage' ? 'Strike Damage' : mod.stat.replace(/([A-Z])/g, ' $1').trim();
+               if (mod.type === 'increased') {
+                 return <div key={i}>Increases {formattedStat} by {val}%</div>;
+               } else {
+                 const sign = val > 0 ? '+' : '';
+                 return <div key={i}>{sign}{val} {formattedStat}</div>;
+               }
+            })}
+          </div>
+        );
+      };
+
+      if (pointsSpent === 0) {
+        return (
+          <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none animate-in fade-in duration-200">
+             <div className="font-bold text-sm text-sky-400 mb-1">{node.name}</div>
+             <div className="text-[10px] text-text-secondary uppercase tracking-widest mb-0.5 font-bold">
+               Next Rank
+             </div>
+             {renderModifiers(1)}
+          </div>
+        );
+      }
+
       return (
-        <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
+        <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none animate-in fade-in duration-200">
            <div className="font-bold text-sm text-sky-400 mb-1">{node.name}</div>
-           <div className="text-[11px] text-text-secondary pb-1 mb-1 border-b border-[#2a2a30]/40 leading-snug">{node.description}</div>
-           {node.statModifiers && (
-             <div className="mt-1 flex flex-col gap-0.5 text-[11px] text-text-secondary">
-               {node.statModifiers.map((mod, i) => {
-                  const sign = mod.value > 0 ? '+' : '';
-                  const suffix = mod.type === 'increased' ? '%' : '';
-                  return <div key={i}>{sign}{mod.value}{suffix} {mod.stat} per point</div>;
-               })}
+           <div className="text-[10px] text-text-secondary uppercase tracking-widest mb-0.5 font-bold">
+             Rank {pointsSpent}/{node.maxPoints}
+           </div>
+           {renderModifiers(pointsSpent)}
+           {showNextRank && (
+             <div className="mt-6">
+               <div className="text-[10px] text-text-secondary uppercase tracking-widest mb-0.5 font-bold">
+                 Next Rank
+               </div>
+               {renderModifiers(pointsSpent + 1)}
              </div>
            )}
         </div>
@@ -73,8 +107,8 @@ export function SkillTreePanel() {
       <div 
         key={node.id} 
         className={`group relative flex flex-col items-center justify-center transition-all cursor-pointer
-          ${canAfford && isUnlocked && !isMaxed ? 'opacity-100 hover:scale-110' : 'opacity-60'}
-          ${!isUnlocked && 'cursor-not-allowed'}
+          ${isUnlocked ? 'opacity-100' : 'opacity-40'}
+          ${!isUnlocked ? 'cursor-not-allowed' : ''}
         `}
         onMouseEnter={() => setContent(renderTooltip())}
         onMouseLeave={() => setContent(null)}
@@ -84,10 +118,10 @@ export function SkillTreePanel() {
           }
         }}
       >
-        <div className={`relative w-10 h-10 flex items-center justify-center transition-all rounded-none border
+        <div className={`relative w-10 h-10 flex items-center justify-center transition-all rounded-none border hover:border-accent
             ${canAfford && isUnlocked && !isMaxed 
               ? 'bg-[#1c1c21] border-accent/90 animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)]' 
-              : isUnlocked ? 'bg-[#1c1c21] border-[#2a2a30]/40 hover:border-border-strong' : 'bg-[#0c0c0f]/60 border-[#2a2a30]/20'}
+              : isUnlocked ? 'bg-[#1c1c21] border-[#2a2a30]/40' : 'bg-[#0c0c0f]/60 border-[#2a2a30]/20'}
         `}>
            <Icon className={`w-6 h-6 ${node.type === 'active' ? 'text-blue-500' : 'text-sky-400'} ${!isUnlocked ? 'opacity-40' : ''}`} />
         </div>
@@ -109,7 +143,7 @@ export function SkillTreePanel() {
             onClick={() => setActiveTab('primary')}
             className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
               ${activeTab === 'primary' 
-                ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                ? 'border border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
                 : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
           >
             <span>{playerClass}</span>
@@ -122,7 +156,7 @@ export function SkillTreePanel() {
               onClick={() => setActiveTab('secondary')}
               className={`px-3 py-1.5 text-xs font-bold transition-all flex items-center gap-2 rounded-none active:scale-[0.98]
                 ${activeTab === 'secondary' 
-                  ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                  ? 'border border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
                   : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
             >
               <span>{secondaryClass}</span>
@@ -136,7 +170,7 @@ export function SkillTreePanel() {
                   onClick={() => setActiveTab('select_secondary')}
                   className={`px-3 py-1.5 text-xs font-bold transition-all rounded-none active:scale-[0.98]
                     ${activeTab === 'select_secondary' 
-                      ? 'border border-accent/50 bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
+                      ? 'border border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]' 
                       : 'border border-[#2a2a30]/40 bg-[#0c0c0f] text-text-secondary hover:bg-[#1c1c21] hover:border-border-strong hover:text-text-primary'}`}
                 >
                   Select 2nd Class
