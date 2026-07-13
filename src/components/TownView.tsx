@@ -30,9 +30,9 @@ export function TownView() {
   }
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-[1px]">
+    <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-[1px]">
        <div className="bg-surface-deep/93 backdrop-blur-[1px] shadow-2xl w-96 relative flex flex-col overflow-hidden rounded-none border border-transparent">
-          <div className="h-10 border-b border-[#2a2a30]/40 flex items-center px-4 justify-between bg-surface-deep/93">
+          <div className="h-10 border-b border-[#2a2a30]/40 flex items-center px-4 justify-between bg-transparent">
              <div className="text-text-primary font-bold tracking-widest text-sm uppercase">Dungeon Select</div>
              <button onClick={() => setDungeonSelectOpen(false)} className="text-text-muted hover:text-text-primary transition-colors">
                 <X className="w-5 h-5" />

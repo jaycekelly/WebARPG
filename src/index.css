@@ -73,7 +73,7 @@
 }
 
 .animate-subtle-pulse {
-  animation: subtlePulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: subtlePulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 @keyframes levelUpFade {
@@ -122,13 +122,23 @@
     border-color: rgba(56, 189, 248, 0.4);
   }
 
-  /* Flat rarity styles (rarity is indicated purely by text and icon colors) */
-  .slot-rarity-normal,
-  .slot-rarity-magic,
-  .slot-rarity-rare,
-  .slot-rarity-epic,
-  .slot-rarity-legendary,
+  /* Rarity border styles */
+  .slot-rarity-normal {
+    border-color: rgba(161, 161, 170, 0.2) !important;
+  }
+  .slot-rarity-magic {
+    border-color: rgba(59, 130, 246, 0.35) !important;
+  }
+  .slot-rarity-rare {
+    border-color: rgba(234, 179, 8, 0.35) !important;
+  }
+  .slot-rarity-epic {
+    border-color: rgba(168, 85, 247, 0.35) !important;
+  }
+  .slot-rarity-legendary {
+    border-color: rgba(56, 189, 248, 0.35) !important;
+  }
   .slot-rarity-unique {
-    /* No borders or gradients */
+    border-color: rgba(245, 158, 11, 0.35) !important;
   }
 }

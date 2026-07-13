@@ -44,7 +44,7 @@ export function EscapeMenu() {
 
   return (
     <div className="absolute inset-0 z-[9000] flex items-center justify-center bg-black/20 backdrop-blur-[1px] animate-in fade-in duration-200">
-      <div className="relative w-56 bg-surface-deep/93 backdrop-blur-[1px] flex flex-col overflow-hidden shadow-2xl rounded-none border border-transparent">
+      <div className="relative w-56 bg-[#0c0c0f]/93 backdrop-blur-[1px] flex flex-col overflow-hidden shadow-2xl rounded-none border border-transparent">
          
          <div className="p-4 flex flex-col gap-2">
             {!showWarning ? (

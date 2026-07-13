@@ -27,7 +27,7 @@ export function ItemTooltip({ item }: Props) {
   const { getStat } = useStatsStore();
   
   return (
-    <div className="w-60 bg-[#141417]/95 backdrop-blur-md border border-[#2a2a30]/60 shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
+    <div className="w-60 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
       <div className={cn("font-bold text-sm mb-1 tracking-tight", RARITY_COLORS[item.rarity])}>
         {item.name}
       </div>

@@ -4,12 +4,10 @@ import { usePlayerStore } from '../store/usePlayerStore';
 import { useTooltipStore } from '../store/useTooltipStore';
 import { SKILL_TREE, type TalentNode } from '../data/skillTrees';
 import { SKILLS } from '../data/skills';
-import { getEffectiveEnergyCost, getEffectiveCastTime } from '../engine/input/InputHandler';
-import { useInventoryStore } from '../store/useInventoryStore';
-import { getWeaponSkillDamage } from '../engine/combat/WeaponDPS';
 import { Flame } from 'lucide-react';
 
 import { ICONS } from './IconLibrary';
+import { SkillTooltip } from './SkillTooltip';
 
 export function SkillTreePanel() {
   const [activeTab, setActiveTab] = useState<'primary' | 'secondary' | 'select_secondary'>('primary');
@@ -50,55 +48,22 @@ export function SkillTreePanel() {
         activeSkill = SKILLS[node.grantedSkillId];
       }
 
+      if (activeSkill) {
+        return <SkillTooltip skill={activeSkill} />;
+      }
+
       return (
-        <div className="w-56 bg-[#0e0f11] shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
-           {activeSkill ? (
-             <>
-                <div className="font-bold text-sm text-sky-400 mb-1">{activeSkill.name}</div>
-                <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#202227]/40 uppercase tracking-widest">
-                   <span>{activeSkill.energyCost > 0 ? `${getEffectiveEnergyCost(activeSkill)} Energy` : (activeSkill.adrenalineCost ? `${activeSkill.adrenalineCost} Adrenaline` : 'Free')}</span>
-                   <span>{activeSkill.cooldownMs ? `${(activeSkill.cooldownMs / 1000).toFixed(1)} CD` : 'No CD'}</span>
-                </div>
-                <div className="flex justify-between text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#202227]/40 uppercase tracking-widest">
-                   <span>{activeSkill.range > 0 ? `Range ${activeSkill.range}` : 'Melee'}</span>
-                   <span>{activeSkill.castTime ? `${(getEffectiveCastTime(activeSkill) / 1000).toFixed(1)} Cast` : 'Instant'}</span>
-                </div>
-                {activeSkill.effects.some(e => e.type === 'damage') && (
-                  <div className="mb-1 pb-1 border-b border-[#202227]/40 space-y-0.5">
-                    {activeSkill.effects.filter(e => e.type === 'damage').map((effect, i) => {
-                      const isAttackSkill = activeSkill.tags.includes('Attack') || activeSkill.tags.includes('Melee') || activeSkill.tags.includes('Projectile');
-                      const weaponDamage = isAttackSkill ? getWeaponSkillDamage() : 0;
-                      const weaponType = (useInventoryStore.getState().equipment['weapon1'] as any)?.damageType || 'Physical';
-                      const mult = effect.damageMultiplier || 0;
-                      const base = effect.baseValue || 0;
-                      const totalAvg = base + (weaponDamage * mult);
-                      const el = effect.element || (mult > 0 ? weaponType : 'Physical');
-                      return (
-                        <div key={i} className="text-xs text-text-secondary">
-                          {Math.floor(totalAvg)} {el} Damage
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                <div className="text-xs text-text-secondary leading-snug">
-                   {activeSkill.description}
-                </div>
-             </>
-           ) : (
-             <>
-               <h3 className={`font-bold text-sm mb-1 ${node.type === 'active' ? 'text-sky-400' : 'text-blue-500'}`}>{node.name}</h3>
-               <p className="text-xs text-text-secondary pb-1 mb-1 border-b border-[#202227]/40 leading-snug">{node.description}</p>
-               {node.statModifiers && (
-                 <div className="mt-1 flex flex-col gap-0.5">
-                   {node.statModifiers.map((mod, i) => {
-                      const sign = mod.value > 0 ? '+' : '';
-                      const suffix = mod.type === 'increased' ? '%' : '';
-                      return <div key={i} className="text-xs text-sky-400">{sign}{mod.value}{suffix} {mod.stat} per point</div>;
-                   })}
-                 </div>
-               )}
-             </>
+        <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
+           <div className="font-bold text-sm text-sky-400 mb-1">{node.name}</div>
+           <div className="text-[11px] text-text-secondary pb-1 mb-1 border-b border-[#2a2a30]/40 leading-snug">{node.description}</div>
+           {node.statModifiers && (
+             <div className="mt-1 flex flex-col gap-0.5 text-[11px] text-text-secondary">
+               {node.statModifiers.map((mod, i) => {
+                  const sign = mod.value > 0 ? '+' : '';
+                  const suffix = mod.type === 'increased' ? '%' : '';
+                  return <div key={i}>{sign}{mod.value}{suffix} {mod.stat} per point</div>;
+               })}
+             </div>
            )}
         </div>
       );
@@ -119,10 +84,10 @@ export function SkillTreePanel() {
           }
         }}
       >
-        <div className={`relative w-8 h-8 flex items-center justify-center transition-all rounded-none border
+        <div className={`relative w-10 h-10 flex items-center justify-center transition-all rounded-none border
             ${canAfford && isUnlocked && !isMaxed 
               ? 'bg-[#1c1c21] border-accent/90 animate-subtle-pulse shadow-[0_0_6px_rgba(56,189,248,0.3)]' 
-              : isUnlocked ? 'bg-[#1c1c21] border-[#2a2a30]/40 hover:border-border-strong' : 'bg-[#0c0c0f]/60 border-transparent'}
+              : isUnlocked ? 'bg-[#1c1c21] border-[#2a2a30]/40 hover:border-border-strong' : 'bg-[#0c0c0f]/60 border-[#2a2a30]/20'}
         `}>
            <Icon className={`w-6 h-6 ${node.type === 'active' ? 'text-blue-500' : 'text-sky-400'} ${!isUnlocked ? 'opacity-40' : ''}`} />
         </div>
@@ -253,16 +218,16 @@ export function SkillTreePanel() {
          </div>
 
          {/* Class Rank Badge Footer */}
-          <div className="bg-[#0e0f11] py-2 flex justify-center items-center z-20">
-             <div className="flex items-center px-3 py-1">
-                <span className="text-xs font-bold text-text-primary mr-2 flex items-baseline gap-1">
-                   {currentClass} <span className="text-accent text-sm font-black">{mastery}</span>
-                </span>
-                <div className="w-px h-3 bg-[#202227]/40 mr-2" />
-                <span className="text-sky-400 font-black text-xs mr-1">+{mastery * 3}</span>
-                <span className="text-[10px] text-text-secondary font-bold tracking-widest">{currentClass === 'Fighter' ? 'STR' : currentClass === 'Rogue' ? 'DEX' : 'INT'}</span>
-             </div>
-          </div>   
+         <div className="bg-[#0c0c0f] py-2 flex justify-center items-center z-20">
+            <div className="flex items-center px-3 py-1">
+               <span className="text-xs font-bold text-text-secondary mr-2 flex items-baseline gap-1">
+                  {currentClass} <span className="text-accent text-sm font-black">{mastery}</span>
+               </span>
+               <div className="w-px h-3.5 bg-zinc-400/80 mr-2" />
+               <span className="text-sky-400 font-black text-xs mr-1">+{mastery * 3}</span>
+               <span className="text-[10px] text-text-secondary font-bold tracking-widest">{currentClass === 'Fighter' ? 'STR' : currentClass === 'Rogue' ? 'DEX' : 'INT'}</span>
+            </div>
+         </div>   
       </div>
     </div>
   );

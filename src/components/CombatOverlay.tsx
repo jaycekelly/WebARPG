@@ -278,7 +278,7 @@ export function CombatOverlay() {
           <>
           {showInteract && (
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 mt-[11rem] pointer-events-none z-50 flex flex-col items-center animate-in fade-in duration-300">
-               <div className="bg-[#0c0c0f]/93 backdrop-blur-md rounded-none pl-2 pr-4 py-1.5 flex items-center gap-2.5 shadow-md border-none">
+               <div className="bg-surface-deep/93 rounded-none pl-2 pr-3 py-1.5 flex items-center gap-2.5 shadow-md border-none">
                   <span className="text-xs font-black tracking-widest text-text-primary bg-[#1e1e23] rounded-none w-6 h-6 flex items-center justify-center shadow-sm leading-none font-mono">F</span>
                   <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">{interactText}</span>
                </div>
@@ -335,15 +335,14 @@ export function CombatOverlay() {
             <div className="h-10 flex flex-col items-center justify-end w-full">
               {castingSkillId && castEndTime > 0 && (SKILLS[castingSkillId] || castingSkillId === 'portal_skill') ? (
                 <div className="flex flex-col items-center w-[8rem] mb-1">
-                  <div className="text-xs text-center whitespace-nowrap text-text-primary -mb-0.5 font-bold [text-shadow:2px_2px_1px_rgba(0,0,0,1)] tracking-wide">
+                  <div className="text-xs text-center whitespace-nowrap text-text-primary -mt-[7px] mb-[3.5px] font-bold [text-shadow:2px_2px_1px_rgba(0,0,0,1)] tracking-wide">
                     {castingSkillId === 'portal_skill' ? 'Forfeiting' : SKILLS[castingSkillId].name}
                   </div>
-                  <div className="h-3.5 w-full bg-surface-deep rounded-none border border-border-subtle overflow-hidden shadow-inner">
+                  <div className="h-3.5 w-full bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
                     <div
-                      className="h-full transition-all duration-75 border-r border-[#6b21a8]"
+                      className="h-full transition-all duration-75 bg-[#9333ea]"
                       style={{ 
-                        width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, castingSkillId === 'portal_skill' ? 4000 : getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%`,
-                        background: 'linear-gradient(to bottom, #a855f7 0%, #a855f7 50%, #9333ea 50%, #9333ea 100%)'
+                        width: `${Math.min(100, Math.max(0, 100 - ((castEndTime - now) / Math.max(1, castingSkillId === 'portal_skill' ? 4000 : getEffectiveCastTime(SKILLS[castingSkillId]))) * 100))}%`
                       }}
                     />
                   </div>
@@ -353,12 +352,11 @@ export function CombatOverlay() {
 
             {/* Main Hand Swing Timer (Middle) */}
             <div className={`h-3 w-full flex items-center ${isMainTimerActive ? '' : 'opacity-0 pointer-events-none'}`}>
-              <div className="h-2 w-full bg-surface-deep rounded-none border border-border-subtle overflow-hidden shadow-inner">
+              <div className="h-[5px] w-full bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
                 <div 
-                  className="h-full transition-all duration-75 border-r border-amber-950"
+                  className="h-full transition-all duration-75 bg-[#d97706]"
                   style={{ 
-                    width: `${Math.max(0, 100 - (timeSinceMainAttack / mainHandCooldown) * 100)}%`,
-                    background: 'linear-gradient(to bottom, #f59e0b 0%, #f59e0b 50%, #d97706 50%, #d97706 100%)'
+                    width: `${Math.max(0, 100 - (timeSinceMainAttack / mainHandCooldown) * 100)}%`
                   }}
                 />
               </div>
@@ -366,12 +364,11 @@ export function CombatOverlay() {
 
             {/* Off-Hand Swing Timer (Bottom) */}
             <div className={`h-3 w-full flex items-center ${isOffTimerActive ? '' : 'opacity-0 pointer-events-none'}`}>
-              <div className="h-2 w-full bg-surface-deep rounded-none border border-border-subtle overflow-hidden shadow-inner opacity-80">
+              <div className="h-[5px] w-full bg-black/40 overflow-hidden backdrop-blur-md rounded-none opacity-80">
                 <div 
-                  className="h-full transition-all duration-75 border-r border-amber-950"
+                  className="h-full transition-all duration-75 bg-[#d97706]"
                   style={{ 
-                    width: `${Math.max(0, 100 - (timeSinceOffAttack / offHandCooldown) * 100)}%`,
-                    background: 'linear-gradient(to bottom, #f59e0b 0%, #f59e0b 50%, #d97706 50%, #d97706 100%)'
+                    width: `${Math.max(0, 100 - (timeSinceOffAttack / offHandCooldown) * 100)}%`
                   }}
                 />
               </div>
@@ -405,7 +402,7 @@ export function CombatOverlay() {
                   )}
                 </div>
                 {/* Tooltip */}
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-[#141417]/95 backdrop-blur-md border border-[#2a2a30]/60 rounded-none px-2 py-1 text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-2xl">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-[#141417]/95 backdrop-blur-md border border-transparent rounded-none px-2 py-1 text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-2xl">
                   <div className={`font-bold mb-1 ${buff.type === 'buff' ? 'text-sky-400' : 'text-red-500'}`}>{buff.name}</div>
                   {buff.durationMs ? (
                      <div className="text-text-secondary mb-1 font-mono">{(buff.durationMs / 1000).toFixed(1)}s remaining</div>
@@ -456,7 +453,7 @@ export function CombatOverlay() {
                       }
                     }}
                     onMouseEnter={() => setContent(
-                      <div className="w-52 bg-[#141417]/95 backdrop-blur-md border border-[#2a2a30]/60 shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
+                      <div className="w-52 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
                         <div className="font-bold text-red-400 mb-1">
                           Healing Flask
                         </div>
@@ -617,7 +614,7 @@ export function CombatOverlay() {
                       onMouseEnter={() => {
                         if (!isBinding && skill) {
                           setContent(
-                            <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-[#2a2a30]/60 shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
+                            <div className="w-56 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none">
                               <div className="font-bold text-sm text-sky-400 mb-1">{skill.name}</div>
                               <div className="flex flex-col text-[0.625rem] text-text-secondary mb-1 pb-1 border-b border-[#2a2a30]/40 uppercase tracking-widest gap-1">
                                 {(() => {
@@ -625,7 +622,10 @@ export function CombatOverlay() {
                                   if (getEffectiveEnergyCost(skill) > 0) stats.push({ val: getEffectiveEnergyCost(skill), lbl: 'Energy' });
                                   if (skill.adrenalineCost) stats.push({ val: skill.adrenalineCost, lbl: 'Adrenaline' });
                                   if (skill.cooldownMs) stats.push({ val: (skill.cooldownMs / 1000).toFixed(1), lbl: 'CD' });
-                                  if (skill.castTime) stats.push({ val: (getEffectiveCastTime(skill) / 1000).toFixed(1) + 's', lbl: 'Cast' });
+                                  if (skill.castTime) {
+                                    const castSec = getEffectiveCastTime(skill) / 1000;
+                                    stats.push({ val: (castSec < 2.0 ? castSec.toFixed(1) : castSec.toFixed(0)) + 's', lbl: 'Cast' });
+                                  }
                                   stats.push({ val: skill.range > 1 ? skill.range : 'Melee', lbl: skill.range > 1 ? 'Range' : '' });
                                   
                                   const rows = [];
@@ -709,9 +709,12 @@ export function CombatOverlay() {
                           
                           {/* Countdown Text */}
                           <div className="absolute inset-0 flex items-center justify-center z-30">
-                            <span className="text-white font-bold text-xs [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
-                               {(Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000).toFixed(1)}
-                            </span>
+                             <span className="text-white font-bold text-xs [text-shadow:2px_2px_1px_rgba(0,0,0,1)]">
+                                {(() => {
+                                  const remainingSec = Math.max(timeUntilSkillFree, timeUntilGcdFree) / 1000;
+                                  return remainingSec < 2.0 ? remainingSec.toFixed(1) : remainingSec.toFixed(0);
+                                })()}
+                             </span>
                           </div>
                         </div>
                       )}
@@ -866,23 +869,22 @@ export function CombatOverlay() {
            </button>
         </div>
       )}
-      {/* Keybind Hints */}
       <div className="absolute bottom-18 right-3 pointer-events-none z-50 flex flex-col gap-2.5 items-end opacity-90">
          <div className="flex items-center gap-2">
-           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Move Diagonal</span>
-           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-md leading-none font-mono">Q E Z C</span>
+           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Move Diagonal</span>
+           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">Q E Z C</span>
          </div>
          <div className="flex items-center gap-2">
-           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Health Potion</span>
-           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-md leading-none font-mono">R</span>
+           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Health Potion</span>
+           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">R</span>
          </div>
          <div className="flex items-center gap-2">
-           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Cycle Targets</span>
-           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-md leading-none font-mono">TAB</span>
+           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Cycle Targets</span>
+           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">TAB</span>
          </div>
          <div className="flex items-center gap-2">
-           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right [text-shadow:1px_1px_0px_rgba(0,0,0,1)]">Tactical Pause</span>
-           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-md leading-none font-mono">SPACE</span>
+           <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider text-right drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] [text-shadow:1px_1px_1px_rgba(0,0,0,1)]">Tactical Pause</span>
+           <span className="text-xs font-black tracking-widest text-white bg-zinc-900 px-2 py-0.5 shadow-[0_4px_12px_rgba(0,0,0,0.6)] leading-none font-mono">SPACE</span>
          </div>
       </div>
       
@@ -901,7 +903,7 @@ export function CombatOverlay() {
               }
             }}
             onMouseEnter={() => setContent(
-              <div className="w-52 bg-[#141417]/95 backdrop-blur-md border border-[#2a2a30]/60 shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
+              <div className="w-52 bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1.5 text-left pointer-events-none mb-2">
                 <div className="font-bold text-sm text-text-primary mb-1 tracking-tight">Town Portal (B)</div>
                 <div className="text-xs text-text-secondary leading-relaxed">
                    Forfeit dungeon and return to town
@@ -909,7 +911,11 @@ export function CombatOverlay() {
               </div>
             )}
             onMouseLeave={() => setContent(null)}
-            className="w-10 h-10 flex items-center justify-center flex-col gap-0.5 group transition-all bg-[#0c0c0f] text-text-secondary hover:text-accent hover:bg-[#1c1c21] hover:ring-1 hover:ring-accent shadow-md rounded-none border border-transparent"
+            className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group transition-all bg-surface-deep/93 shadow-md rounded-none border ${
+              castingSkillId === 'portal_skill'
+                ? 'border-accent text-accent shadow-[0_0_8px_rgba(56,189,248,0.2)]'
+                : 'border-transparent text-text-secondary hover:ring-1 hover:ring-accent'
+            }`}
           >
             <IconWhirl className="w-5 h-5" />
           </button>
@@ -925,7 +931,7 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-[#141417]/95 backdrop-blur-md border border-[#2a2a30]/60 shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
+            <div className="w-auto bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Inventory (I)
               </div>
@@ -934,8 +940,8 @@ export function CombatOverlay() {
           onMouseLeave={() => setContent(null)}
           className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'inventory')
-              ? 'border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
-              : 'border-transparent bg-[#0c0c0f] text-text-secondary hover:text-text-primary hover:bg-[#1c1c21] hover:ring-1 hover:ring-accent shadow-md'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
+              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent shadow-md'
           }`}
         >
           <Backpack className="w-5 h-5" />
@@ -955,7 +961,7 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-[#141417]/95 backdrop-blur-md border border-[#2a2a30]/60 shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
+            <div className="w-auto bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Skills (K)
               </div>
@@ -964,8 +970,8 @@ export function CombatOverlay() {
           onMouseLeave={() => setContent(null)}
           className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'active_skills')
-              ? 'border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
-              : 'border-transparent bg-[#0c0c0f] text-text-secondary hover:text-text-primary hover:bg-[#1c1c21] hover:ring-1 hover:ring-accent shadow-md'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
+              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent shadow-md'
           }`}
         >
           <Sparkles className="w-5 h-5" />
@@ -985,7 +991,7 @@ export function CombatOverlay() {
             }
           }}
           onMouseEnter={() => setContent(
-            <div className="w-auto bg-[#141417]/95 backdrop-blur-md border border-[#2a2a30]/60 shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
+            <div className="w-auto bg-[#141417]/95 backdrop-blur-md border border-transparent shadow-[0_15px_50px_-10px_rgba(0,0,0,0.85)] rounded-none px-2 py-1 text-left pointer-events-none mb-2">
               <div className="text-xs text-text-primary leading-relaxed font-bold">
                 Passives (P)
               </div>
@@ -994,8 +1000,8 @@ export function CombatOverlay() {
           onMouseLeave={() => setContent(null)}
           className={`w-10 h-10 flex items-center justify-center flex-col gap-0.5 group relative transition-all rounded-none border ${
             useAppStore(s => s.characterWindowOpen && s.characterWindowTab === 'skills')
-              ? 'border-accent bg-[#1e1e23] text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
-              : 'border-transparent bg-[#0c0c0f] text-text-secondary hover:text-text-primary hover:bg-[#1c1c21] hover:ring-1 hover:ring-accent shadow-md'
+              ? 'border-accent bg-surface-deep/93 text-accent font-black shadow-[0_0_8px_rgba(56,189,248,0.2)]'
+              : 'border-transparent bg-surface-deep/93 text-text-secondary hover:text-text-primary hover:ring-1 hover:ring-accent shadow-md'
           }`}
         >
           <BookOpen className="w-5 h-5" />
