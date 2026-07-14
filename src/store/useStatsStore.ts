@@ -50,6 +50,8 @@ const getEquipmentModifiers = (): StatModifier[] => {
     if (!equipState) return equipmentMods;
 
     for (const [slot, item] of Object.entries(equipState.equipment)) {
+        if (slot === 'weapon1_alt' || slot === 'weapon2_alt') continue;
+        
         if (item) {
             if (item.baseStats) {
                 for (const baseStat of item.baseStats) {

@@ -192,7 +192,7 @@ export function ActiveSkillPanel() {
               >
                 <div className="flex justify-between items-center w-full mb-auto relative pr-6">
                   <div className="flex items-center gap-1.5 overflow-hidden">
-                    <Icon className={`w-4 h-4 shrink-0 ${isEquipped ? 'text-accent' : 'text-text-secondary'}`} />
+                    <Icon className={`w-4 h-4 shrink-0 drop-shadow-icon ${isEquipped ? 'text-accent' : 'text-text-secondary'}`} />
                     <span className="font-bold text-xs text-text-primary truncate">{skill.name}</span>
                     {isEquipped && (
                       <span className="text-[9px] font-black w-4 h-4 flex items-center justify-center bg-accent/20 border border-accent/40 text-accent uppercase tracking-wider shrink-0 leading-none shadow-glow-accent">
@@ -216,7 +216,7 @@ export function ActiveSkillPanel() {
                     setContent(null);
                     setInspectSkillId(skill.id);
                   }}
-                  className="absolute top-1.5 right-1.5 text-text-primary hover:text-accent transition-all flex items-center justify-center p-1 bg-surface-raised border border-transparent hover:bg-surface-overlay active:scale-90 rounded-none shadow-sm"
+                  className="absolute top-1.5 right-1.5 text-text-primary transition-all flex items-center justify-center p-1 bg-surface-raised border border-transparent hover:border-accent hover:bg-surface-overlay active:scale-90 rounded-none shadow-sm"
                 >
                   <Menu className="w-4 h-4" />
                 </button>
@@ -234,7 +234,7 @@ export function ActiveSkillPanel() {
                             ${isFilled 
                               ? 'bg-accent border-accent/80 shadow-glow-accent-strong' 
                               : isMorph 
-                                ? 'bg-emerald-950 border-accent/30' 
+                                ? 'bg-sky-950 border-accent/30' 
                                 : 'bg-border-subtle border-border-strong/30'}
                             ${isMorph ? 'w-3.5' : 'w-2.5'}
                           `}

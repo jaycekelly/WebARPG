@@ -722,7 +722,7 @@ export function useGameEngine() {
            
            if (goldGain > 0) {
                combatState.addLog(`Gained ${xpGain} XP and ${goldGain} Gold.`, 'system');
-               combatState.addFloatingText(enemy.position.x, enemy.position.y - 0.5, `+${goldGain} Gold`, { colorClass: 'text-amber-400', duration: 2500 });
+               combatState.addFloatingText(enemy.position.x, enemy.position.y - 0.5, `+${goldGain}`, { colorClass: 'text-amber-400', duration: 2500, isGold: true });
            } else {
                combatState.addLog(`Gained ${xpGain} XP.`, 'system');
            }

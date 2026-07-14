@@ -140,13 +140,7 @@ export class InputHandler {
     const combatState = useCombatStore.getState();
     const playerState = usePlayerStore.getState();
 
-    // Check if skill is prohibited in town
-    if (useAppStore.getState().location === 'town' && skill.disableInTown) {
-      const pos = playerState.position;
-      combatState.addFloatingText(pos.x, pos.y, 'Disabled in Town', { colorClass: 'text-red-400' });
-      combatState.addLog(`Cannot cast ${skill.name} in town.`, 'system');
-      return;
-    }
+
 
     const worldState = useWorldStore.getState();
     const preTarget = targetId ? worldState.enemies.find(e => e.id === targetId) : undefined;

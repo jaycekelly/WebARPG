@@ -83,7 +83,7 @@ export function ItemTooltip({ item }: Props) {
               const max = Math.ceil(finalValue * 1.25);
               return (
                 <div key={i}>
-                  <div className={cn("text-xs", isUpgraded ? "text-blue-400 font-bold" : "text-text-secondary")}>
+                  <div className={cn("text-xs", isUpgraded ? "text-blue-500 font-bold" : "text-text-secondary")}>
                     {min} - {max} Damage
                   </div>
                   {item.weaponAttackSpeed && (
@@ -102,7 +102,7 @@ export function ItemTooltip({ item }: Props) {
             }
 
             return (
-              <div key={i} className={cn("text-xs", isUpgraded ? "text-blue-400 font-bold" : "text-text-secondary")}>
+              <div key={i} className={cn("text-xs", isUpgraded ? "text-blue-500 font-bold" : "text-text-secondary")}>
                 {finalValue}{suffix} {displayName}
               </div>
             );
@@ -113,7 +113,7 @@ export function ItemTooltip({ item }: Props) {
       {item.affixes.length > 0 && (
         <div className="space-y-0.5 mt-1 pt-1 border-t border-border-subtle/40">
           {item.affixes.map((affix) => (
-            <div key={affix.id} className="text-xs text-blue-400">
+            <div key={affix.id} className="text-xs text-blue-500">
               {affix.description}
             </div>
           ))}

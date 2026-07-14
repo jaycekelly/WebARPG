@@ -73,12 +73,12 @@ export function InventoryPanel() {
         onMouseLeave={() => setHoveredEqSlot(null)}
         className={`flex items-center gap-2 py-1 px-1.5 pr-2 transition-all w-full text-left shrink-0 rounded-none ring-1 ring-inset ${
           item 
-            ? 'bg-surface-raised/45 ring-transparent hover:ring-accent/40 hover:bg-surface-overlay hover:text-text-primary' 
-            : 'bg-surface-base/30 opacity-65 hover:opacity-100 ring-transparent hover:ring-accent/30 hover:bg-surface-overlay/30'
+            ? 'bg-surface-raised/45 ring-transparent hover:ring-accent hover:bg-surface-overlay hover:text-text-primary' 
+            : 'bg-surface-base/30 opacity-65 hover:opacity-100 ring-transparent hover:ring-accent hover:bg-surface-overlay/30'
         }`}
       >
-        <div className={`w-9 h-9 shrink-0 flex items-center justify-center border ${
-          item ? `bg-surface-raised border-white/5 slot-rarity-${item.rarity.toLowerCase()}` : 'bg-surface-base border-white/2'
+        <div className={`w-9 h-9 shrink-0 flex items-center justify-center border group-hover:border-accent transition-colors ${
+          item ? `slot-filled slot-rarity-${item.rarity.toLowerCase()}` : 'slot-empty border-border-subtle/20'
         }`}>
           <Icon className={`w-5 h-5 ${
             item ? RARITY_TEXT_COLORS[item.rarity] : 'text-zinc-500'
@@ -166,7 +166,7 @@ export function InventoryPanel() {
                  className={`flex items-center gap-1 py-1.5 pl-1.5 pr-3.5 transition-all rounded-none group ring-1 ring-inset ${
                    statsPopoutOpen 
                      ? 'bg-surface-overlay ring-accent text-accent font-black shadow-glow-accent' 
-                     : 'bg-surface-base ring-border-subtle/20 hover:ring-accent/40 hover:bg-surface-overlay text-text-secondary hover:text-text-primary'
+                     : 'bg-surface-base ring-border-subtle/20 hover:ring-accent hover:bg-surface-overlay text-text-secondary hover:text-text-primary'
                  }`}
                >
                 <ChevronLeft className={`w-3.5 h-3.5 transition-transform ${statsPopoutOpen ? 'rotate-180 text-accent' : 'text-accent group-hover:-translate-x-0.5'}`} />
@@ -198,7 +198,7 @@ export function InventoryPanel() {
                 
                 {/* Weapon Swap Button */}
                 <div 
-                  className="absolute right-[-9px] top-1/2 -translate-y-1/2 bg-transparent z-20"
+                  className="absolute right-[-11px] top-1/2 -translate-y-1/2 bg-transparent z-100"
                   onMouseEnter={() => setHoveredCustom(
                     <div className="bg-surface-deep/95 backdrop-blur-md border border-transparent shadow-depth-md rounded-none px-2 py-1.5 text-left pointer-events-none whitespace-nowrap">
                       <div className="text-xs text-text-secondary leading-relaxed">
@@ -210,9 +210,9 @@ export function InventoryPanel() {
                 >
                    <button
                      onClick={() => swapWeaponSet()}
-                     className="w-[1.4rem] h-[1.4rem] bg-surface-base hover:bg-surface-overlay text-accent ring-1 ring-inset ring-border-subtle/50 hover:ring-accent/40 rounded-none flex items-center justify-center transition-all group shadow-md"
+                     className="w-[1.625rem] h-[1.625rem] bg-surface-base hover:bg-surface-overlay text-accent ring-1 ring-inset ring-transparent hover:ring-accent rounded-none flex items-center justify-center transition-all group shadow-md"
                    >
-                     <ArrowRightLeft className="w-3.5 h-3.5 text-accent transition-transform group-hover:scale-110" />
+                     <ArrowRightLeft className="w-3.75 h-3.75 text-accent transition-transform" />
                    </button>
                 </div>
                 
@@ -242,7 +242,7 @@ export function InventoryPanel() {
                 }}
                 onMouseEnter={() => setHoveredInvIndex(i)}
                 onMouseLeave={() => setHoveredInvIndex(null)}
-                className={`aspect-square w-full h-auto flex items-center justify-center relative transition-all ${
+                className={`aspect-square w-full h-auto flex items-center justify-center relative transition-all group ${
                   item ? `slot-filled slot-rarity-${item.rarity.toLowerCase()}` : 'slot-empty'
                 }`}
               >

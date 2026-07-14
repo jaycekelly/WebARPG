@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { Map, ArrowRight, X } from 'lucide-react';
 import { usePlayerStore } from '../store/usePlayerStore';
@@ -5,9 +6,23 @@ import { useCombatStore } from '../store/useCombatStore';
 import { LevelGenerator } from '../engine/world/LevelGenerator';
 import { setRunState } from '../store/storage';
 import { DUNGEON_BIOMES, getBiome } from '../data/biomes';
+import { useWorldStore } from '../store/useWorldStore';
 
 export function TownView() {
   const { setLocation, dungeonSelectOpen, setDungeonSelectOpen } = useAppStore();
+  const playerPos = usePlayerStore(state => state.position);
+
+  useEffect(() => {
+    if (dungeonSelectOpen) {
+      const entrance = useWorldStore.getState().grid.obstacles.find(o => o.type === 'dungeon_entrance');
+      if (entrance) {
+        const dist = Math.max(Math.abs(playerPos.x - entrance.x), Math.abs(playerPos.y - entrance.y));
+        if (dist > 1) {
+          setDungeonSelectOpen(false);
+        }
+      }
+    }
+  }, [playerPos, dungeonSelectOpen, setDungeonSelectOpen]);
 
   const handleEnterDungeon = (biomeId: string) => {
     setRunState('dungeon');
@@ -17,54 +32,59 @@ export function TownView() {
     setLocation('dungeon');
   };
 
-//   const handleEnterPlaygroundCave = () => {
-//     setRunState('dungeon');
-//     useCombatStore.getState().resetCombo();
-//     LevelGenerator.initializePlaygroundCave(usePlayerStore.getState().level);
-//     setDungeonSelectOpen(false);
-//     setLocation('dungeon');
-//   };
-
   if (!dungeonSelectOpen) {
     return null;
   }
 
   return (
-    <div className="absolute inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-[1px]">
-       <div className="bg-surface-deep/93 backdrop-blur-[1px] shadow-2xl w-96 relative flex flex-col overflow-hidden rounded-none border border-transparent">
-          <div className="h-10 border-b border-border-subtle/40 flex items-center px-4 justify-between bg-transparent">
-             <div className="text-text-primary font-bold tracking-widest text-sm uppercase">Dungeon Select</div>
-             <button onClick={() => setDungeonSelectOpen(false)} className="text-text-muted hover:text-text-primary transition-colors">
-                <X className="w-5 h-5" />
-             </button>
-          </div>
+    <div className="absolute inset-x-0 top-[calc(49%-8.55rem)] pointer-events-none flex justify-center z-40">
+      <div className="relative w-[15rem] h-[17.1rem] pointer-events-auto transition-transform duration-[400ms] ease-in-out">
+        {/* Main Window */}
+        <div className="absolute inset-0 rounded-none z-40 overflow-hidden shadow-depth-lg">
+          {/* Background layer */}
+          <div className="absolute inset-0 bg-surface-deep/93 backdrop-blur-[2px] z-10" />
           
-          <div className="p-4 flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
-             {DUNGEON_BIOMES.map((biomeId) => {
-                const biome = getBiome(biomeId);
-                return (
-                  <button 
-                    key={biomeId}
-                    onClick={() => handleEnterDungeon(biomeId)}
-                    className="flex items-center gap-4 p-4 border border-transparent bg-surface-raised hover:bg-surface-overlay hover:border-accent hover:ring-1 hover:ring-accent rounded-none active:scale-[0.98] transition-all group text-left shrink-0"
-                  >
-                    <div className="bg-red-500/10 p-3 rounded-none border border-red-500/20 group-hover:border-red-500/40 transition-colors">
-                       <Map className="w-6 h-6 text-red-500" />
-                    </div>
-                    <div className="flex flex-col flex-1">
-                      <div className="text-text-primary font-bold uppercase tracking-wider text-sm">
-                        {biome.name}
+          {/* Content layer */}
+          <div className="absolute inset-0 z-20 flex flex-col pb-2">
+            {/* Header */}
+            <div className="flex items-center justify-between bg-surface-base flex-shrink-0 relative h-[1.375rem] select-none border-b border-border-subtle/20 px-3">
+              <span className="text-[10px] uppercase tracking-widest font-black text-text-secondary">Dungeon Select</span>
+              <button onClick={() => setDungeonSelectOpen(false)} className="text-text-muted hover:text-text-primary transition-colors flex items-center justify-center">
+                 <X className="w-3 h-3" />
+              </button>
+            </div>
+            
+            {/* Body */}
+            <div className="flex-1 overflow-y-auto">
+               <div className="flex flex-col w-full px-2 pt-2 gap-1">
+               {DUNGEON_BIOMES.map((biomeId) => {
+                  const biome = getBiome(biomeId);
+                  return (
+                    <button 
+                      key={biomeId}
+                      onClick={() => handleEnterDungeon(biomeId)}
+                      className="flex items-center gap-2 py-1 px-1.5 pr-2 transition-all w-full text-left shrink-0 rounded-none ring-1 ring-inset bg-surface-raised/45 ring-transparent hover:ring-accent hover:bg-surface-overlay hover:text-text-primary group"
+                    >
+                      <div className="w-9 h-9 shrink-0 flex items-center justify-center border bg-surface-raised border-white/5">
+                         <Map className="w-5 h-5 text-zinc-500" />
                       </div>
-                      <div className="text-text-muted text-xs uppercase tracking-widest">
-                        Level {usePlayerStore.getState().level} Area
+                      <div className="flex flex-col overflow-hidden min-w-0 flex-1">
+                         <span className="text-[14px] font-bold uppercase tracking-wider text-text-muted leading-none">
+                           Level {usePlayerStore.getState().level} Area
+                         </span>
+                         <span className="text-[16px] font-semibold truncate leading-tight mt-0.5 text-text-secondary group-hover:text-text-primary transition-colors">
+                           {biome.name}
+                         </span>
                       </div>
-                    </div>
-                    <ArrowRight className="w-5 h-5 text-text-muted group-hover:text-accent group-hover:translate-x-1 transition-all" />
-                  </button>
-                );
-             })}
+                      <ArrowRight className="w-5 h-5 text-text-muted group-hover:text-accent group-hover:translate-x-1 transition-all mr-1" />
+                    </button>
+                  );
+               })}
+               </div>
+            </div>
           </div>
-       </div>
+        </div>
+      </div>
     </div>
   );
 }

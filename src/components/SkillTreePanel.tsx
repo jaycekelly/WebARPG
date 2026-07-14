@@ -122,7 +122,7 @@ export function SkillTreePanel() {
               ? 'bg-surface-raised border-accent/90 animate-subtle-pulse shadow-glow-accent' 
               : isUnlocked ? 'bg-surface-raised border-border-subtle/40' : 'bg-surface-base/60 border-border-subtle/20'}
         `}>
-           <Icon className={`w-6 h-6 ${node.type === 'active' ? 'text-blue-500' : 'text-sky-400'} ${!isUnlocked ? 'opacity-40' : ''}`} />
+           <Icon className={`w-6 h-6 drop-shadow-icon ${node.type === 'active' ? 'text-blue-500' : 'text-sky-400'} ${!isUnlocked ? 'opacity-40' : ''}`} />
         </div>
         
         <div className="text-[8px] font-black tracking-widest mt-0.5 transition-colors leading-none text-text-secondary">
