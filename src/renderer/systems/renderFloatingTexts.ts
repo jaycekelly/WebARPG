@@ -61,13 +61,13 @@ function resolveColor(colorClass: string): string {
 // Clamped to [2, 3] — 1x is blurry, >3x wastes texture memory for imperceptible gain.
 const TEXT_RESOLUTION = Math.min(3, Math.max(2, window.devicePixelRatio || 2));
 
-function makeTextStyle(fillColor: string, isNumeric: boolean, isCrit: boolean, isSkillDamage: boolean, isGold: boolean): TextStyle {
+function makeTextStyle(fillColor: string, isNumeric: boolean, isCrit: boolean, isSkillDamage: boolean): TextStyle {
   const baseSize = isNumeric ? 24 : 22;
   // Skill damage renders a notch larger than plain auto-attack damage, so skill
   // hits read as slightly more impactful in the scrolling log at a glance.
   const skillBumpedSize = isSkillDamage ? baseSize + 4 : baseSize;
   let size = isCrit ? skillBumpedSize * 1.55 : skillBumpedSize;
-  if (isGold) size = 32; // Make gold large and satisfying
+  const isGold = fillColor === '#fbbf24';
   
   return new TextStyle({
     fontFamily: isNumeric ? 'Rajdhani, sans-serif' : 'Noto Sans, sans-serif',
@@ -81,11 +81,11 @@ function makeTextStyle(fillColor: string, isNumeric: boolean, isCrit: boolean, i
   });
 }
 
-function createText(content: string, colorClass: string, isCrit: boolean, isSkillDamage: boolean, isGold: boolean): Text {
+function createText(content: string, colorClass: string, isCrit: boolean, isSkillDamage: boolean): Text {
   const isNumeric = /^[-+0-9.,]+$/.test(content) || content.includes('Crit'); // treat "Crit!" as numeric font style
   return new Text({
     text: content,
-    style: makeTextStyle(resolveColor(colorClass), isNumeric, isCrit, isSkillDamage, isGold),
+    style: makeTextStyle(resolveColor(colorClass), isNumeric, isCrit, isSkillDamage),
     resolution: TEXT_RESOLUTION,
   });
 }
@@ -104,9 +104,6 @@ interface TrackedText {
   isPlayer: boolean;
   isCrit: boolean;
   staggerPx: number; // Extra downward offset so near-simultaneous hits don't overlap
-  isGold?: boolean;
-  vx?: number;
-  vy?: number;
 }
 
 export interface FloatingTextRenderer {
@@ -137,18 +134,11 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
         if (ft.isCrit) colorClass = 'text-yellow-500';
         
         const isSkillDamage = !!ft.isSkillDamage;
-        const isGold = !!ft.isGold;
-        const text = createText(ft.text, colorClass, !!ft.isCrit, isSkillDamage, isGold);
+        const text = createText(ft.text, colorClass, !!ft.isCrit, isSkillDamage);
         text.anchor.set(0, 0.5);
 
         let icon: Sprite | null = null;
-        if (isGold) {
-          const texture = getEntityTexture('Circle', '#fbbf24', true); // Golden coin icon
-          icon = new Sprite(texture);
-          icon.anchor.set(0, 0.5);
-          icon.width = 24;
-          icon.height = 24;
-        } else if (ft.skillIcon) {
+        if (ft.skillIcon) {
           const texture = getEntityTexture(ft.skillIcon, SKILL_ICON_COLOR);
           icon = new Sprite(texture);
           icon.anchor.set(0, 0.5);
@@ -206,10 +196,7 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
           iconScale,
           isPlayer,
           isCrit: !!ft.isCrit,
-          staggerPx,
-          isGold,
-          vx: isGold ? (Math.random() - 0.5) * 120 : 0, // Pixels per second horizontal spread
-          vy: isGold ? -200 - Math.random() * 80 : 0    // Upward initial velocity for bounce
+          staggerPx
         };
         tracked.set(ft.id, entry);
       }
@@ -235,29 +222,18 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
       const duration = ft.expiresAt - entry.spawnTime;
       const progress = Math.min(1.0, elapsed / Math.max(1, duration));
 
-      let distancePx = 0;
-      let physicsXOffset = 0;
-
-      if (entry.isGold && entry.vx !== undefined && entry.vy !== undefined) {
-         // Gravity arc physics for coins
-         const t = elapsed / 1000.0; // Seconds
-         const gravity = 500; // Pixels per second squared
-         physicsXOffset = entry.vx * t;
-         distancePx = -(entry.vy * t + 0.5 * gravity * t * t);
+      // Fast rise initially, then slow drift for the remainder of its lifetime
+      let verticalProgress = 0;
+      if (elapsed <= RISE_DURATION_MS) {
+         // Fast rise: 70% of distance in the initial phase
+         verticalProgress = 0.7 * (elapsed / RISE_DURATION_MS);
       } else {
-         // Fast rise initially, then slow drift for the remainder of its lifetime
-         let verticalProgress = 0;
-         if (elapsed <= RISE_DURATION_MS) {
-            // Fast rise: 70% of distance in the initial phase
-            verticalProgress = 0.7 * (elapsed / RISE_DURATION_MS);
-         } else {
-            // Slow drift: remaining 30% over the rest of the lifetime
-            const driftElapsed = elapsed - RISE_DURATION_MS;
-            const driftDuration = Math.max(1, duration - RISE_DURATION_MS);
-            verticalProgress = 0.7 + (0.3 * Math.min(1.0, driftElapsed / driftDuration));
-         }
-         distancePx = FLOAT_DISTANCE * verticalProgress;
+         // Slow drift: remaining 30% over the rest of the lifetime
+         const driftElapsed = elapsed - RISE_DURATION_MS;
+         const driftDuration = Math.max(1, duration - RISE_DURATION_MS);
+         verticalProgress = 0.7 + (0.3 * Math.min(1.0, driftElapsed / driftDuration));
       }
+      const distancePx = FLOAT_DISTANCE * verticalProgress;
 
       const fadeStartProgress = Math.max(0, 1 - (FADE_DURATION_MS / Math.max(1, duration)));
       let alpha = 1.0;
@@ -277,7 +253,7 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
       const rawYOffset = baseOffset - distancePx;
       const dynamicYOffset = (rawYOffset * cameraScale) + entry.staggerPx;
       
-      entry.screenX = projected.screenX + (physicsXOffset * cameraScale);
+      entry.screenX = projected.screenX;
       entry.screenY = projected.screenY + dynamicYOffset;
 
       entry.container.position.set(entry.screenX, entry.screenY);

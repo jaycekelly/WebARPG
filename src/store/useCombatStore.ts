@@ -27,7 +27,6 @@ export interface FloatingText {
   lane?: 'middle' | 'left' | 'right';
   isSkillDamage?: boolean;
   skillIcon?: string;
-  isGold?: boolean;
 }
 
 export interface TileEffect {
@@ -102,7 +101,7 @@ interface CombatState {
   queuedAction: QueuedAction | null;
 
   addLog: (message: string, type: CombatLogEntry['type']) => void;
-  addFloatingText: (x: number, y: number, text: string, options?: { colorClass?: string, isCrit?: boolean, duration?: number, isSkillDamage?: boolean, skillIcon?: string, isGold?: boolean }) => void;
+  addFloatingText: (x: number, y: number, text: string, options?: { colorClass?: string, isCrit?: boolean, duration?: number, isSkillDamage?: boolean, skillIcon?: string }) => void;
   addHitEffect: (targetId: string, sourceX: number, sourceY: number, color: number, damageType?: string) => void;
   addTileEffect: (x: number, y: number, type: string, color: number) => void;
   clearExpiredFloatingTexts: (now: number) => void;
@@ -250,7 +249,7 @@ export const useCombatStore = create<CombatState>()(
       return {
         floatingTexts: [
           ...state.floatingTexts,
-          { id, x, y, text, color, expiresAt, isCrit, lane: assignedLane, isSkillDamage: options?.isSkillDamage, skillIcon: options?.skillIcon, isGold: options?.isGold }
+          { id, x, y, text, color, expiresAt, isCrit, lane: assignedLane, isSkillDamage: options?.isSkillDamage, skillIcon: options?.skillIcon }
         ]
       };
     });
