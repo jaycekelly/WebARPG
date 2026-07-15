@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useActiveSkillStore } from '../store/useActiveSkillStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useTooltipStore } from '../store/useTooltipStore';
@@ -16,9 +17,19 @@ export function ActiveSkillPanel() {
   const [inspectSkillId, setInspectSkillId] = useState<string | null>(null);
   const [previewClass, setPreviewClass] = useState<any | null>(null);
 
-  const { playerClass, secondaryClass, activeSkillPoints, boundSkills, level } = usePlayerStore();
-  const { skillRanks, allocateDial, allocateMorph } = useActiveSkillStore();
-  const { setContent } = useTooltipStore();
+  const { playerClass, secondaryClass, activeSkillPoints, boundSkills, level } = usePlayerStore(useShallow(s => ({
+    playerClass: s.playerClass,
+    secondaryClass: s.secondaryClass,
+    activeSkillPoints: s.activeSkillPoints,
+    boundSkills: s.boundSkills,
+    level: s.level
+  })));
+  const { skillRanks, allocateDial, allocateMorph } = useActiveSkillStore(useShallow(s => ({
+    skillRanks: s.skillRanks,
+    allocateDial: s.allocateDial,
+    allocateMorph: s.allocateMorph
+  })));
+  const setContent = useTooltipStore(s => s.setContent);
 
   const footerRef = useRef<HTMLDivElement>(null);
   const [footerHeight, setFooterHeight] = useState(176);

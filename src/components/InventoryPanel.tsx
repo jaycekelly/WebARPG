@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { useStatsStore } from '../store/useStatsStore';
 import { usePlayerStore } from '../store/usePlayerStore';
@@ -34,11 +35,28 @@ const RARITY_TEXT_COLORS: Record<Rarity, string> = {
 };
 
 export function InventoryPanel() {
-  const { inventory, equipment, equip, unequip, sellItem, activeWeaponSet, swapWeaponSet } = useInventoryStore();
-  const { getStat } = useStatsStore();
-  const { attributePoints, allocateAttribute, level } = usePlayerStore();
-  const { location, vendorOpen, statsPopoutOpen, setStatsPopoutOpen } = useAppStore();
-  const { setContent } = useTooltipStore();
+  const { inventory, equipment, equip, unequip, sellItem, activeWeaponSet, swapWeaponSet } = useInventoryStore(useShallow(s => ({
+    inventory: s.inventory,
+    equipment: s.equipment,
+    equip: s.equip,
+    unequip: s.unequip,
+    sellItem: s.sellItem,
+    activeWeaponSet: s.activeWeaponSet,
+    swapWeaponSet: s.swapWeaponSet
+  })));
+  const getStat = useStatsStore(s => s.getStat);
+  const { attributePoints, allocateAttribute, level } = usePlayerStore(useShallow(s => ({
+    attributePoints: s.attributePoints,
+    allocateAttribute: s.allocateAttribute,
+    level: s.level
+  })));
+  const { location, vendorOpen, statsPopoutOpen, setStatsPopoutOpen } = useAppStore(useShallow(s => ({
+    location: s.location,
+    vendorOpen: s.vendorOpen,
+    statsPopoutOpen: s.statsPopoutOpen,
+    setStatsPopoutOpen: s.setStatsPopoutOpen
+  })));
+  const setContent = useTooltipStore(s => s.setContent);
 
   const [hoveredInvIndex, setHoveredInvIndex] = useState<number | null>(null);
   const [hoveredEqSlot, setHoveredEqSlot] = useState<EquipmentSlot | null>(null);

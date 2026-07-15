@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* ------------------------------------------------------------
+   PERF A/B TOGGLE (dev-only, see src/utils/perfDebug.ts)
+   Press F10 in-game to flip document.documentElement's
+   data-perf-hud-blur attribute and instantly strip every
+   backdrop-filter in the DOM UI, to isolate its GPU cost.
+   ------------------------------------------------------------ */
+html[data-perf-hud-blur="off"] * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
 /* ============================================================
    DESIGN TOKEN SYSTEM
    Single source of truth for all UI colors.

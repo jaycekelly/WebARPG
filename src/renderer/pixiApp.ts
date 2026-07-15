@@ -23,6 +23,18 @@ export async function getPixiApp(canvas: HTMLCanvasElement): Promise<Application
 
   appCanvas = canvas;
 
+  // Perf A/B (reload-based, since these are WebGL context init options and can't
+  // be flipped live): add ?noaa=1 to disable antialiasing, ?capres=1 to ignore
+  // devicePixelRatio and render at 1x. See src/utils/perfDebug.ts for the live
+  // hotkey toggles (fog blur, HUD backdrop-blur).
+  const params = new URLSearchParams(window.location.search);
+  const noAA = params.get('noaa') === '1';
+  const capRes = params.get('capres') === '1';
+  const resolution = capRes ? 1 : (window.devicePixelRatio || 1);
+  if (noAA || capRes) {
+    console.log(`[perf A/B] antialias=${!noAA} resolution=${resolution} (devicePixelRatio=${window.devicePixelRatio})`);
+  }
+
   initPromise = (async () => {
     const instance = new Application();
     await instance.init({
@@ -30,8 +42,8 @@ export async function getPixiApp(canvas: HTMLCanvasElement): Promise<Application
       background: 0x060606,
       width: 800,
       height: 600,
-      antialias: true,
-      resolution: window.devicePixelRatio || 1,
+      antialias: !noAA,
+      resolution,
       autoDensity: true,
     });
     // If the canvas changed while we were initializing, discard.

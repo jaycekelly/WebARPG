@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useSkillStore } from '../store/useSkillStore';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useTooltipStore } from '../store/useTooltipStore';
@@ -13,9 +14,18 @@ export function SkillTreePanel() {
   const [activeTab, setActiveTab] = useState<'primary' | 'secondary' | 'select_secondary'>('primary');
   const [previewClass, setPreviewClass] = useState<any | null>(null);
   
-  const { allocatedPoints, allocatePoint, getTotalPointsSpent } = useSkillStore();
-  const { passivePoints, playerClass, secondaryClass, level } = usePlayerStore();
-  const { setContent } = useTooltipStore();
+  const { allocatedPoints, allocatePoint, getTotalPointsSpent } = useSkillStore(useShallow(s => ({
+    allocatedPoints: s.allocatedPoints,
+    allocatePoint: s.allocatePoint,
+    getTotalPointsSpent: s.getTotalPointsSpent
+  })));
+  const { passivePoints, playerClass, secondaryClass, level } = usePlayerStore(useShallow(s => ({
+    passivePoints: s.passivePoints,
+    playerClass: s.playerClass,
+    secondaryClass: s.secondaryClass,
+    level: s.level
+  })));
+  const setContent = useTooltipStore(s => s.setContent);
 
   useEffect(() => {
     return () => setContent(null);

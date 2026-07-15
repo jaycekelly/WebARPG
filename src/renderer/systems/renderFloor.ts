@@ -2,7 +2,7 @@ import { Container, Graphics } from 'pixi.js';
 import type { GridMap, GroundZone } from '../../store/useWorldStore';
 import { getBiome } from '../../data/biomes';
 import { projectTileToScreen } from '../../engine/world/screenProjection';
-import type { ProjectionParams } from '../../engine/world/screenProjection';
+import type { ProjectionParams, ProjectedPoint } from '../../engine/world/screenProjection';
 
 const FLOOR_PERSPECTIVE_PX = 2500;
 const FLOOR_TILT_DEG = 52;
@@ -31,6 +31,7 @@ export interface FloorRenderer {
     tileSize: number,
     zones: GroundZone[],
     focusWorldY: number,
+    playerPos: { x: number; y: number }
   ) => void;
 }
 
@@ -58,15 +59,13 @@ export function createFloorRenderer(): FloorRenderer {
 
   // ---- Draw perspective-correct grid lines -----------------------------------
   function drawGrid(
-    params: ProjectionParams,
     g: GridMap,
+    playerPos: { x: number; y: number },
+    projCorner: (col: number, row: number) => ProjectedPoint
   ) {
     const gridAlpha = 0.3;
 
-    // Helper: project a tile corner to screen
-    function projCorner(col: number, row: number) {
-      return projectTileToScreen(col - 0.5, row - 0.5, params);
-    }
+    // Helper removed, using passed projCorner
 
     // Ensure we have a Graphics object for each row + 1 for the bottom edge
     while (rowGridLines.length <= g.height) {
@@ -80,25 +79,33 @@ export function createFloorRenderer(): FloorRenderer {
       rowGridLines[i].clear();
     }
 
+    // Determine visible bounds
+    const viewRadius = 15;
+    const minRow = Math.max(0, Math.floor(playerPos.y - viewRadius));
+    const maxRow = Math.min(g.height, Math.ceil(playerPos.y + viewRadius));
+    const minCol = Math.max(0, Math.floor(playerPos.x - viewRadius));
+    const maxCol = Math.min(g.width, Math.ceil(playerPos.x + viewRadius));
+
     // Draw horizontal grid lines and vertical segments per row boundary
-    for (let row = 0; row <= g.height; row++) {
+    for (let row = minRow; row <= maxRow; row++) {
       const gl = rowGridLines[row];
 
       // Horizontal line (skip top and bottom edges)
       if (row > 0 && row < g.height) {
         gl.moveTo(
-          projCorner(0, row).screenX,
-          projCorner(0, row).screenY,
+          projCorner(minCol, row).screenX,
+          projCorner(minCol, row).screenY,
         );
-        for (let col = 1; col <= g.width; col++) {
+        for (let col = minCol + 1; col <= maxCol; col++) {
           const p = projCorner(col, row);
           gl.lineTo(p.screenX, p.screenY);
         }
       }
 
       // Vertical line segments going downwards (skip left and right edges)
-      if (row < g.height) {
-        for (let col = 1; col < g.width; col++) {
+      if (row < g.height && row < maxRow) {
+        for (let col = minCol; col <= maxCol; col++) {
+          if (col === 0 || col === g.width) continue;
           const p1 = projCorner(col, row);
           const p2 = projCorner(col, row + 1);
           gl.moveTo(p1.screenX, p1.screenY);
@@ -113,15 +120,16 @@ export function createFloorRenderer(): FloorRenderer {
 
   // ---- Draw floor background fills -------------------------------------------
   function drawFloorBg(
-    params: ProjectionParams,
     g: GridMap,
+    playerPos: { x: number; y: number },
+    projCorner: (col: number, row: number) => ProjectedPoint
   ) {
     bgLayer.clear();
 
-    const tl = projectTileToScreen(-0.5, -0.5, params);
-    const tr = projectTileToScreen(g.width - 0.5, -0.5, params);
-    const br = projectTileToScreen(g.width - 0.5, g.height - 0.5, params);
-    const bl = projectTileToScreen(-0.5, g.height - 0.5, params);
+    const tl = projCorner(0, 0);
+    const tr = projCorner(g.width, 0);
+    const br = projCorner(g.width, g.height);
+    const bl = projCorner(0, g.height);
 
     bgLayer.poly([
       tl.screenX, tl.screenY,
@@ -136,13 +144,19 @@ export function createFloorRenderer(): FloorRenderer {
       const dirtTiles = new Set(g.dirtTiles ?? []);
       const dirtColor = biome.dirtColor !== undefined ? biome.dirtColor : 0x4a3b32; // Lighter dirt color
       
-      for (let y = 0; y < g.height; y++) {
-        for (let x = 0; x < g.width; x++) {
+      const viewRadius = 15;
+      const minRow = Math.max(0, Math.floor(playerPos.y - viewRadius));
+      const maxRow = Math.min(g.height, Math.ceil(playerPos.y + viewRadius));
+      const minCol = Math.max(0, Math.floor(playerPos.x - viewRadius));
+      const maxCol = Math.min(g.width, Math.ceil(playerPos.x + viewRadius));
+
+      for (let y = minRow; y < maxRow; y++) {
+        for (let x = minCol; x < maxCol; x++) {
           if (dirtTiles.has(`${x},${y}`)) {
-            const p1 = projectTileToScreen(x - 0.5, y - 0.5, params);
-            const p2 = projectTileToScreen(x + 0.5, y - 0.5, params);
-            const p3 = projectTileToScreen(x + 0.5, y + 0.5, params);
-            const p4 = projectTileToScreen(x - 0.5, y + 0.5, params);
+            const p1 = projCorner(x, y);
+            const p2 = projCorner(x + 1, y);
+            const p3 = projCorner(x + 1, y + 1);
+            const p4 = projCorner(x, y + 1);
             bgLayer.poly([
               p1.screenX, p1.screenY,
               p2.screenX, p2.screenY,
@@ -166,8 +180,21 @@ export function createFloorRenderer(): FloorRenderer {
     tileSize: number,
     zones: GroundZone[],
     focusWorldY: number,
+    playerPos: { x: number; y: number }
   ) {
-    const panKey = `${panX},${panY},${viewportW},${viewportH},${tileSize}`;
+    // Pan is rounded to whole pixels because the camera continuously lerps toward the
+    // player by fractional amounts every frame - comparing raw floats meant this almost
+    // never matched while the camera was easing, forcing a full clear+redraw of the grid
+    // lines and floor tiles on every single frame during movement (see the same fix
+    // already applied in renderBoundaryWalls.ts).
+    const roundedPanX = Math.round(panX);
+    const roundedPanY = Math.round(panY);
+    
+    // Apply fractional pan offset to the container to achieve perfectly smooth sub-pixel camera movement
+    // without having to rebuild the expensive perspective polygons on every single frame.
+    container.position.set(panX - roundedPanX, panY - roundedPanY);
+
+    const panKey = `${roundedPanX},${roundedPanY},${viewportW},${viewportH},${tileSize},${playerPos.x},${playerPos.y}`;
     if (panKey === lastPanKey) return;
     lastPanKey = panKey;
 
@@ -178,15 +205,26 @@ export function createFloorRenderer(): FloorRenderer {
       tileSize,
       viewportWidth: viewportW,
       viewportHeight: viewportH,
-      panX,
-      panY,
+      panX: roundedPanX,
+      panY: roundedPanY,
       focusWorldY,
       perspectivePx: FLOOR_PERSPECTIVE_PX,
       floorTiltDeg: FLOOR_TILT_DEG,
     };
 
+    const projCache = new Map<string, ProjectedPoint>();
+    const projCorner = (col: number, row: number) => {
+      const k = `${col},${row}`;
+      let p = projCache.get(k);
+      if (!p) {
+        p = projectTileToScreen(col - 0.5, row - 0.5, params);
+        projCache.set(k, p);
+      }
+      return p;
+    };
+
     // Floor background
-    drawFloorBg(params, g);
+    drawFloorBg(g, playerPos, projCorner);
 
     // Zone effects
     zoneLayer.removeChildren();
@@ -203,7 +241,7 @@ export function createFloorRenderer(): FloorRenderer {
     }
 
     // Grid lines
-    drawGrid(params, g);
+    drawGrid(g, playerPos, projCorner);
   }
 
   return { container, rebuild, update };

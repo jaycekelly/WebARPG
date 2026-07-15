@@ -59,7 +59,12 @@ export function createTileVfxRenderer(): TileVfxRenderer {
       }
 
       const vfxKey = hasVfx ? Math.random().toString() : '';
-      const key = `${params.panX},${params.panY},${params.tileSize},${playerPos.x},${playerPos.y},${effectiveRange},${hoveredTile?.x},${hoveredTile?.y},${vfxKey}`;
+      // Round pan to whole pixels for the same reason as renderFloor/renderFog/
+      // renderBoundaryWalls - avoids a full rebuild every frame purely from camera
+      // lerp jitter. (vfxKey intentionally still forces a rebuild every frame while
+      // any tile effect is active, since those animate continuously - that's a
+      // separate, smaller cost than the camera-jitter one this fixes.)
+      const key = `${Math.round(params.panX)},${Math.round(params.panY)},${params.tileSize},${playerPos.x},${playerPos.y},${effectiveRange},${hoveredTile?.x},${hoveredTile?.y},${vfxKey}`;
       
       if (key === lastKey) return;
       lastKey = key;
@@ -103,8 +108,14 @@ export function createTileVfxRenderer(): TileVfxRenderer {
           }
       }
 
-      for (let row = 0; row < h; row++) {
-        for (let col = 0; col < w; col++) {
+      const viewRadius = 15;
+      const minRow = Math.max(0, Math.floor(playerPos.y - viewRadius));
+      const maxRow = Math.min(h, Math.ceil(playerPos.y + viewRadius));
+      const minCol = Math.max(0, Math.floor(playerPos.x - viewRadius));
+      const maxCol = Math.min(w, Math.ceil(playerPos.x + viewRadius));
+
+      for (let row = minRow; row < maxRow; row++) {
+        for (let col = minCol; col < maxCol; col++) {
           
           const center = projectTileToScreen(col, row, params);
           if (center.screenX < -200 || center.screenX > params.viewportWidth + 200 ||
@@ -212,7 +223,7 @@ export function createTileVfxRenderer(): TileVfxRenderer {
       
       const globalTileCounts = new Map<string, number>();
 
-      for (const [groupKey, group] of groups.entries()) {
+      for (const [, group] of groups.entries()) {
          const isTelegraph = group[0].type === 'enemy_telegraph';
          const avgExpiresAt = group.reduce((sum, e) => sum + e.expiresAt, 0) / group.length;
          

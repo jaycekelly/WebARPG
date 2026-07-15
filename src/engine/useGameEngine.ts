@@ -19,6 +19,7 @@ import type { Item } from './items/types';
 
 import { getChebyshevDistance, checkCornerBlock, hasLineOfSight, getAoETiles } from './world/gridMath';
 import { findPath } from './world/pathfinding';
+import { getObstacleSet } from './world/obstacleCache';
 import { perfMetrics } from '../utils/performance';
 
 export function useGameEngine() {
@@ -53,7 +54,7 @@ export function useGameEngine() {
 
       combatState.clearExpiredFloatingTexts(now);
 
-      const { dotEvents, hotEvents, manaEvents } = buffState.tickBuffs(deltaTime);
+      const { dotEvents, hotEvents, manaEvents } = buffState.tickBuffs(now);
       
       dotEvents.forEach(event => {
         if (event.entityId === 'player') {
@@ -164,7 +165,7 @@ export function useGameEngine() {
 
       const isSolid = (x: number, y: number) => {
         if (x < 0 || x >= worldState.grid.width || y < 0 || y >= worldState.grid.height) return true;
-        return worldState.grid.obstacles.some(o => o.x === x && o.y === y);
+        return getObstacleSet(worldState.grid).has(`${x},${y}`);
       };
 
       const { activeTargetId, position, currentHealth } = playerState;
@@ -480,18 +481,17 @@ export function useGameEngine() {
         }
       });
 
-      // Pre-compute solids for O(1) pathfinding lookups
-      const staticSolidSet = new Set<string>();
-      worldState.grid.obstacles.forEach(o => staticSolidSet.add(`${o.x},${o.y}`));
-      
-      const dynamicSolidSet = new Set<string>(staticSolidSet);
-      worldState.enemies.forEach(e => {
-         if (!e.isDead) dynamicSolidSet.add(`${e.position.x},${e.position.y}`);
-      });
+      const staticSolidSet = getObstacleSet(worldState.grid);
 
       const isStaticSolid = (x: number, y: number) => {
         return staticSolidSet.has(`${x},${y}`);
       };
+
+      // Rebuild dynamic solids (O(N) once per frame) to prevent O(N²) lookups during pathfinding
+      const dynamicSolidSet = new Set<string>();
+      worldState.enemies.forEach(e => {
+         if (!e.isDead) dynamicSolidSet.add(`${e.position.x},${e.position.y}`);
+      });
 
       let pathfindingOperationsThisFrame = 0;
       const MAX_PATHFINDING_PER_FRAME = 3;
@@ -504,6 +504,17 @@ export function useGameEngine() {
                 combatState.removeTileEffectsByOwner(enemy.id);
             }
             return;
+        }
+
+        // AI CULLING: Sleep if far away, not aggroed, and near spawn
+        if (!enemy.isAggroed) {
+             const distToPlayer = getChebyshevDistance(enemy.position, position);
+             if (distToPlayer > 35) {
+                  const distToSpawn = getChebyshevDistance(enemy.position, enemy.spawnOrigin);
+                  if (distToSpawn <= 2) {
+                       return; // Sleep
+                  }
+             }
         }
 
         let isAggroed = enemy.isAggroed;
@@ -553,7 +564,6 @@ export function useGameEngine() {
                      if (!collidingEnemy && !collidingPlayer) {
                         worldState.moveEnemy(enemy.id, nextPos);
                         worldState.updateEnemyMoveTime(enemy.id, now);
-                        // Update dynamic map so other enemies this frame don't walk into it
                         dynamicSolidSet.delete(`${enemy.position.x},${enemy.position.y}`);
                         dynamicSolidSet.add(`${nextPos.x},${nextPos.y}`);
                      }
@@ -843,7 +853,7 @@ export function useGameEngine() {
                 worldState.updateEnemyMoveTime(enemy.id, now);
                 // Snapshot the player's position now, at the start of the NEXT cooldown window
                 worldState.updateEnemy(enemy.id, { chaseTargetSnapshot: { ...position } });
-                // Update dynamic map so other enemies this frame don't walk into it
+                
                 dynamicSolidSet.delete(`${enemy.position.x},${enemy.position.y}`);
                 dynamicSolidSet.add(`${nextPos.x},${nextPos.y}`);
               }

@@ -3,8 +3,8 @@ import type { EnemyStats, AIProfile } from '../engine/enemies/types';
 import type { Item } from '../engine/items/types';
 import type { DamageType } from '../engine/stats/types';
 import { useCombatStore } from './useCombatStore';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { dualStorage } from './storage';
+import { persist } from 'zustand/middleware';
+import { createThrottledPersistStorage } from './storage';
 
 export interface Enemy {
   id: string;
@@ -204,13 +204,15 @@ export const useWorldStore = create<WorldState>()(
     };
   }),
 
-  clearExpiredZones: (now) => set((state) => ({
-    zones: state.zones.filter(z => z.expiresAt > now)
-  }))
+  clearExpiredZones: (now) => set((state) => {
+    const validZones = state.zones.filter(z => z.expiresAt > now);
+    if (validZones.length === state.zones.length) return state; // Do not trigger state update or persist unnecessarily
+    return { zones: validZones };
+  })
     }),
     {
       name: 'webarpg-world',
-      storage: createJSONStorage(() => dualStorage),
+      storage: createThrottledPersistStorage(),
     }
   )
 );

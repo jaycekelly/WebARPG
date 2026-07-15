@@ -1,5 +1,6 @@
 import { useWorldStore } from '../store/useWorldStore';
 import { useInventoryStore } from '../store/useInventoryStore';
+import { useShallow } from 'zustand/react/shallow';
 import { X, CircleDashed } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -27,11 +28,13 @@ interface Props {
 }
 
 export function LootPopup({ dropId, onClose }: Props) {
-  const { lootDrops, removeLootItem, removeLootDrop } = useWorldStore();
-  const { lootItem } = useInventoryStore();
+  const { removeLootItem, removeLootDrop } = useWorldStore(useShallow(s => ({
+    removeLootItem: s.removeLootItem,
+    removeLootDrop: s.removeLootDrop
+  })));
+  const drop = useWorldStore(s => s.lootDrops.find(d => d.id === dropId));
+  const lootItem = useInventoryStore(s => s.lootItem);
   const setContent = useTooltipStore(state => state.setContent);
-  
-  const drop = lootDrops.find(d => d.id === dropId);
   
   // Auto-close if empty
   if (!drop || drop.items.length === 0) {

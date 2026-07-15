@@ -55,14 +55,19 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
     visibleTiles: Set<string>,
     exploredTiles: Set<string>
   ) {
+    const roundedPanX = Math.round(panX);
+    const roundedPanY = Math.round(panY);
+
+    container.position.set(panX - roundedPanX, panY - roundedPanY);
+
     const params: ProjectionParams = {
       gridWidth: grid.width,
       gridHeight: grid.height,
       tileSize,
       viewportWidth: viewportW,
       viewportHeight: viewportH,
-      panX,
-      panY,
+      panX: roundedPanX,
+      panY: roundedPanY,
       focusWorldY,
       perspectivePx: FLOOR_PERSPECTIVE_PX,
       floorTiltDeg: FLOOR_TILT_DEG,
@@ -80,8 +85,6 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
     // never matched while the camera was easing, forcing a full clear+redraw (dozens of
     // fill/stroke calls) on every single frame during movement, which dropped the
     // framerate and made the alpha pulse above look choppy/stuttery.
-    const roundedPanX = Math.round(panX);
-    const roundedPanY = Math.round(panY);
     if (roundedPanX === lastPanX && roundedPanY === lastPanY && visibleTiles.size === lastVisCount && exploredTiles.size === lastExpCount) {
       return;
     }
@@ -209,37 +212,51 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
       wallsGraphics.stroke();
     };
 
+    const viewRadius = 15;
+    const minX = Math.max(0, Math.floor(playerPos.x - viewRadius));
+    const maxX = Math.min(w, Math.ceil(playerPos.x + viewRadius));
+    const minY = Math.max(0, Math.floor(playerPos.y - viewRadius));
+    const maxY = Math.min(h, Math.ceil(playerPos.y + viewRadius));
+
     // Draw the boundary wall planes tile-by-tile
-    for (let x = 0; x < w; x++) {
-      drawWallPlane(x, 0, x + 1, 0); // Top
-      drawWallPlane(x, h, x + 1, h); // Bottom
+    for (let x = minX; x < maxX; x++) {
+      if (0 >= minY && 0 <= maxY) drawWallPlane(x, 0, x + 1, 0); // Top
+      if (h >= minY && h <= maxY) drawWallPlane(x, h, x + 1, h); // Bottom
     }
-    for (let y = 0; y < h; y++) {
-      drawWallPlane(0, y, 0, y + 1); // Left
-      drawWallPlane(w, y, w, y + 1); // Right
+    for (let y = minY; y < maxY; y++) {
+      if (0 >= minX && 0 <= maxX) drawWallPlane(0, y, 0, y + 1); // Left
+      if (w >= minX && w <= maxX) drawWallPlane(w, y, w, y + 1); // Right
     }
 
     const def = { brightness: 0.0 };
     // Draw vertical lines exactly once per vertex
-    for (let x = 0; x <= w; x++) {
-      const bLeft = x > 0 ? getBrightness(x - 1, 0) : def;
-      const bRight = x < w ? getBrightness(x, 0) : def;
-      drawVerticalLine(x, 0, bLeft, bRight);
-      
-      const bLeftH = x > 0 ? getBrightness(x - 1, h) : def;
-      const bRightH = x < w ? getBrightness(x, h) : def;
-      drawVerticalLine(x, h, bLeftH, bRightH);
+    for (let x = minX; x <= maxX; x++) {
+      if (0 >= minY && 0 <= maxY) {
+        const bLeft = x > 0 ? getBrightness(x - 1, 0) : def;
+        const bRight = x < w ? getBrightness(x, 0) : def;
+        drawVerticalLine(x, 0, bLeft, bRight);
+      }
+      if (h >= minY && h <= maxY) {
+        const bLeftH = x > 0 ? getBrightness(x - 1, h) : def;
+        const bRightH = x < w ? getBrightness(x, h) : def;
+        drawVerticalLine(x, h, bLeftH, bRightH);
+      }
     }
     
-    for (let y = 0; y <= h; y++) {
+    for (let y = minY; y <= maxY; y++) {
       if (y === 0 || y === h) continue; // Skip corners (already drawn by x loop)
-      const bUp = y > 0 ? getBrightness(0, y - 1) : def;
-      const bDown = y < h ? getBrightness(0, y) : def;
-      drawVerticalLine(0, y, bUp, bDown);
       
-      const bUpW = y > 0 ? getBrightness(w, y - 1) : def;
-      const bDownW = y < h ? getBrightness(w, y) : def;
-      drawVerticalLine(w, y, bUpW, bDownW);
+      if (0 >= minX && 0 <= maxX) {
+        const bUp = y > 0 ? getBrightness(0, y - 1) : def;
+        const bDown = y < h ? getBrightness(0, y) : def;
+        drawVerticalLine(0, y, bUp, bDown);
+      }
+      
+      if (w >= minX && w <= maxX) {
+        const bUpW = y > 0 ? getBrightness(w, y - 1) : def;
+        const bDownW = y < h ? getBrightness(w, y) : def;
+        drawVerticalLine(w, y, bUpW, bDownW);
+      }
     }
   }
 

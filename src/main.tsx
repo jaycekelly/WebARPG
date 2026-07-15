@@ -5,6 +5,9 @@ import '@fontsource/rajdhani/700.css'
 import './index.css'
 import App from './App.tsx'
 import { MainMenuView } from './components/MainMenuView.tsx'
+import { initPerfDebugHotkeys } from './utils/perfDebug'
+
+initPerfDebugHotkeys();
 
 const shouldSkipMenu = sessionStorage.getItem('webarpg-skip-menu-once') === 'true';
 sessionStorage.removeItem('webarpg-skip-menu-once');

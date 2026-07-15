@@ -12,7 +12,8 @@ import { useVisionStore } from '../store/useVisionStore';
 import { useMessageStore } from '../store/useMessageStore';
 import { FlaskConical, Flame, ArrowUpCircle, Backpack, BookOpen, Sparkles } from 'lucide-react';
 import { IconWhirl } from '@tabler/icons-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, memo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { SKILLS } from '../data/skills';
 import { setRunState } from '../store/storage';
 
@@ -23,16 +24,61 @@ const getDistance = (p1: {x: number, y: number}, p2: {x: number, y: number}) => 
   return Math.max(Math.abs(p1.x - p2.x), Math.abs(p1.y - p2.y));
 };
 
+const MemoizedBuffIcon = memo(({ icon: IconComponent }: { icon: any }) => {
+   return <IconComponent className="w-3.5 h-3.5 opacity-80" />;
+});
+
+const MemoizedSkillIcon = memo(({ icon: IconComponent, isProcced }: { icon: any, isProcced: boolean }) => {
+   return <IconComponent className={`mb-1.5 w-8 h-8 drop-shadow-icon text-sky-400 ${isProcced ? 'drop-shadow-glow-accent' : ''}`} />;
+});
+
 export function CombatOverlay() {
-  const { playerClass, secondaryClass, activeTargetId, position, currentEnergy, currentAdrenaline, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore();
-  const setContent = useTooltipStore(state => state.setContent);
-  const { enemies } = useWorldStore();
-  const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime, comboStep, lastComboTime } = useCombatStore();
-  const { getStat } = useStatsStore();
-  const { entityBuffs } = useBuffStore();
-  const { unlockedActives } = useSkillStore();
-  const { messages } = useMessageStore();
+  const { playerClass, secondaryClass, activeTargetId, currentEnergy, currentAdrenaline, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore(useShallow(s => ({
+    playerClass: s.playerClass,
+    secondaryClass: s.secondaryClass,
+    activeTargetId: s.activeTargetId,
+    currentEnergy: s.currentEnergy,
+    currentAdrenaline: s.currentAdrenaline,
+    currentHealth: s.currentHealth,
+    level: s.level,
+    currentXp: s.currentXp,
+    boundSkills: s.boundSkills,
+    bindSkill: s.bindSkill,
+    lastFlaskTime: s.lastFlaskTime,
+    useFlask: s.useFlask,
+    attributePoints: s.attributePoints,
+    activeSkillPoints: s.activeSkillPoints,
+    passivePoints: s.passivePoints,
+  })));
   
+  const position = usePlayerStore.getState().position;
+  const setContent = useTooltipStore(state => state.setContent);
+  
+  // No custom equality fn needed (and zustand v5's create() no longer accepts one):
+  // useWorldStore.moveEnemy/damageEnemy/updateEnemy always replace the changed enemy
+  // with a new object and leave untouched enemies' references intact, so a plain
+  // selector already gives correct Object.is-based re-render behavior - a new target
+  // reference only when the targeted enemy itself actually changed.
+  const target = useWorldStore(s => s.enemies.find(e => e.id === activeTargetId && !e.isDead));
+
+  const { gcdEndTime, castingSkillId, castEndTime, skillCooldowns, lastMainHandAttackTime, lastOffHandAttackTime, comboStep, lastComboTime } = useCombatStore(useShallow(s => ({
+    gcdEndTime: s.gcdEndTime,
+    castingSkillId: s.castingSkillId,
+    castEndTime: s.castEndTime,
+    skillCooldowns: s.skillCooldowns,
+    lastMainHandAttackTime: s.lastMainHandAttackTime,
+    lastOffHandAttackTime: s.lastOffHandAttackTime,
+    comboStep: s.comboStep,
+    lastComboTime: s.lastComboTime,
+  })));
+  const getStat = useStatsStore(s => s.getStat);
+  const entityBuffs = useBuffStore(s => s.entityBuffs);
+  const unlockedActives = useSkillStore(s => s.unlockedActives);
+  const messages = useMessageStore(s => s.messages);
+
+  const [now, setNow] = useState(useAppStore.getState().getGameTime());
+  const [bindingSlotIndex, setBindingSlotIndex] = useState<number | null>(null);
+
   const isFighter = playerClass === 'Fighter' || secondaryClass === 'Fighter';
   
   
@@ -41,8 +87,8 @@ export function CombatOverlay() {
   
   let expectedHealAmount = 0;
   for (const b of playerBuffs) {
-      if (b.isHoT && b.hotHealPerTick && b.durationMs && b.hotTickRateMs) {
-          const ticksRemaining = Math.floor(b.durationMs / b.hotTickRateMs);
+      if (b.isHoT && b.hotHealPerTick && b.expiresAt && b.hotTickRateMs) {
+          const ticksRemaining = Math.floor(Math.max(0, b.expiresAt - now) / b.hotTickRateMs);
           expectedHealAmount += ticksRemaining * b.hotHealPerTick;
       }
   }
@@ -51,12 +97,6 @@ export function CombatOverlay() {
   const maxEnergy = getStat('Energy');
   const maxAdrenaline = 100;
   const xpRequired = 100 * Math.pow(level, 2);
-
-  const target = enemies.find(e => e.id === activeTargetId && !e.isDead);
-
-
-  const [now, setNow] = useState(useAppStore.getState().getGameTime());
-  const [bindingSlotIndex, setBindingSlotIndex] = useState<number | null>(null);
   
   // Re-render frequently to update the GCD visual sweep smoothly
   useEffect(() => {
@@ -380,33 +420,34 @@ export function CombatOverlay() {
         <div className="flex gap-1.5 justify-center h-8 mb-1">
           {visiblePlayerBuffs.map(buff => {
             const BuffIcon = ICONS[buff.icon] || ArrowUpCircle;
-            const isExpiring = buff.durationMs !== null && buff.durationMs < 2500;
+            const remaining = buff.expiresAt ? Math.max(0, buff.expiresAt - now) : null;
+            const isExpiring = remaining !== null && remaining < 2500;
             return (
               <div key={buff.id} className="relative group">
                 <div className={`relative w-7 h-7 rounded-none border flex flex-col items-center justify-center bg-surface-base overflow-hidden shadow-depth-sm ${buff.type === 'buff' ? 'border-sky-400/50 text-sky-400' : 'border-red-500/50 text-red-500'} ${isExpiring ? 'animate-pulse' : ''}`}>
-                  <BuffIcon className="w-3.5 h-3.5 opacity-80" />
+                  <MemoizedBuffIcon icon={BuffIcon} />
                   {buff.stacks > 1 && (
                     <span className="absolute bottom-0 right-0 text-[0.5rem] font-bold bg-surface-base/80 px-1 rounded-none z-20">{buff.stacks}</span>
                   )}
                   {/* Visual duration wipe */}
-                  {buff.durationMs && buff.maxDurationMs && (
+                  {remaining !== null && buff.maxDurationMs && (
                     <div 
                       className="absolute bottom-0 left-0 w-full bg-black/50 origin-bottom"
-                      style={{ height: `${(1 - buff.durationMs / buff.maxDurationMs) * 100}%` }}
+                      style={{ height: `${(1 - remaining / buff.maxDurationMs) * 100}%` }}
                     />
                   )}
                   {/* Duration Text Overlay */}
-                  {buff.durationMs && (
+                  {remaining !== null && (
                     <span className="absolute text-[0.55rem] font-bold text-white z-10 [text-shadow:1px_1px_1px_rgba(0,0,0,1)] pointer-events-none">
-                      {Math.ceil(buff.durationMs / 1000)}
+                      {Math.ceil(remaining / 1000)}
                     </span>
                   )}
                 </div>
                 {/* Tooltip */}
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max max-w-xs bg-surface-deep/95 backdrop-blur-md border border-transparent rounded-none px-2 py-1 text-xs opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-depth-md">
                   <div className={`font-bold mb-1 ${buff.type === 'buff' ? 'text-sky-400' : 'text-red-500'}`}>{buff.name}</div>
-                  {buff.durationMs ? (
-                     <div className="text-text-secondary mb-1 font-mono">{(buff.durationMs / 1000).toFixed(1)}s remaining</div>
+                  {remaining !== null ? (
+                     <div className="text-text-secondary mb-1 font-mono">{(remaining / 1000).toFixed(1)}s remaining</div>
                   ) : (
                      <div className="text-text-secondary mb-1 italic">Permanent</div>
                   )}
@@ -578,7 +619,7 @@ export function CombatOverlay() {
                 const outOfEnergy = skill ? (currentEnergy < getEffectiveEnergyCost(skill) || (!!skill.adrenalineCost && currentAdrenaline < skill.adrenalineCost)) : false;
                 const hasRequiredBuff = skill?.requiresBuffId ? playerBuffs.some(b => b.buffId === skill.requiresBuffId) : false;
                 const missingBuff = skill?.requiresBuffId ? !hasRequiredBuff : false;
-                const isProcced = skill?.requiresBuffId && hasRequiredBuff;
+                const isProcced = !!(skill?.requiresBuffId && hasRequiredBuff);
 
                 const shouldGreyOut = skill ? ((outOfEnergy || missingBuff || outOfRange) && !isBinding) : false;
 
@@ -629,7 +670,7 @@ export function CombatOverlay() {
                       >
                         {skill && IconComponent ? (
                           <div className="relative z-10 w-full h-full flex items-center justify-center transition-transform group-hover:scale-110">
-                            <IconComponent className={`mb-1.5 w-8 h-8 drop-shadow-icon text-sky-400 ${isProcced ? 'drop-shadow-glow-accent' : ''}`} />
+                            <MemoizedSkillIcon icon={IconComponent} isProcced={isProcced} />
                           </div>
                         ) : null}
                       </button>

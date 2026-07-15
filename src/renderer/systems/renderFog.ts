@@ -5,6 +5,7 @@ import type { GridMap } from '../../store/useWorldStore';
 import { useLightingStore } from '../../store/useLightingStore';
 import { getTileLighting, type PointLight } from '../utils/lighting';
 import { getBiome } from '../../data/biomes';
+import { perfDebugFlags, subscribePerfDebug } from '../../utils/perfDebug';
 
 const FLOOR_PERSPECTIVE_PX = 2500;
 const FLOOR_TILT_DEG = 52;
@@ -31,8 +32,14 @@ export function createFogRenderer(): FogRenderer {
   const container = new Container();
   const fogGraphics = new Graphics();
   // We keep a slight blur so the tile diamonds aren't razor sharp
-  fogGraphics.filters = [new BlurFilter({ strength: 2 })];
+  const fogBlurFilter = new BlurFilter({ strength: 1, quality: 4 });
+  fogGraphics.filters = perfDebugFlags.fogBlur ? [fogBlurFilter] : [];
   container.addChild(fogGraphics);
+
+  // Perf A/B: F9 toggles this filter live (see src/utils/perfDebug.ts)
+  subscribePerfDebug(() => {
+    fogGraphics.filters = perfDebugFlags.fogBlur ? [fogBlurFilter] : [];
+  });
 
   const voidFrameGraphics = new Graphics();
   container.addChild(voidFrameGraphics);
@@ -56,7 +63,12 @@ export function createFogRenderer(): FogRenderer {
     playerPos: { x: number, y: number },
     pointLights: PointLight[]
   ) {
-    const panKey = `${panX},${panY},${viewportW},${viewportH},${tileSize},${exploredTiles.size},${visibleTiles.size},${playerPos.x},${playerPos.y}`;
+    const roundedPanX = Math.round(panX);
+    const roundedPanY = Math.round(panY);
+
+    container.position.set(panX - roundedPanX, panY - roundedPanY);
+
+    const panKey = `${roundedPanX},${roundedPanY},${viewportW},${viewportH},${tileSize},${exploredTiles.size},${visibleTiles.size},${playerPos.x},${playerPos.y}`;
     if (panKey === lastPanKey) return;
     lastPanKey = panKey;
 
@@ -66,8 +78,8 @@ export function createFogRenderer(): FogRenderer {
       tileSize,
       viewportWidth: viewportW,
       viewportHeight: viewportH,
-      panX,
-      panY,
+      panX: roundedPanX,
+      panY: roundedPanY,
       focusWorldY,
       perspectivePx: FLOOR_PERSPECTIVE_PX,
       floorTiltDeg: FLOOR_TILT_DEG,
@@ -119,8 +131,14 @@ export function createFogRenderer(): FogRenderer {
       ambientBaseline: biome.ambientBaseline,
     };
 
-    for (let y = 0; y < grid.height; y++) {
-      for (let x = 0; x < grid.width; x++) {
+    const viewRadius = 15;
+    const minRow = Math.max(0, Math.floor(playerPos.y - viewRadius));
+    const maxRow = Math.min(grid.height, Math.ceil(playerPos.y + viewRadius));
+    const minCol = Math.max(0, Math.floor(playerPos.x - viewRadius));
+    const maxCol = Math.min(grid.width, Math.ceil(playerPos.x + viewRadius));
+
+    for (let y = minRow; y < maxRow; y++) {
+      for (let x = minCol; x < maxCol; x++) {
 
         const key = `${x},${y}`;
         const isVisible = visibleTiles.has(key);

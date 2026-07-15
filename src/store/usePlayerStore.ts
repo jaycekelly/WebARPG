@@ -6,8 +6,8 @@ import { useVisionStore } from './useVisionStore';
 import { useMetaStore } from './useMetaStore';
 import type { ClassType } from '../engine/player/types';
 import { useWorldStore } from './useWorldStore';
-import { persist, createJSONStorage } from 'zustand/middleware';
-import { dualStorage } from './storage';
+import { persist } from 'zustand/middleware';
+import { createThrottledPersistStorage } from './storage';
 
 interface PlayerState {
   playerClass: ClassType;
@@ -306,7 +306,7 @@ export const usePlayerStore = create<PlayerState>()(
     }),
     {
       name: 'webarpg-player',
-      storage: createJSONStorage(() => dualStorage),
+      storage: createThrottledPersistStorage(),
     }
   )
 );

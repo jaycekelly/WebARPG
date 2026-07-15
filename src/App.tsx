@@ -20,6 +20,7 @@ import { useUIScale } from './hooks/useUIScale';
 import { LevelGenerator } from './engine/world/LevelGenerator';
 import { useVisionStore } from './store/useVisionStore';
 import { FPSDisplay } from './components/FPSDisplay';
+import { PERF_DEBUG_ENABLED } from './utils/perfDebug';
 
 const GameOverScreen = () => {
   const currentHealth = usePlayerStore(state => state.currentHealth);
@@ -283,7 +284,7 @@ function App() {
           <DataEditorView />
           <GlobalTooltip />
           <GlobalMessages />
-          <FPSDisplay />
+          {PERF_DEBUG_ENABLED && <FPSDisplay />}
         </div>
       </div>
     );
@@ -301,7 +302,7 @@ function App() {
         <GlobalMessages />
         <EscapeMenu />
         <GameOverScreen />
-        <FPSDisplay />
+        {PERF_DEBUG_ENABLED && <FPSDisplay />}
       </div>
     </div>
   );

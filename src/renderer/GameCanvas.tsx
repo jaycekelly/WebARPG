@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { createElement } from 'react';
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Rectangle } from 'pixi.js';
+// No extra pixi filters imported
 import { getPixiApp, destroyPixiApp, setPixiAppBackground } from './pixiApp';
 import { createCamera } from './camera';
 import { createFloorRenderer } from './systems/renderFloor';
@@ -286,6 +287,7 @@ export function GameCanvas() {
             tileSize,
             w.zones,
             focusWorldY,
+            p.position
           );
 
           const projParams: ProjectionParams = {

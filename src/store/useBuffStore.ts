@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist } from 'zustand/middleware';
+import { useAppStore } from './useAppStore';
 import type { StatType } from '../engine/stats/types';
-import { dualStorage } from './storage';
+import { createThrottledPersistStorage } from './storage';
 
 export interface StatModifier {
   stat: StatType;
@@ -26,7 +27,7 @@ export interface Buff {
   isDoT?: boolean;
   dotDamagePerTick?: number;
   dotTickRateMs?: number;
-  timeSinceLastTickMs?: number;
+  nextTickAt?: number;
   dotDamageType?: string;
   
   // HoT specific
@@ -34,15 +35,16 @@ export interface Buff {
   hotHealPerTick?: number;
   hotManaPerTick?: number;
   hotTickRateMs?: number;
+  expiresAt?: number | null;
 }
 
 interface BuffState {
   // Keyed by entityId (e.g. 'player', or enemy.id)
   entityBuffs: Record<string, Buff[]>;
   
-  addBuff: (entityId: string, buff: Omit<Buff, 'id'>) => void;
+  addBuff: (entityId: string, buff: Omit<Buff, 'id' | 'expiresAt' | 'nextTickAt'>) => void;
   removeBuff: (entityId: string, instanceId: string) => void;
-  tickBuffs: (deltaTime: number) => { 
+  tickBuffs: (now: number) => { 
     dotEvents: { entityId: string, damage: number, damageType: string }[],
     hotEvents: { entityId: string, healAmount: number }[],
     manaEvents: { entityId: string, manaAmount: number }[]
@@ -76,6 +78,7 @@ export const useBuffStore = create<BuffState>()(
   entityBuffs: {},
 
   addBuff: (entityId, newBuff) => {
+    const now = useAppStore.getState().getGameTime();
     set((state) => {
       const entityBuffList = state.entityBuffs[entityId] || [];
       
@@ -89,7 +92,7 @@ export const useBuffStore = create<BuffState>()(
         if (newBuff.stackingBehavior === 'refresh' || newBuff.stackingBehavior === 'stack') {
           updatedList[existingBuffIndex] = {
             ...existing,
-            durationMs: existing.maxDurationMs, // Refresh duration
+            expiresAt: existing.maxDurationMs ? now + existing.maxDurationMs : null,
             stacks: newBuff.stackingBehavior === 'stack' ? Math.min(existing.maxStacks, existing.stacks + (newBuff.stacks || 1)) : existing.stacks
           };
           return { entityBuffs: { ...state.entityBuffs, [entityId]: updatedList } };
@@ -97,7 +100,12 @@ export const useBuffStore = create<BuffState>()(
       }
 
       // Add new buff
-      const buffInstance = { ...newBuff, id: Math.random().toString(36).substring(7) };
+      const buffInstance: Buff = { 
+        ...newBuff, 
+        id: Math.random().toString(36).substring(7),
+        expiresAt: newBuff.durationMs ? now + newBuff.durationMs : null,
+        nextTickAt: (newBuff.isDoT && newBuff.dotTickRateMs) ? now + newBuff.dotTickRateMs : ((newBuff.isHoT && newBuff.hotTickRateMs) ? now + newBuff.hotTickRateMs : undefined)
+      };
       return { entityBuffs: { ...state.entityBuffs, [entityId]: [...entityBuffList, buffInstance] } };
     });
   },
@@ -114,7 +122,7 @@ export const useBuffStore = create<BuffState>()(
     });
   },
 
-  tickBuffs: (deltaTime) => {
+  tickBuffs: (now) => {
     let dotEvents: { entityId: string, damage: number, damageType: string }[] = [];
     let hotEvents: { entityId: string, healAmount: number }[] = [];
     let manaEvents: { entityId: string, manaAmount: number }[] = [];
@@ -125,60 +133,50 @@ export const useBuffStore = create<BuffState>()(
 
       Object.keys(newEntityBuffs).forEach((entityId) => {
         let buffs = newEntityBuffs[entityId];
-        let hasExpired = false;
         
-        const updatedBuffs = buffs.map(buff => {
-          let updatedBuff = { ...buff };
-          
-          if (updatedBuff.durationMs !== null) {
-            updatedBuff.durationMs -= deltaTime;
-            if (updatedBuff.durationMs <= 0) hasExpired = true;
-          }
-          
-          // Handle DoT
-          if (updatedBuff.isDoT && updatedBuff.dotTickRateMs && updatedBuff.dotDamagePerTick) {
-            updatedBuff.timeSinceLastTickMs = (updatedBuff.timeSinceLastTickMs || 0) + deltaTime;
-            if (updatedBuff.timeSinceLastTickMs >= updatedBuff.dotTickRateMs) {
-              const ticks = Math.floor(updatedBuff.timeSinceLastTickMs / updatedBuff.dotTickRateMs);
-              updatedBuff.timeSinceLastTickMs -= ticks * updatedBuff.dotTickRateMs;
-              dotEvents.push({ 
-                entityId, 
-                damage: (updatedBuff.dotDamagePerTick * updatedBuff.stacks) * ticks,
-                damageType: updatedBuff.dotDamageType || 'Physical'
-              });
-            }
-          }
+        // Filter out expired buffs
+        const validBuffs = buffs.filter(b => b.expiresAt === null || b.expiresAt === undefined || b.expiresAt > now);
+        let entityChanged = false;
+        if (validBuffs.length !== buffs.length) {
+            entityChanged = true;
+        }
 
-          // Handle HoT
-          if (updatedBuff.isHoT && updatedBuff.hotTickRateMs && (updatedBuff.hotHealPerTick || updatedBuff.hotManaPerTick)) {
-            updatedBuff.timeSinceLastTickMs = (updatedBuff.timeSinceLastTickMs || 0) + deltaTime;
-            if (updatedBuff.timeSinceLastTickMs >= updatedBuff.hotTickRateMs) {
-              const ticks = Math.floor(updatedBuff.timeSinceLastTickMs / updatedBuff.hotTickRateMs);
-              updatedBuff.timeSinceLastTickMs -= ticks * updatedBuff.hotTickRateMs;
-              if (updatedBuff.hotHealPerTick) {
-                hotEvents.push({
-                  entityId,
-                  healAmount: (updatedBuff.hotHealPerTick * updatedBuff.stacks) * ticks
-                });
-              }
-              if (updatedBuff.hotManaPerTick) {
-                manaEvents.push({
-                  entityId,
-                  manaAmount: (updatedBuff.hotManaPerTick * updatedBuff.stacks) * ticks
-                });
-              }
-            }
-          }
+        // Process ticks
+        let ticksProcessed = false;
+        const tickedBuffs = validBuffs.map(buff => {
+          let updatedBuff = buff;
           
+          if (buff.nextTickAt && now >= buff.nextTickAt) {
+             ticksProcessed = true;
+             updatedBuff = { ...buff };
+             
+             if (buff.isDoT && buff.dotTickRateMs && buff.dotDamagePerTick) {
+                const ticks = Math.floor((now - buff.nextTickAt) / buff.dotTickRateMs) + 1;
+                updatedBuff.nextTickAt = buff.nextTickAt + (ticks * buff.dotTickRateMs);
+                dotEvents.push({ 
+                  entityId, 
+                  damage: (buff.dotDamagePerTick * buff.stacks) * ticks,
+                  damageType: buff.dotDamageType || 'Physical'
+                });
+             }
+             
+             if (buff.isHoT && buff.hotTickRateMs && (buff.hotHealPerTick || buff.hotManaPerTick)) {
+                const ticks = Math.floor((now - buff.nextTickAt) / buff.hotTickRateMs) + 1;
+                updatedBuff.nextTickAt = buff.nextTickAt + (ticks * buff.hotTickRateMs);
+                if (buff.hotHealPerTick) {
+                  hotEvents.push({ entityId, healAmount: (buff.hotHealPerTick * buff.stacks) * ticks });
+                }
+                if (buff.hotManaPerTick) {
+                  manaEvents.push({ entityId, manaAmount: (buff.hotManaPerTick * buff.stacks) * ticks });
+                }
+             }
+          }
           return updatedBuff;
         });
 
-        if (hasExpired) {
-          changed = true;
-          newEntityBuffs[entityId] = updatedBuffs.filter(b => b.durationMs === null || b.durationMs > 0);
-        } else {
-          changed = true;
-          newEntityBuffs[entityId] = updatedBuffs;
+        if (entityChanged || ticksProcessed) {
+           changed = true;
+           newEntityBuffs[entityId] = tickedBuffs;
         }
       });
 
@@ -256,7 +254,7 @@ export const useBuffStore = create<BuffState>()(
     }),
     {
       name: 'webarpg-buffs',
-      storage: createJSONStorage(() => dualStorage)
+      storage: createThrottledPersistStorage()
     }
   )
 );

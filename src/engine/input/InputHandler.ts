@@ -79,16 +79,19 @@ export class InputHandler {
          const gcdRemaining = combatState.gcdEndTime - now;
          const cdRemaining = cdEnd ? cdEnd - now : 0;
          
-         // Only show the "On Cooldown" message when the skill's own cooldown is the actual
-         // limiting factor (its remaining time exceeds the GCD's remaining time by more than
-         // the queue buffer). If GCD is the equal/larger blocker, or the skill has no real
-         // cooldown, this is just normal GCD pacing - silently queue instead of erroring.
          const isCdTheLimitingFactor = !!cdEnd && (cdRemaining - gcdRemaining > buffer);
          
          if (isCdTheLimitingFactor) {
             const pos = usePlayerStore.getState().position;
             combatState.addFloatingText(pos.x, pos.y, 'On Cooldown', { colorClass: 'text-red-400' });
-            return; // Drop doomed action
+            return;
+         }
+      } else if (action.type === 'move') {
+         // Avoid continuously re-queuing the same movement input every frame if the user holds the key
+         if (combatState.queuedAction?.type === 'move' && 
+             combatState.queuedAction.dx === action.dx && 
+             combatState.queuedAction.dy === action.dy) {
+             return; 
          }
       }
 

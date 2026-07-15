@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { useWorldStore } from './useWorldStore';
 import { hasLineOfSight } from '../engine/world/gridMath';
+import { getObstacleSet } from '../engine/world/obstacleCache';
 
 interface VisionState {
   exploredTiles: Set<string>;
@@ -39,9 +40,11 @@ export const useVisionStore = create<VisionState>((set, get) => ({
       return;
     }
 
+    const obstacleSet = getObstacleSet(grid);
+
     const isSolid = (x: number, y: number) => {
       if (x < 0 || x >= grid.width || y < 0 || y >= grid.height) return true;
-      return grid.obstacles.some(o => o.x === x && o.y === y);
+      return obstacleSet.has(`${x},${y}`);
     };
 
     // Simple brute-force over the bounding box of the vision radius

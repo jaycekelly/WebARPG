@@ -1,3 +1,4 @@
+import React from 'react';
 import { useStatsStore } from '../store/useStatsStore';
 import { useInventoryStore } from '../store/useInventoryStore';
 import { usePlayerStore } from '../store/usePlayerStore';
@@ -185,9 +186,9 @@ function computeTotalRegen(getStat: (stat: StatType) => number, statId: StatType
 }
 
 export function CharacterSheet() {
-  const { getStat } = useStatsStore();
-  const { level } = usePlayerStore();
-  const { setContent } = useTooltipStore();
+  const getStat = useStatsStore(s => s.getStat);
+  const level = usePlayerStore(s => s.level);
+  const setContent = useTooltipStore(s => s.setContent);
 
   return (
     <div className="p-4 flex flex-col gap-3 h-full overflow-y-auto custom-scrollbar">
