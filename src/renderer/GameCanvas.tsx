@@ -13,6 +13,7 @@ import { createFogRenderer } from './systems/renderFog';
 import { setupCanvasInput, getClickTarget, unprojectScreenToWorld, getCurrentPointerClientCoords } from './input/canvasInput';
 import { extractLights } from './utils/lighting';
 import { useWorldStore } from '../store/useWorldStore';
+import { perfMetrics } from '../utils/performance';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useCombatStore } from '../store/useCombatStore';
 import { useAppStore } from '../store/useAppStore';
@@ -144,14 +145,14 @@ export function GameCanvas() {
         const fog = createFogRenderer();
         gameLayer.addChild(fog.container);
 
+        const tileVfx = createTileVfxRenderer();
+        gameLayer.addChild(tileVfx.container);
+
         const boundaryWalls = createBoundaryWallRenderer();
         gameLayer.addChild(boundaryWalls.container);
 
         const entities = createEntityRenderer();
         gameLayer.addChild(entities.container);
-
-        const tileVfx = createTileVfxRenderer();
-        gameLayer.addChild(tileVfx.container);
 
         // Entity UI layer (health bars, target rings) on top of lighting/overlays
         gameLayer.addChild(entities.uiContainer);
@@ -190,6 +191,7 @@ export function GameCanvas() {
         let processedHitIds = new Set<string>();
 
         app.ticker.add((ticker) => {
+          const renderStart = performance.now();
           const w = useWorldStore.getState();
           const p = usePlayerStore.getState();
           const c = useCombatStore.getState();
@@ -231,17 +233,9 @@ export function GameCanvas() {
             dy = Math.sign(dy);
 
             if (dx !== 0 || dy !== 0) {
-              const newX = p.position.x + dx;
-              const newY = p.position.y + dy;
-              if (newX >= 0 && newX < w.grid.width && newY >= 0 && newY < w.grid.height) {
-                const obstacle = w.grid.obstacles.find(o => o.x === newX && o.y === newY);
-                if (!obstacle) {
-                  const enemy = w.getEnemyAt(newX, newY);
-                  if (!enemy || enemy.isDead) {
-                    InputHandler.requestAction({ type: 'move', dx, dy });
-                  }
-                }
-              }
+              // We rely entirely on usePlayerStore.getState().move() to perform strict
+              // collision checks at execution time, which prevents race conditions with AI.
+              InputHandler.requestAction({ type: 'move', dx, dy });
             }
           }
 
@@ -470,6 +464,7 @@ export function GameCanvas() {
           particles.update(projParams);
 
           floatingTexts.update(projParams);
+          perfMetrics.renderTimeMs = performance.now() - renderStart;
         });
       })
       .catch((err: any) => {

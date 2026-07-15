@@ -9,6 +9,7 @@ import { useInventoryStore } from '../store/useInventoryStore';
 import { setRunState } from '../store/storage';
 import type { SkillTag } from './skills/types';
 import { SKILLS } from '../data/skills';
+import { ENEMIES } from '../data/enemies/enemies';
 import { SkillExecutor } from './skills/executor';
 import { DamageCalculator } from './combat/DamageCalculator';
 import { ItemGenerator } from './items/ItemGenerator';
@@ -16,8 +17,9 @@ import { useAppStore } from '../store/useAppStore';
 import { useBuffStore } from '../store/useBuffStore';
 import type { Item } from './items/types';
 
-import { getChebyshevDistance, checkCornerBlock, hasLineOfSight } from './world/gridMath';
+import { getChebyshevDistance, checkCornerBlock, hasLineOfSight, getAoETiles } from './world/gridMath';
 import { findPath } from './world/pathfinding';
+import { perfMetrics } from '../utils/performance';
 
 export function useGameEngine() {
   useEffect(() => {
@@ -40,6 +42,7 @@ export function useGameEngine() {
       lastTick = currentTime;
 
       const now = useAppStore.getState().getGameTime();
+      const perfStart = performance.now();
       
       try {
         const playerState = usePlayerStore.getState();
@@ -495,7 +498,13 @@ export function useGameEngine() {
 
       // Enemy AI Logic
       worldState.enemies.forEach(enemy => {
-        if (enemy.isDead) return;
+        if (enemy.isDead) {
+            if (enemy.activeTelegraph) {
+                worldState.updateEnemy(enemy.id, { activeTelegraph: undefined });
+                combatState.removeTileEffectsByOwner(enemy.id);
+            }
+            return;
+        }
 
         let isAggroed = enemy.isAggroed;
         
@@ -556,6 +565,147 @@ export function useGameEngine() {
         
         const dist = getChebyshevDistance(enemy.position, position);
         const enemyAttackCooldown = 1000 / Math.max(0.1, enemy.stats.attackSpeed);
+        
+        if (enemy.recoveringUntil && now < enemy.recoveringUntil) {
+            return;
+        }
+        
+        // --- Enemy Casting Logic ---
+        if (enemy.activeTelegraph) {
+           if (now >= enemy.activeTelegraph.expiresAt) {
+              const skillId = enemy.activeTelegraph.skillId;
+              const skillTemplate = ENEMIES[enemy.templateId]?.skills?.find(s => s.id === skillId);
+              
+              if (skillTemplate) {
+                  let playerHit = false;
+                  for (const tile of enemy.activeTelegraph.tiles) {
+                      if (tile.x === position.x && tile.y === position.y) {
+                          playerHit = true;
+                          break;
+                      }
+                  }
+                  
+                  if (playerHit) {
+                      const rawEnemyDamage = enemy.stats.attackPower * skillTemplate.damageMult;
+                      const { damage: finalDamage, result } = DamageCalculator.calculateDamage(
+                        rawEnemyDamage,
+                        skillTemplate.damageType,
+                        true, // isSpell
+                        enemy.level,
+                        playerState.level,
+                        {}, // Enemies have no pen stats yet
+                        statsState.getAllStats(),
+                        0,
+                        false,
+                        false,
+                        0
+                      );
+                      usePlayerStore.getState().takeDamage(finalDamage);
+                      
+                      let displayString = finalDamage.toFixed(0);
+                      if (result === 'block') displayString += ' (Block)';
+                      else if (result === 'parry') displayString += ' (Parry)';
+                      else if (result === 'deflect') displayString += ' (Deflect)';
+                      
+                      combatState.addFloatingText(position.x, position.y, displayString, { colorClass: 'text-red-400', isCrit: result === 'crit' });
+                      combatState.addHitEffect('player', enemy.activeTelegraph.targetPos.x, enemy.activeTelegraph.targetPos.y, skillTemplate.color, skillTemplate.damageType);
+                      
+                      let resultText = '';
+                      if (result === 'block') resultText = ' (Blocked)';
+                      else if (result === 'parry') resultText = ' (Parried)';
+                      else if (result === 'deflect') resultText = ' (Deflected)';
+                      combatState.addLog(`${enemy.name}'s ${skillId.replace('_', ' ')} hits you for ${Math.floor(finalDamage)} damage!${resultText}`, 'enemy-attack');
+                  }
+              }
+              
+              // Spawn a visual hit on the floor to show the attack landed
+              enemy.activeTelegraph.tiles.forEach(t => {
+                  combatState.addTileEffect(t.x, t.y, 'enemy_attack_hit', skillTemplate?.color || 0xffffff, 300);
+              });
+              
+              worldState.updateEnemy(enemy.id, { 
+                  activeTelegraph: undefined,
+                  lastAttackTime: now,
+                  recoveringUntil: now + 500,
+                  chaseTargetSnapshot: undefined
+              });
+           }
+           return; 
+        }
+        
+        const templates = ENEMIES[enemy.templateId]?.skills;
+        let startedCast = false;
+        if (templates && templates.length > 0) {
+            for (const skill of templates) {
+                let nextAvailable = enemy.skillCooldowns?.[skill.id];
+                
+                // Initialize if it's the first time evaluating this skill
+                if (nextAvailable === undefined) {
+                    // Only start the initial cooldown timer once the enemy has line of sight
+                    if (!hasLineOfSight(enemy.position, position, isSolid)) {
+                        continue;
+                    }
+                    
+                    const varianceMult = skill.cooldownVariance ? (1 + (Math.random() * 2 - 1) * skill.cooldownVariance) : 1;
+                    const initial = skill.initialCooldown !== undefined ? skill.initialCooldown : 0;
+                    nextAvailable = now + initial * varianceMult;
+                    
+                    worldState.updateEnemy(enemy.id, {
+                        skillCooldowns: {
+                            ...(enemy.skillCooldowns || {}),
+                            [skill.id]: nextAvailable
+                        }
+                    });
+                    
+                    if (nextAvailable > now) continue;
+                }
+
+                if (now >= nextAvailable) {
+                    if (dist <= skill.range) {
+                        let dx = position.x - enemy.position.x;
+                        let dy = position.y - enemy.position.y;
+                        
+                        // Snap to 8-way direction (cardinal or exact diagonal)
+                        dx = dx > 0 ? 1 : (dx < 0 ? -1 : 0);
+                        dy = dy > 0 ? 1 : (dy < 0 ? -1 : 0);
+                        
+                        const fakeTarget = {
+                            x: enemy.position.x + dx * 10,
+                            y: enemy.position.y + dy * 10
+                        };
+                        
+                        const rawTiles = getAoETiles(enemy.position, fakeTarget, skill.shape as any, skill.radius, false, isSolid, worldState.grid.width, worldState.grid.height);
+                        const tiles = rawTiles.filter(t => t.x !== enemy.position.x || t.y !== enemy.position.y);
+                        
+                        const varianceMult = skill.cooldownVariance ? (1 + (Math.random() * 2 - 1) * skill.cooldownVariance) : 1;
+                        const nextTime = now + skill.cooldown * varianceMult;
+
+                        worldState.updateEnemy(enemy.id, {
+                            activeTelegraph: {
+                                skillId: skill.id,
+                                targetPos: { ...position },
+                                expiresAt: now + skill.chargeTime,
+                                tiles: tiles
+                            },
+                            skillCooldowns: {
+                                ...(enemy.skillCooldowns || {}),
+                                [skill.id]: nextTime
+                            }
+                        });
+                        
+                        tiles.forEach(t => {
+                            combatState.addTileEffect(t.x, t.y, 'enemy_telegraph', 0xff0000, skill.chargeTime, enemy.id);
+                        });
+                        
+                        startedCast = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (startedCast) return;
+        // --- End Enemy Casting Logic ---
         
         let canHit = false;
         if (dist <= enemy.stats.attackRange) {
@@ -722,13 +872,13 @@ export function useGameEngine() {
            
            if (goldGain > 0) {
                combatState.addLog(`Gained ${xpGain} XP and ${goldGain} Gold.`, 'system');
-               combatState.addFloatingText(enemy.position.x, enemy.position.y - 0.5, `+${goldGain} Gold`, { colorClass: 'text-amber-400', duration: 2500 });
+               combatState.addFloatingText(0, 0, `+${goldGain} Gold`, { colorClass: 'text-zinc-100', duration: 2500, isUI: true });
            } else {
                combatState.addLog(`Gained ${xpGain} XP.`, 'system');
            }
            
            if (leveledUp) {
-             useMessageStore.getState().addScreenMessage('above', `Level Up`, 3000);
+             useMessageStore.getState().addScreenMessage('above', `Level Up`, 4000);
            }
            
            combatState.addHitEffect(enemy.id, enemy.position.x, enemy.position.y, 0xcc0000, 'death');
@@ -837,6 +987,7 @@ export function useGameEngine() {
           combatState.addLog(`ENGINE CRASH: Unknown error`, 'system');
         }
       } finally {
+        perfMetrics.logicTimeMs = performance.now() - perfStart;
         animationFrameId = requestAnimationFrame(loop);
       }
     };

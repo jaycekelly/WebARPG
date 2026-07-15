@@ -4,6 +4,7 @@ import { usePlayerStore } from '../../store/usePlayerStore';
 import { useVisionStore } from '../../store/useVisionStore';
 import { ENEMY_TEMPLATES } from '../../data/enemies';
 import { DUNGEON_BIOMES } from '../../data/biomes';
+import { buildTownGrid } from '../../data/maps/town';
 
 export class LevelGenerator {
   static generateScatteredLevel(width: number, height: number, biomeId?: string) {
@@ -36,20 +37,11 @@ export class LevelGenerator {
     useWorldStore.setState({ enemies: [], lootDrops: [] });
     useVisionStore.getState().resetVision();
 
-    // Generate Town Grid (12x12, empty by default)
-    const width = 12;
-    const height = 12;
-    const obstacles: Obstacle[] = [
-      { x: Math.floor(width / 2), y: Math.floor(height / 2) - 2, type: 'npc_guide' },
-      { x: width - 2, y: Math.floor(height / 2), type: 'dungeon_entrance' },
-      { x: 2, y: Math.floor(height / 2), type: 'campfire' }
-    ];
-
-    const grid: GridMap = { width, height, obstacles, environment: 'town' };
+    const { grid, spawnPoint } = buildTownGrid();
     worldStore.setGrid(grid);
 
-    // Spawn Player in center
-    playerStore.setPosition(Math.floor(width / 2), Math.floor(height / 2));
+    // Spawn Player in center of portal
+    playerStore.setPosition(spawnPoint.x, spawnPoint.y);
     playerStore.setTarget(null);
   }
 

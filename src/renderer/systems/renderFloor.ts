@@ -133,18 +133,7 @@ export function createFloorRenderer(): FloorRenderer {
     bgLayer.fill({ color: biome.floorColor });
 
     if (g.environment === 'town') {
-      const dirtTiles = new Set([
-        // Around campfire (2, 6)
-        '1,5', '2,5', '3,5',
-        '1,6', '2,6', '3,6',
-        '1,7', '2,7', '3,7',
-        // Around spawn (6, 6)
-        '5,5', '6,5', '7,5',
-        '5,6', '6,6', '7,6',
-        '5,7', '6,7', '7,7',
-        // Connections & Path to dungeon (10, 6)
-        '4,6', '8,6', '9,6', '10,6'
-      ]);
+      const dirtTiles = new Set(g.dirtTiles ?? []);
       const dirtColor = biome.dirtColor !== undefined ? biome.dirtColor : 0x4a3b32; // Lighter dirt color
       
       for (let y = 0; y < g.height; y++) {

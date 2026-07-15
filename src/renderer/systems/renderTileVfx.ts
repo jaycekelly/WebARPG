@@ -200,19 +200,42 @@ export function createTileVfxRenderer(): TileVfxRenderer {
          }
       }
 
-      // Group active effects by their timestamp to merge AoE blobs
-      const groups = new Map<number, typeof activeEffects>();
+      // Group active effects by a roughly similar timestamp and type to merge AoE blobs
+      // The expiresAt can slightly differ if Date.now() ticked during the loop
+      const groups = new Map<string, typeof activeEffects>();
       for (const eff of activeEffects) {
-         if (!groups.has(eff.expiresAt)) groups.set(eff.expiresAt, []);
-         groups.get(eff.expiresAt)!.push(eff);
+         const roundedTime = Math.round(eff.expiresAt / 50) * 50;
+         const key = `${roundedTime}_${eff.type}_${eff.color}`;
+         if (!groups.has(key)) groups.set(key, []);
+         groups.get(key)!.push(eff);
       }
+      
+      const globalTileCounts = new Map<string, number>();
 
-      for (const [expiresAt, group] of groups.entries()) {
-         const lifeLeft = Math.max(0, expiresAt - now);
-         const progress = Math.min(1, 1 - (lifeLeft / 300));
-         const alpha = 1.0 - Math.pow(progress, 2); // Ease-in fade
+      for (const [groupKey, group] of groups.entries()) {
+         const isTelegraph = group[0].type === 'enemy_telegraph';
+         const avgExpiresAt = group.reduce((sum, e) => sum + e.expiresAt, 0) / group.length;
+         
+         // Find max duration in this group to normalize progress
+         let maxDuration = 300;
+         for (const eff of group) {
+             if (eff.durationMs && eff.durationMs > maxDuration) {
+                 maxDuration = eff.durationMs;
+             }
+         }
+         
+         const lifeLeft = Math.max(0, avgExpiresAt - now);
+         const progress = Math.min(1, 1 - (lifeLeft / maxDuration));
+         
+         let alpha = 1.0 - Math.pow(progress, 2); // Ease-in fade
+         let heightProgress = 1 - Math.pow(1 - progress, 3);
+         
+         if (isTelegraph) {
+             alpha = 1.0; // Telegraphs do not get lighter as they charge
+             heightProgress = progress; // Linear rise for telegraphs
+         }
+         
          const uniformAlpha = alpha * 0.35; // Uniform transparency level
-         const heightProgress = 1 - Math.pow(1 - progress, 3);
          const risePx = 35 * heightProgress;
 
          // Build a quick lookup for tiles in this specific AoE blob
@@ -231,9 +254,24 @@ export function createTileVfxRenderer(): TileVfxRenderer {
             const br = projectTileToScreen(eff.x + 0.5, eff.y + 0.5, params);
             const bl = projectTileToScreen(eff.x - 0.5, eff.y + 0.5, params);
 
-            // 1. Base floor glow (always fill the floor tile)
-            gfx.poly([tl.screenX, tl.screenY, tr.screenX, tr.screenY, br.screenX, br.screenY, bl.screenX, bl.screenY]);
-            gfx.fill({ color: eff.color, alpha: uniformAlpha });
+            const tileKey = `${eff.x},${eff.y}`;
+            const stackIndex = globalTileCounts.get(tileKey) || 0;
+            globalTileCounts.set(tileKey, stackIndex + 1);
+
+            // 1. Base floor glow (only fill ONCE per tile so they don't get brighter)
+            if (stackIndex === 0) {
+               gfx.poly([tl.screenX, tl.screenY, tr.screenX, tr.screenY, br.screenX, br.screenY, bl.screenX, bl.screenY]);
+               gfx.fill({ color: eff.color, alpha: uniformAlpha });
+            } else if (isTelegraph) {
+               // Draw an inset square to visualize the overlapping telegraph stacks
+               const inset = Math.min(0.4, stackIndex * 0.15);
+               const itl = projectTileToScreen(eff.x - 0.5 + inset, eff.y - 0.5 + inset, params);
+               const itr = projectTileToScreen(eff.x + 0.5 - inset, eff.y - 0.5 + inset, params);
+               const ibr = projectTileToScreen(eff.x + 0.5 - inset, eff.y + 0.5 - inset, params);
+               const ibl = projectTileToScreen(eff.x - 0.5 + inset, eff.y + 0.5 - inset, params);
+               gfx.poly([itl.screenX, itl.screenY, itr.screenX, itr.screenY, ibr.screenX, ibr.screenY, ibl.screenX, ibl.screenY]);
+               gfx.stroke({ color: 0xff0000, alpha: Math.min(1, uniformAlpha * 3), width: 2 });
+            }
 
             // Helper to draw a gradient wall and strong base line
             const drawGradientWall = (

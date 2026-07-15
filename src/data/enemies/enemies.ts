@@ -25,6 +25,21 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
       coldResist: 0,
       lightningResist: 0,
     },
+    skills: [
+      {
+        id: 'sonic_screech',
+        chargeTime: 1500,
+        cooldown: 10000,
+        cooldownVariance: 0.2, // +/- 20%
+        initialCooldown: 5000, // Wait 3 seconds after aggro
+        range: 2,
+        shape: 'line',
+        radius: 3, // Length of the line
+        damageMult: 3.0,
+        color: 0x38bdf8,
+        damageType: 'Lightning',
+      }
+    ]
   },
   cultist_arbalest: {
     id: 'cultist_arbalest',

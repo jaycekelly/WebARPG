@@ -291,7 +291,7 @@ export function CombatOverlay() {
            const isLevelUp = msg.text.includes('Level Up');
            const mtClass = hasTopMessage ? '-mt-[15.5rem]' : '-mt-[14rem]';
            return (
-             <div key={msg.id} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${mtClass} pointer-events-none z-50 flex flex-col items-center ${isLevelUp ? 'animate-[levelUpFade_3s_ease-in-out_forwards]' : 'animate-in fade-in slide-in-from-bottom-2 duration-500'}`}>
+             <div key={msg.id} className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 ${mtClass} pointer-events-none z-50 flex flex-col items-center ${isLevelUp ? 'animate-[levelUpFade_4s_ease-in-out_forwards]' : 'animate-in fade-in slide-in-from-bottom-2 duration-500'}`}>
                <span className={isLevelUp ? "font-sans text-accent font-black text-2xl uppercase tracking-[0.2em] drop-shadow-glow-accent" : "font-sans text-amber-500 font-bold text-sm [text-shadow:2px_2px_1px_rgba(0,0,0,1)]"}>
                  {msg.text}
                </span>
@@ -502,7 +502,7 @@ export function CombatOverlay() {
                     R
                   </div>
                   {/* Underline */}
-                  <div className="absolute bottom-0 left-[20%] w-[60%] h-[4px] bg-surface-overlay drop-shadow-md pointer-events-none" />
+                  <div className="absolute bottom-0 left-[20%] w-[60%] h-[4px] bg-surface-overlay shadow-depth-sm pointer-events-none" />
                </div>
                {/* Vertical Separator */}
                <div className="w-[4px] h-5 bg-surface-overlay self-end mr-1" />
@@ -670,7 +670,7 @@ export function CombatOverlay() {
                     </div>
                     
                     {/* Underline */}
-                    <div className="absolute bottom-0 left-[10%] w-[80%] h-[4px] bg-surface-overlay drop-shadow-md pointer-events-none" />
+                    <div className="absolute bottom-0 left-[10%] w-[80%] h-[4px] bg-surface-overlay shadow-depth-sm pointer-events-none" />
                     
                     {/* Floating Hotkey */}
                     <div className={`absolute -bottom-5 w-4 h-4 bg-surface-overlay flex items-center justify-center text-[9px] font-bold text-white z-30 shadow-depth-sm pointer-events-none ${isBinding ? 'border border-accent text-accent' : ''}`}>

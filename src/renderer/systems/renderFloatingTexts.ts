@@ -104,6 +104,7 @@ interface TrackedText {
   isPlayer: boolean;
   isCrit: boolean;
   staggerPx: number; // Extra downward offset so near-simultaneous hits don't overlap
+  isUI?: boolean;
 }
 
 export interface FloatingTextRenderer {
@@ -135,7 +136,8 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
         
         const isSkillDamage = !!ft.isSkillDamage;
         const text = createText(ft.text, colorClass, !!ft.isCrit, isSkillDamage);
-        text.anchor.set(0, 0.5);
+        // Center the text properly so its X coordinate represents its center, not its left edge
+        text.anchor.set(ft.isUI ? 0.5 : 0, 0.5);
 
         let icon: Sprite | null = null;
         if (ft.skillIcon) {
@@ -159,7 +161,12 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
         group.addChild(text);
 
         const totalWidth = cursorX + text.width;
-        group.pivot.set(totalWidth / 2, 0);
+        if (ft.isUI) {
+           // For UI, we anchor the group itself to be perfectly centered on screenX
+           group.pivot.set(totalWidth / 2, 0);
+        } else {
+           group.pivot.set(totalWidth / 2, 0);
+        }
         container.addChild(group);
 
         let iconScale = 0.85; // default
@@ -178,7 +185,7 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
         // Overlap stagger: if another hit spawned on this approximate tile very recently,
         // nudge this newer one down a bit so it doesn't sit directly on top of the
         // still-scrolling earlier hit - it'll catch up visually as it scrolls past.
-        const tileKey = `${Math.round(ft.x)},${Math.round(ft.y)}`;
+        const tileKey = ft.isUI ? 'ui' : `${Math.round(ft.x)},${Math.round(ft.y)}`;
         const recent = (recentSpawnsByTile.get(tileKey) || []).filter(t => now - t < STAGGER_WINDOW_MS);
         const staggerCount = recent.length;
         const staggerPx = staggerCount * STAGGER_OFFSET_PX;
@@ -196,18 +203,34 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
           iconScale,
           isPlayer,
           isCrit: !!ft.isCrit,
-          staggerPx
+          staggerPx,
+          isUI: !!ft.isUI
         };
         tracked.set(ft.id, entry);
       }
 
       // Re-project screen position every frame so text follows entity as camera moves
-      const projected = projectTileToScreen(ft.x, ft.y, params);
+      let projected = projectTileToScreen(ft.x, ft.y, params);
+      let cameraScale = 1.0;
 
-      // Compute lifetime progress
-      const baseIconSize = 32 * (params.tileSize / (72 * 0.55));
-      const activeBaseScale = baseIconSize / 128;
-      const cameraScale = activeBaseScale * projected.scale;
+      if (entry.isUI) {
+         // UI text anchors to the Inventory button.
+         // CSS distances: Right margin = 12, Passives = 40, Gap = 8, Skills = 40, Gap = 8 -> Right edge of Inventory = 108.
+         // Center of Inventory = 128 CSS pixels from the right.
+         // Top of Inventory = 12 + 40 = 52 CSS pixels from the bottom. We place it a bit higher, e.g., 70px.
+         const dpr = window.devicePixelRatio || 2;
+         projected = { 
+           screenX: params.viewportWidth - (128 * dpr), 
+           screenY: params.viewportHeight - (80 * dpr), 
+           scale: 1.0, 
+           zDepth: 0 
+         };
+         cameraScale = 1.0;
+      } else {
+         const baseIconSize = 32 * (params.tileSize / (72 * 0.55));
+         const activeBaseScale = baseIconSize / 128;
+         cameraScale = activeBaseScale * projected.scale;
+      }
 
       const elapsed = now - entry.spawnTime;
       
@@ -246,9 +269,13 @@ export function createFloatingTextRenderer(): FloatingTextRenderer {
       // formula as the sprite renderer's health bar offset (renderEntities.ts) so floating
       // text lines up consistently across all enemy scales, not just the one it happened to
       // be tuned against.
-      const baseOffset = entry.isPlayer 
+      let baseOffset = entry.isPlayer 
         ? -60 // Center-ish of the player
         : -(95 * entry.iconScale) - 15;
+        
+      if (entry.isUI) {
+         baseOffset = 0;
+      }
         
       const rawYOffset = baseOffset - distancePx;
       const dynamicYOffset = (rawYOffset * cameraScale) + entry.staggerPx;

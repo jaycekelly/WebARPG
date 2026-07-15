@@ -5,6 +5,7 @@ import { useAppStore } from './useAppStore';
 import { useVisionStore } from './useVisionStore';
 import { useMetaStore } from './useMetaStore';
 import type { ClassType } from '../engine/player/types';
+import { useWorldStore } from './useWorldStore';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { dualStorage } from './storage';
 
@@ -103,8 +104,18 @@ export const usePlayerStore = create<PlayerState>()(
         combatState.addLog(`Cast cancelled (interrupted by movement).`, 'system');
       }
       
+      const targetX = state.position.x + dx;
+      const targetY = state.position.y + dy;
+      
+      const worldState = useWorldStore.getState();
+      
+      // Strict collision checks at exact execution time to prevent race conditions
+      if (targetX < 0 || targetX >= worldState.grid.width || targetY < 0 || targetY >= worldState.grid.height) return state;
+      if (worldState.grid.obstacles.some(o => o.x === targetX && o.y === targetY)) return state;
+      if (worldState.enemies.some(e => e.position.x === targetX && e.position.y === targetY && !e.isDead)) return state;
+      
       combatState.setLastMoveTime(now);
-      nextPos = { x: state.position.x + dx, y: state.position.y + dy };
+      nextPos = { x: targetX, y: targetY };
       moved = true;
       return { position: nextPos };
     });

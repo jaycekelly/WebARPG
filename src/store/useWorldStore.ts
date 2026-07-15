@@ -35,6 +35,9 @@ export interface Enemy {
   // the player's live position, so enemies commit to a heading instead of instantly
   // re-solving toward you every tick (which made it impossible to line them up for AoEs).
   chaseTargetSnapshot?: { x: number; y: number };
+  activeTelegraph?: { skillId: string; targetPos: { x: number; y: number }; expiresAt: number; tiles: { x: number; y: number }[] };
+  skillCooldowns?: Record<string, number>;
+  recoveringUntil?: number;
 }
 
 export interface LootDrop {
@@ -63,6 +66,7 @@ export interface GridMap {
   height: number;
   obstacles: Obstacle[];
   environment?: string;
+  dirtTiles?: string[];
 }
 
 interface WorldState {

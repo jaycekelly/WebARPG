@@ -27,6 +27,7 @@ export interface FloatingText {
   lane?: 'middle' | 'left' | 'right';
   isSkillDamage?: boolean;
   skillIcon?: string;
+  isUI?: boolean;
 }
 
 export interface TileEffect {
@@ -36,6 +37,8 @@ export interface TileEffect {
   type: string;
   color: number;
   expiresAt: number;
+  durationMs: number;
+  ownerId?: string;
 }
 
 export interface HitEffect {
@@ -101,9 +104,10 @@ interface CombatState {
   queuedAction: QueuedAction | null;
 
   addLog: (message: string, type: CombatLogEntry['type']) => void;
-  addFloatingText: (x: number, y: number, text: string, options?: { colorClass?: string, isCrit?: boolean, duration?: number, isSkillDamage?: boolean, skillIcon?: string }) => void;
+  addFloatingText: (x: number, y: number, text: string, options?: { colorClass?: string, isCrit?: boolean, duration?: number, isSkillDamage?: boolean, skillIcon?: string, isUI?: boolean }) => void;
   addHitEffect: (targetId: string, sourceX: number, sourceY: number, color: number, damageType?: string) => void;
-  addTileEffect: (x: number, y: number, type: string, color: number) => void;
+  addTileEffect: (x: number, y: number, type: string, color: number, durationMs?: number, ownerId?: string) => void;
+  removeTileEffectsByOwner: (ownerId: string) => void;
   clearExpiredFloatingTexts: (now: number) => void;
   setAutoAttacking: (val: boolean) => void;
   
@@ -249,7 +253,7 @@ export const useCombatStore = create<CombatState>()(
       return {
         floatingTexts: [
           ...state.floatingTexts,
-          { id, x, y, text, color, expiresAt, isCrit, lane: assignedLane, isSkillDamage: options?.isSkillDamage, skillIcon: options?.skillIcon }
+          { id, x, y, text, color, expiresAt, isCrit, lane: assignedLane, isSkillDamage: options?.isSkillDamage, skillIcon: options?.skillIcon, isUI: options?.isUI }
         ]
       };
     });
@@ -270,11 +274,18 @@ export const useCombatStore = create<CombatState>()(
     });
   },
   
-  addTileEffect: (x, y, type, color) => {
-    const expiresAt = useAppStore.getState().getGameTime() + 300; // 300ms default lifespan
+  addTileEffect: (x, y, type, color, durationMs, ownerId) => {
+    const finalDuration = durationMs ?? 300;
+    const expiresAt = useAppStore.getState().getGameTime() + finalDuration;
     const id = Math.random().toString();
     set((state) => ({
-      tileEffects: [...(state.tileEffects || []), { id, x, y, type, color, expiresAt }]
+      tileEffects: [...(state.tileEffects || []), { id, x, y, type, color, expiresAt, durationMs: finalDuration, ownerId }]
+    }));
+  },
+  
+  removeTileEffectsByOwner: (ownerId: string) => {
+    set((state) => ({
+      tileEffects: (state.tileEffects || []).filter(e => e.ownerId !== ownerId)
     }));
   },
 

@@ -22,7 +22,7 @@ This document outlines the core principles and architectural rules for the WebAR
 - This allows for easy balancing and prevents logic files from becoming cluttered with massive arrays of data.
 
 ## 4. UI & Aesthetics (Tailwind)
-- **Premium Dark Aesthetic**: Maintain the clean, dark-themed, "Melvor Idle" inspired interface. 
+- **Premium Dark Aesthetic**: Maintain the clean, dark-themed interface. 
 - **Universal Base Background**: Use `bg-zinc-950` for the absolute lowest layer (e.g., the body or global container).
 
 ### Design Token System

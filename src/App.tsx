@@ -19,6 +19,7 @@ import { EscapeMenu } from './components/EscapeMenu';
 import { useUIScale } from './hooks/useUIScale';
 import { LevelGenerator } from './engine/world/LevelGenerator';
 import { useVisionStore } from './store/useVisionStore';
+import { FPSDisplay } from './components/FPSDisplay';
 
 const GameOverScreen = () => {
   const currentHealth = usePlayerStore(state => state.currentHealth);
@@ -99,13 +100,7 @@ function App() {
 
   useEffect(() => {
     if (hydrated && location === 'town') {
-       const { grid } = useWorldStore.getState();
-       if (grid.environment !== 'town') {
-          LevelGenerator.initializeTown();
-       } else {
-          // If loading a save in town, default to town spawn
-          usePlayerStore.getState().setPosition(6, 6);
-       }
+       LevelGenerator.initializeTown();
        // Heal upon entering town
        const maxHp = useStatsStore.getState().getStat('Health');
        const maxMana = useStatsStore.getState().getStat('Energy');
@@ -288,6 +283,7 @@ function App() {
           <DataEditorView />
           <GlobalTooltip />
           <GlobalMessages />
+          <FPSDisplay />
         </div>
       </div>
     );
@@ -305,6 +301,7 @@ function App() {
         <GlobalMessages />
         <EscapeMenu />
         <GameOverScreen />
+        <FPSDisplay />
       </div>
     </div>
   );

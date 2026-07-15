@@ -230,7 +230,9 @@ export function createEntityRenderer(): EntityRenderer {
   function setPosition(
     entry: TrackedSprite,
     projected: ProjectedPoint,
-    hopOffset = 0,
+    hopOffset: number,
+    jitterOffsetX: number,
+    jitterOffsetY: number,
     wx: number,
     wy: number,
     playerPos: { x: number; y: number },
@@ -275,9 +277,11 @@ export function createEntityRenderer(): EntityRenderer {
     entry.icon.skew.x = 0;
     entry.flashSprite.skew.x = 0;
     
-    // Apply hop ONLY to the physical body sprites, not the shadow/floor rings
-    entry.icon.y = -hopOffset;
-    entry.flashSprite.y = -hopOffset;
+    // Apply hop and jitter ONLY to the physical body sprites, not the shadow/floor rings
+    entry.icon.x = jitterOffsetX;
+    entry.icon.y = -hopOffset + jitterOffsetY;
+    entry.flashSprite.x = jitterOffsetX;
+    entry.flashSprite.y = -hopOffset + jitterOffsetY;
     if (entry.healthBar) {
       // Base texture height from anchor is ~108, but sprites have padding.
       const topOffset = -(95 * entry.icon.scale.y) - 15;
@@ -399,6 +403,8 @@ export function createEntityRenderer(): EntityRenderer {
     projPlayer.zDepth += 100;
     
     // Apply directional hit jitter
+    let jitterOffsetX = 0;
+    let jitterOffsetY = 0;
     const pHit = hitsMap.get('player');
     if (pHit) {
        const dx = playerEntry.currentX - pHit.sourceX;
@@ -417,15 +423,14 @@ export function createEntityRenderer(): EntityRenderer {
        const jitterX = (dx / len) * jitterFactor;
        const jitterY = (dy / len) * jitterFactor;
        
-       // We can just add this to the screen coordinates!
        const jitterProj = projectTileToScreen(playerEntry.currentX + jitterX, playerEntry.currentY + jitterY, params);
-       projPlayer.screenX = jitterProj.screenX;
-       projPlayer.screenY = jitterProj.screenY;
+       jitterOffsetX = jitterProj.screenX - projPlayer.screenX;
+       jitterOffsetY = jitterProj.screenY - projPlayer.screenY;
     }
     
     playerEntry.container.zIndex = projPlayer.zDepth;
 
-    setPosition(playerEntry, projPlayer, hopPlayer, playerEntry.currentX, playerEntry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
+    setPosition(playerEntry, projPlayer, hopPlayer, jitterOffsetX, jitterOffsetY, playerEntry.currentX, playerEntry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
     updateFlash(playerEntry, playerKey, playerHit);
     }
 
@@ -486,6 +491,8 @@ export function createEntityRenderer(): EntityRenderer {
       const eHit = hitsMap.get(enemy.id);
       const isHit = !!eHit;
       
+      let jitterOffsetX = 0;
+      let jitterOffsetY = 0;
       if (eHit) {
          const dx = entry.currentX - eHit.sourceX;
          const dy = entry.currentY - eHit.sourceY;
@@ -500,11 +507,11 @@ export function createEntityRenderer(): EntityRenderer {
          const jitterY = (dy / len) * jitterFactor;
          
          const jitterProj = projectTileToScreen(entry.currentX + jitterX, entry.currentY + jitterY, params);
-         projEnemy.screenX = jitterProj.screenX;
-         projEnemy.screenY = jitterProj.screenY;
+         jitterOffsetX = jitterProj.screenX - projEnemy.screenX;
+         jitterOffsetY = jitterProj.screenY - projEnemy.screenY;
       }
       
-      setPosition(entry, projEnemy, hopEnemy, entry.currentX, entry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
+      setPosition(entry, projEnemy, hopEnemy, jitterOffsetX, jitterOffsetY, entry.currentX, entry.currentY, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
       
       if (eHit) {
         entry.icon.tint = eHit.color;
@@ -515,18 +522,46 @@ export function createEntityRenderer(): EntityRenderer {
         // Hover and Targeting
         const isTargeted = enemy.id === activeTargetId;
         const isHovered = enemy.id === hoveredEnemyId; // highlight at any time
+        const isCharging = !!enemy.activeTelegraph;
+        const isRecovering = !!enemy.recoveringUntil && enemy.recoveringUntil > Date.now();
+        
+        let targetScale = 0.85;
+        if (isCharging) {
+           // Slower, smoother pulse
+           const pulse = Math.sin(Date.now() / 150) * 0.03;
+           targetScale = 0.85 + pulse;
+           
+           entry.flashSprite.visible = true;
+           entry.flashSprite.tint = 0xffffff;
+           
+           const currentHitAlpha = flashAlphas.get(key) ?? 0;
+           // Very bright white throbbing glow (0.5 to 1.0)
+           const glow = 0.75 + Math.sin(Date.now() / 80) * 0.25;
+           entry.flashSprite.alpha = Math.max(glow, currentHitAlpha);
+        }
         
         // Handle Hover Tint
-        if (isHovered) {
+        if (isHovered && !isCharging && !isRecovering) {
           const currentHitAlpha = flashAlphas.get(key) ?? 0;
           entry.flashSprite.visible = true;
           entry.flashSprite.alpha = Math.max(0.80, currentHitAlpha); // Uniform 80% opacity
-          entry.icon.scale.set(0.85);
-          entry.flashSprite.scale.set(0.85);
-        } else {
-          entry.icon.scale.set(0.85);
-          entry.flashSprite.scale.set(0.85);
+        } else if (!isCharging && !isRecovering) {
+          // If neither hovered nor charging, flash is handled by hit tracking (updateFlash)
+          // updateFlash handles visibility/alpha directly based on flashAlphas, so we don't interfere
         }
+        
+        // Use a persistent scale value on the entry to lerp smoothly
+        (entry as any).currentScale = (entry as any).currentScale ?? 0.85;
+        if (isCharging) {
+           // Snap directly to the pulse while charging
+           (entry as any).currentScale = targetScale;
+        } else {
+           // Smoothly interpolate back to normal scale when the charge ends
+           (entry as any).currentScale += (targetScale - (entry as any).currentScale) * 0.15;
+        }
+        
+        entry.icon.scale.set((entry as any).currentScale);
+        entry.flashSprite.scale.set((entry as any).currentScale);
 
         // Handle Targeting Reticle
         if (isTargeted) {
@@ -638,7 +673,7 @@ export function createEntityRenderer(): EntityRenderer {
       showEntry(entry);
       {
         const projLoot = projectTileToScreen(drop.position.x, drop.position.y, params);
-        setPosition(entry, projLoot, 0, drop.position.x, drop.position.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
+        setPosition(entry, projLoot, 0, 0, 0, drop.position.x, drop.position.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
 
         const time = Date.now();
         const floatY = Math.sin(time / 400 + drop.position.x) * 4;
@@ -683,7 +718,7 @@ export function createEntityRenderer(): EntityRenderer {
         if (obs.type === 'tree') kind = 'trees';
         else if (obs.type === 'rock') { kind = 'stone'; scale = 0.65; }
         else if (obs.type === 'npc_guide') { kind = 'accessibility'; color = '#3b82f6'; }
-        else if (obs.type === 'dungeon_entrance') { kind = 'cave_entrance'; color = '#71717a'; }
+        else if (obs.type === 'dungeon_entrance') { kind = 'cave_entrance'; color = '#ef4444'; }
         else if (obs.type === 'torch') { kind = 'candle'; color = '#fbbf24'; scale = 0.55; }
         else if (obs.type === 'campfire') { kind = 'campfire'; color = '#ffffff'; scale = 0.8; }
         
@@ -696,7 +731,7 @@ export function createEntityRenderer(): EntityRenderer {
       showEntry(entry);
       {
         const projObs = projectTileToScreen(obs.x, obs.y, params);
-        setPosition(entry, projObs, 0, obs.x, obs.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
+        setPosition(entry, projObs, 0, 0, 0, obs.x, obs.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
       }
     }
 
