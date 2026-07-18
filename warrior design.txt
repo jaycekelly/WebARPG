@@ -1,0 +1,397 @@
+The combined Warrior class
+
+I would break the complete class into six ability families:
+
+Weapon Attacks
+Mobility
+Stagger / Physical Control
+Defense
+Combat Momentum
+Rally / Leadership
+
+Not every build uses all six.
+
+1. Weapon Attacks
+
+These are the core of the class.
+
+Heavy Strike
+
+The basic powerful weapon attack.
+
+Deal heavy Strike damage to one target.
+
+This is your basic class-defining attack. It can become:
+
+Higher damage
+Higher Stagger
+Cleaving
+Armor penetration
+Bonus damage against Staggered enemies
+
+This is the foundation of the GW1 attack-skill / Titan Quest Onslaught side of the class.
+
+Cleave
+
+Simple frontal or nearby AoE weapon attack.
+
+Strike the target and nearby enemies.
+
+This is the cleanest basic AoE tool.
+
+It gives the warrior a useful answer to packs without requiring a complicated ability.
+
+Whirlwind
+
+Mobile or stationary spinning attack.
+
+Repeatedly attack nearby enemies.
+
+This is the obvious combined descendant of Titan Quest's War Wind and the broader warrior AoE tradition.
+
+Possible directions:
+
+Move while spinning
+Build more Stagger
+Deal more damage to a single target
+Pull enemies inward
+End with a powerful final strike
+Crushing Blow
+
+Large single-target hit.
+
+Deal a powerful Strike attack with high Stagger damage.
+
+This is the warrior's big "I want to create an opening" attack.
+
+I think this should be one of the core Strike class abilities.
+
+Execute
+
+Finisher.
+
+Deal increased damage to enemies below a health threshold or in a vulnerable state.
+
+This is a classic warrior ability and gives the class a satisfying end to its combat loop.
+
+The strongest version for your game may be:
+
+Deals bonus damage to Staggered enemies.
+
+That creates:
+
+Build Stagger
+    ↓
+Enemy becomes Staggered
+    ↓
+Execute
+2. Mobility
+
+This is where the warrior gets much more interesting than a slow tank.
+
+Charge
+
+Primary gap closer.
+
+Rush to an enemy and attack them.
+
+This should almost certainly be in the class.
+
+Possible variations:
+
+Massive Stagger on impact
+Area damage
+Defensive buff after arrival
+Offensive buff after arrival
+Charge without a target
+
+This combines the core ideas of Grim Dawn's Blitz and DOS2's Battering Ram-style mobility.
+
+Leap
+
+Jump to a location and attack.
+
+Leap to an area, damaging and Staggering enemies on landing.
+
+This is different enough from Charge to justify both:
+
+Charge
+Target-focused
+Fast
+Good for single-target engagement
+Leap
+Area-focused
+More flexible
+Good for jumping into or out of groups
+
+This is the kind of skill I would definitely consider for your class.
+
+Sprint
+
+Short-term movement stance/buff.
+
+Move faster for a duration.
+
+This is a very simple ability, but GW1 demonstrates that a straightforward movement stance can be valuable as part of a martial kit.
+
+You could morph it into:
+
+Offensive movement
+Defensive movement
+Break free from movement impairments
+Gain a buff when Sprint ends
+3. Stagger / Physical Control
+
+This is where your own system gives the warrior a particularly strong identity.
+
+Ground Slam
+
+Area Stagger tool.
+
+Slam the ground, damaging nearby enemies and dealing heavy Stagger damage.
+
+This should probably be one of the warrior's core skills.
+
+It can become:
+
+A cone
+A circle
+A shockwave
+A single-target crushing blow
+War Cry
+
+Enemy-facing control ability.
+
+Emit a powerful cry that affects nearby enemies.
+
+Possible effects:
+
+Increase Stagger damage taken
+Reduce enemy damage
+Interrupt
+Apply a debuff
+Force enemies to attack you
+Briefly stagger weak enemies
+
+This is the natural warrior counterpart to Rally.
+
+Knockdown / Knockback
+
+I would not necessarily make this a separate universal ability. Instead, several abilities can have it as a possible morph.
+
+For example:
+
+Ground Slam
+
+One morph creates a short knockdown.
+
+Charge
+
+One morph knocks the target backward.
+
+Crushing Blow
+
+One morph causes a powerful stagger effect.
+
+This is similar to how DOS2's Warfare identity revolves around physically controlling enemies through weapon attacks and knockdowns.
+
+For your game, I would make Stagger the universal system and reserve stronger knockdowns/stuns for specific skills or morphs.
+
+4. Defense
+
+I think this is where we should be careful not to turn the class into “the tank class.”
+
+The warrior should have good defensive tools, but they should be active and build-defining.
+
+Brace / Guard
+
+Basic defensive cooldown.
+
+Temporarily reduce incoming damage.
+
+Possible morphs:
+
+Gain Block
+Reduce damage more strongly
+Reflect some damage
+Gain offensive power when the effect ends
+Protect nearby allies
+
+This is the simple, reliable defensive button.
+
+Counterguard
+
+Reactive defense.
+
+Enter a defensive stance. The next time you successfully defend, retaliate.
+
+This is much more interesting than another generic damage reduction skill.
+
+It can reward:
+
+Reading the enemy and timing your defense.
+
+Possible morphs:
+
+Counterattack deals high Stagger
+Counterattack hits nearby enemies
+Successful counter grants a buff
+Counter prevents a lethal hit
+Last Stand
+
+Emergency survival skill.
+
+Prevent death or become extremely difficult to kill for a short duration.
+
+This is the Grim Dawn Menhir's Will / Titan Quest defensive-survival tradition. Grim Dawn's Soldier explicitly combines high durability with active survival tools and leadership abilities.
+
+Possible versions:
+
+Cannot die for a short duration
+Survive lethal damage with 1 HP
+Gain defense based on missing health
+Become immune to Stagger
+Gain power as health decreases
+
+I would definitely include some version of this eventually.
+
+5. Combat Momentum
+
+This is one of the biggest things I think your class should borrow from GW1 and Titan Quest.
+
+The warrior should feel like it gets stronger by actively fighting.
+
+You don't need a class-specific resource to do this.
+
+Instead, use temporary buffs.
+
+Onslaught
+
+A stacking combat buff.
+
+Successful weapon attacks build stacks of Onslaught, increasing your offensive power.
+
+For example:
+
+Attack
+  ↓
+Onslaught stack
+  ↓
+More damage / attack speed / Stagger
+  ↓
+Continue attacking
+
+Titan Quest's Warfare mastery uses Onslaught as a central persistent attack mechanic, while GW1's Warrior uses adrenaline and attack skills to create combat momentum.
+
+For your game, I think this is much better than a separate Warrior resource.
+
+It is simply:
+
+A buff that rewards staying engaged.
+
+Possible morphs:
+
+More damage
+More attack speed
+More Stagger
+Lose stacks when you stop attacking
+Consume stacks for a powerful attack
+Battle Rage
+
+Short-term offensive empowerment.
+
+Become more powerful after taking or dealing damage.
+
+This could be a simple self-buff that gives:
+
+Damage
+Crit
+Haste
+Stagger power
+
+This is another classic warrior idea that fits very naturally.
+
+6. Rally / Leadership
+
+This is the area where I think your Warrior class can become more unique than a generic ARPG warrior.
+
+Rally
+
+Basic party/summon buff.
+
+Empower nearby allies and summons.
+
+Possible effects:
+
+Damage
+Defense
+Haste
+Stagger damage
+Resource regeneration
+
+This should be a core class ability.
+
+Battle Standard
+
+Area-based buff.
+
+Place a banner that empowers allies within an area.
+
+This is the stronger, more positional version of Rally.
+
+Titan Quest's Battle Standard is one of the clearest examples of the warrior having a powerful battlefield leadership tool.
+
+Possible morphs:
+
+Offensive banner
+Defensive banner
+Stagger banner
+Summon banner
+Move the banner with you
+Command
+
+Directly empower allies or summons.
+
+Grant a powerful temporary buff to a target ally or summon.
+
+This is where the Warrior could become a genuinely good summon-support multiclass.
+
+Examples:
+
+Your summon deals increased damage
+Your summon gains increased Stagger
+Your summon cannot be interrupted
+Your summon gains your Rally effects
+Your summon immediately attacks a target
+
+This is probably a later-game ability rather than a level 1–10 prototype skill.
+
+The combined class roster
+
+If I were designing the full eventual Strike/Warrior class, I would probably have something like:
+
+Core Offense
+Heavy Strike
+Cleave
+Crushing Blow
+Whirlwind
+Execute
+Mobility
+Charge
+Leap
+Sprint
+Stagger / Control
+Ground Slam
+War Cry
+Concussive Blow
+Defense
+Brace
+Counterguard
+Last Stand
+Momentum
+Onslaught
+Battle Rage
+Leadership
+Rally
+Battle Standard
+Command

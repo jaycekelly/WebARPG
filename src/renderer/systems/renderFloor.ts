@@ -157,16 +157,20 @@ export function createFloorRenderer(): FloorRenderer {
             const p2 = projCorner(x + 1, y);
             const p3 = projCorner(x + 1, y + 1);
             const p4 = projCorner(x, y + 1);
-            bgLayer.poly([
-              p1.screenX, p1.screenY,
-              p2.screenX, p2.screenY,
-              p3.screenX, p3.screenY,
-              p4.screenX, p4.screenY
-            ]);
-            bgLayer.fill({ color: dirtColor });
+            
+            // Build a single complex path instead of hundreds of individual polygons
+            bgLayer.moveTo(p1.screenX, p1.screenY);
+            bgLayer.lineTo(p2.screenX, p2.screenY);
+            bgLayer.lineTo(p3.screenX, p3.screenY);
+            bgLayer.lineTo(p4.screenX, p4.screenY);
+            bgLayer.closePath();
           }
         }
       }
+      
+      // Execute a single fill operation for all dirt tiles simultaneously.
+      // This reduces draw calls and geometry rebuild time drastically!
+      bgLayer.fill({ color: dirtColor });
     }
   }
 
@@ -182,19 +186,12 @@ export function createFloorRenderer(): FloorRenderer {
     focusWorldY: number,
     playerPos: { x: number; y: number }
   ) {
-    // Pan is rounded to whole pixels because the camera continuously lerps toward the
-    // player by fractional amounts every frame - comparing raw floats meant this almost
-    // never matched while the camera was easing, forcing a full clear+redraw of the grid
-    // lines and floor tiles on every single frame during movement (see the same fix
-    // already applied in renderBoundaryWalls.ts).
-    const roundedPanX = Math.round(panX);
-    const roundedPanY = Math.round(panY);
-    
-    // Apply fractional pan offset to the container to achieve perfectly smooth sub-pixel camera movement
-    // without having to rebuild the expensive perspective polygons on every single frame.
-    container.position.set(panX - roundedPanX, panY - roundedPanY);
+    // We must use EXACT panX and panY for projection to maintain perfect 3D perspective
+    // sync with the entities layer. Using a 2D container offset on a 3D perspective 
+    // causes mathematical judder during sub-pixel movement.
+    container.position.set(0, 0);
 
-    const panKey = `${roundedPanX},${roundedPanY},${viewportW},${viewportH},${tileSize},${playerPos.x},${playerPos.y}`;
+    const panKey = `${panX},${panY},${viewportW},${viewportH},${tileSize},${playerPos.x},${playerPos.y}`;
     if (panKey === lastPanKey) return;
     lastPanKey = panKey;
 
@@ -205,8 +202,8 @@ export function createFloorRenderer(): FloorRenderer {
       tileSize,
       viewportWidth: viewportW,
       viewportHeight: viewportH,
-      panX: roundedPanX,
-      panY: roundedPanY,
+      panX: panX,
+      panY: panY,
       focusWorldY,
       perspectivePx: FLOOR_PERSPECTIVE_PX,
       floorTiltDeg: FLOOR_TILT_DEG,

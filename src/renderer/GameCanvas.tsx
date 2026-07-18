@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { createElement } from 'react';
-import { Container, Graphics, Rectangle } from 'pixi.js';
+import { Container, Graphics } from 'pixi.js';
 // No extra pixi filters imported
 import { getPixiApp, destroyPixiApp, setPixiAppBackground } from './pixiApp';
 import { createCamera } from './camera';
@@ -266,8 +266,48 @@ export function GameCanvas() {
           const totalTileSize = tileSize + BASE_GAP_SIZE;
 
           const isOutOfCombat = !useCombatStore.getState().isInCombat();
+          const visTarget = entities.getPlayerVisualPosition();
+          
+          // Eliminate 1-frame camera latency judder by pre-calculating the player's exact visual 
+          // grid coordinate for THIS frame before the camera builds its projection parameters.
+          let camTargetX = visTarget ? visTarget.x : p.position.x;
+          let camTargetY = visTarget ? visTarget.y : p.position.y;
+          let isDashing = visTarget ? visTarget.isDashing : false;
+          const dt = ticker.deltaMS / 1000;
+          const targetDist = Math.max(Math.abs(p.position.x - camTargetX), Math.abs(p.position.y - camTargetY));
+          if (targetDist <= 10) {
+            if (targetDist > 1.2) isDashing = true;
+            else if (targetDist < 0.1) isDashing = false;
+            
+            if (isDashing) {
+              const baseSpeed = isOutOfCombat ? 2.5 : useStatsStore.getState().getStat('MoveSpeed');
+              const maxSpeed = baseSpeed * 1.1;
+              const decay = 20.0;
+              let diffX = p.position.x - camTargetX;
+              let diffY = p.position.y - camTargetY;
+              let velX = diffX * decay;
+              let velY = diffY * decay;
+              const speed = Math.sqrt(velX*velX + velY*velY);
+              if (speed > maxSpeed) {
+                 velX = (velX / speed) * maxSpeed;
+                 velY = (velY / speed) * maxSpeed;
+              }
+              camTargetX += velX * dt;
+              camTargetY += velY * dt;
+            } else {
+              const decay = 12.0;
+              const lf = 1 - Math.exp(-decay * dt);
+              camTargetX += (p.position.x - camTargetX) * lf;
+              camTargetY += (p.position.y - camTargetY) * lf;
+            }
+          } else {
+            camTargetX = p.position.x;
+            camTargetY = p.position.y;
+          }
+          const camTarget = { x: camTargetX, y: camTargetY };
+
           const camResult = cam.update(
-            p.position,
+            camTarget,
             app.renderer.width,
             app.renderer.height,
             tileSize,
@@ -424,6 +464,7 @@ export function GameCanvas() {
           entities.update(
             projParams,
             baseScale,
+            ticker.deltaMS / 1000,
             p.position,
             playerHit,
             w.enemies,

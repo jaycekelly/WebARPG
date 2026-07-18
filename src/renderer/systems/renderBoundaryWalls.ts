@@ -55,10 +55,7 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
     visibleTiles: Set<string>,
     exploredTiles: Set<string>
   ) {
-    const roundedPanX = Math.round(panX);
-    const roundedPanY = Math.round(panY);
-
-    container.position.set(panX - roundedPanX, panY - roundedPanY);
+    container.position.set(0, 0);
 
     const params: ProjectionParams = {
       gridWidth: grid.width,
@@ -66,31 +63,25 @@ export function createBoundaryWallRenderer(): BoundaryWallRenderer {
       tileSize,
       viewportWidth: viewportW,
       viewportHeight: viewportH,
-      panX: roundedPanX,
-      panY: roundedPanY,
+      panX: panX,
+      panY: panY,
       focusWorldY,
       perspectivePx: FLOOR_PERSPECTIVE_PX,
       floorTiltDeg: FLOOR_TILT_DEG,
     };
 
     const now = Date.now();
-    // Pulse every ~3.7 seconds (0.75 +/- 0.25). Driven purely by Container.alpha so it
-    // stays perfectly smooth every frame regardless of whether the (expensive) wall
-    // geometry below gets rebuilt this frame.
+    // Pulse every ~3.7 seconds (0.75 +/- 0.25).
     container.alpha = 0.75 + 0.25 * Math.sin(now / 600);
 
-    // Skip expensive geometry rebuild if camera and vision haven't meaningfully moved.
-    // Pan is rounded to whole pixels because the camera continuously lerps toward the
-    // player by fractional amounts every frame — comparing raw floats meant this almost
-    // never matched while the camera was easing, forcing a full clear+redraw (dozens of
-    // fill/stroke calls) on every single frame during movement, which dropped the
-    // framerate and made the alpha pulse above look choppy/stuttery.
-    if (roundedPanX === lastPanX && roundedPanY === lastPanY && visibleTiles.size === lastVisCount && exploredTiles.size === lastExpCount) {
+    // We no longer skip geometry rebuilds. We must use EXACT panX/Y every frame to perfectly 
+    // match the 3D perspective of the entities layer.
+    if (panX === lastPanX && panY === lastPanY && visibleTiles.size === lastVisCount && exploredTiles.size === lastExpCount) {
       return;
     }
 
-    lastPanX = roundedPanX;
-    lastPanY = roundedPanY;
+    lastPanX = panX;
+    lastPanY = panY;
     lastVisCount = visibleTiles.size;
     lastExpCount = exploredTiles.size;
 

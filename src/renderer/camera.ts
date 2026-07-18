@@ -37,10 +37,11 @@ export function createCamera(): CameraInstance {
         currentFocusY = targetFocusY;
       } else {
         // Exponential decay lerp for framerate-independent, professional smoothing.
-        // Out-of-combat: higher decay keeps the camera locked to the player during
-        // fast OOC movement, preventing the lag that causes motion sickness.
-        // In-combat: lower decay gives the soft, weighted follow that looks great.
-        const decay = isOutOfCombat ? 10.0 : 6.0;
+        // To prevent both motion sickness (from a loose camera) and instant jerkiness (from a rigid lock),
+        // we use a very tight decay. This softens the stops and starts just enough to feel high-quality.
+        // We use a slightly tighter spring out of combat (22.0) to prevent motion sickness during long runs,
+        // and a slightly looser spring in combat (16.0) for a more cinematic feel during dodges/attacks.
+        const decay = isOutOfCombat ? 10.0 : 10.0;
         const lerpFactor = 1 - Math.exp(-decay * dt);
 
         currentFocusX += (targetFocusX - currentFocusX) * lerpFactor;

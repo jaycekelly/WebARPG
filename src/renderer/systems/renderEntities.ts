@@ -61,6 +61,7 @@ export interface EntityRenderer {
   update: (
     params: ProjectionParams,
     baseScale: number,
+    dt: number,
     playerPos: { x: number; y: number },
     playerHit: boolean,
     enemies: Enemy[],
@@ -72,6 +73,7 @@ export interface EntityRenderer {
     visibleTiles?: Set<string>,
     exploredTiles?: Set<string>,
   ) => void;
+  getPlayerVisualPosition: () => { x: number; y: number } | null;
 }
 
 // ---- Factory ----------------------------------------------------------------
@@ -324,6 +326,7 @@ export function createEntityRenderer(): EntityRenderer {
   function tick(
     params: ProjectionParams,
     baseScale: number,
+    dt: number,
     playerPos: { x: number; y: number },
     playerHit: boolean,
     enemies: Enemy[],
@@ -383,11 +386,33 @@ export function createEntityRenderer(): EntityRenderer {
       }
 
       if (playerEntry.isDashing) {
-        playerEntry.currentX += (playerPos.x - playerEntry.currentX) * 0.25;
-        playerEntry.currentY += (playerPos.y - playerEntry.currentY) * 0.25;
+        const combatState = useCombatStore.getState();
+        const isOutOfCombat = !combatState.isInCombat();
+        // Base logical speed in tiles per second
+        const baseSpeed = isOutOfCombat ? 2.5 : useStatsStore.getState().getStat('MoveSpeed');
+        // Visual speed is slightly faster (10%) than logical speed so the sprite smoothly reaches 
+        // the tile center just milliseconds before the next logical input is accepted.
+        const maxSpeed = baseSpeed * 1.1;
+        
+        const decay = 20.0;
+        let diffX = playerPos.x - playerEntry.currentX;
+        let diffY = playerPos.y - playerEntry.currentY;
+        
+        let velX = diffX * decay;
+        let velY = diffY * decay;
+        
+        const speed = Math.sqrt(velX*velX + velY*velY);
+        if (speed > maxSpeed) {
+           velX = (velX / speed) * maxSpeed;
+           velY = (velY / speed) * maxSpeed;
+        }
+        
+        playerEntry.currentX += velX * dt;
+        playerEntry.currentY += velY * dt;
       } else {
-        playerEntry.currentX += (playerPos.x - playerEntry.currentX) * 0.14;
-        playerEntry.currentY += (playerPos.y - playerEntry.currentY) * 0.14;
+        const lf = 1 - Math.exp(-12.0 * dt);
+        playerEntry.currentX += (playerPos.x - playerEntry.currentX) * lf;
+        playerEntry.currentY += (playerPos.y - playerEntry.currentY) * lf;
       }
 
     const fracX = Math.abs(playerEntry.currentX - Math.round(playerEntry.currentX));
@@ -470,11 +495,13 @@ export function createEntityRenderer(): EntityRenderer {
       }
 
       if (entry.isDashing) {
-        entry.currentX += (enemy.position.x - entry.currentX) * 0.25;
-        entry.currentY += (enemy.position.y - entry.currentY) * 0.25;
+        const lf = 1 - Math.exp(-20.0 * dt);
+        entry.currentX += (enemy.position.x - entry.currentX) * lf;
+        entry.currentY += (enemy.position.y - entry.currentY) * lf;
       } else {
-        entry.currentX += (enemy.position.x - entry.currentX) * 0.14;
-        entry.currentY += (enemy.position.y - entry.currentY) * 0.14;
+        const lf = 1 - Math.exp(-12.0 * dt);
+        entry.currentX += (enemy.position.x - entry.currentX) * lf;
+        entry.currentY += (enemy.position.y - entry.currentY) * lf;
       }
       
       const fracX = Math.abs(entry.currentX - Math.round(entry.currentX));
@@ -746,5 +773,13 @@ export function createEntityRenderer(): EntityRenderer {
     sortByDepth();
   }
 
-  return { container, uiContainer, update: tick };
+  function getPlayerVisualPosition() {
+    const p = tracked.get('player');
+    if (p && p.currentX !== undefined && p.currentY !== undefined) {
+      return { x: p.currentX, y: p.currentY, isDashing: p.isDashing ?? false };
+    }
+    return null;
+  }
+
+  return { container, uiContainer, update: tick, getPlayerVisualPosition };
 }
