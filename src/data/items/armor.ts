@@ -2,7 +2,7 @@ import type { ItemTemplate } from '../../engine/items/types';
 import { Stat } from '../../engine/stats/types';
 
 export const ARMOR: Record<string, ItemTemplate> = {
-  // #region Fighter Armor (Pure Armor)
+  // #region Warrior Armor (Pure Armor)
   // #region Tier 1
   iron_helm: {
     id: 'iron_helm',

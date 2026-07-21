@@ -7,6 +7,8 @@ import type { ProjectionParams, ProjectedPoint } from '../../engine/world/screen
 import type { Enemy, LootDrop, Obstacle } from '../../store/useWorldStore';
 import type { HitEffect } from '../../store/useCombatStore';
 import { useWorldStore } from '../../store/useWorldStore';
+import { useCombatStore } from '../../store/useCombatStore';
+import { useStatsStore } from '../../store/useStatsStore';
 import { useLightingStore } from '../../store/useLightingStore';
 import { getBiome } from '../../data/biomes';
 import type { LightingContext } from '../utils/lighting';
@@ -73,7 +75,7 @@ export interface EntityRenderer {
     visibleTiles?: Set<string>,
     exploredTiles?: Set<string>,
   ) => void;
-  getPlayerVisualPosition: () => { x: number; y: number } | null;
+  getPlayerVisualPosition: () => { x: number; y: number; isDashing?: boolean } | null;
 }
 
 // ---- Factory ----------------------------------------------------------------

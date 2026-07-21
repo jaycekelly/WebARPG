@@ -1,11 +1,11 @@
 import type { ClassType } from '../../engine/player/types';
 import type { TalentNode } from './types';
-import { FIGHTER_TREE } from './fighter';
+import { WARRIOR_TREE } from './warrior';
 
 export type { TalentNode };
 
 export const SKILL_TREE: Record<ClassType, TalentNode[]> = {
-  Fighter: FIGHTER_TREE,
+  Warrior: WARRIOR_TREE,
   Mage: [],
   Rogue: [],
   Ranger: [],

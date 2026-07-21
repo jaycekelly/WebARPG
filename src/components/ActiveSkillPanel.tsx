@@ -48,7 +48,7 @@ export function ActiveSkillPanel() {
     }
   }, [selectedSkillId]);
 
-  const availableClasses: any[] = (['Fighter', 'Rogue', 'Ranger', 'Mage'] as any[]).filter(c => c !== playerClass);
+  const availableClasses: any[] = (['Warrior', 'Rogue', 'Ranger', 'Mage'] as any[]).filter(c => c !== playerClass);
   const selectedPreviewClass = previewClass || availableClasses[0];
 
   const currentTabClass = activeTab === 'primary' ? playerClass 

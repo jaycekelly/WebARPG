@@ -33,9 +33,7 @@ const MemoizedSkillIcon = memo(({ icon: IconComponent, isProcced }: { icon: any,
 });
 
 export function CombatOverlay() {
-  const { playerClass, secondaryClass, activeTargetId, currentEnergy, currentAdrenaline, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore(useShallow(s => ({
-    playerClass: s.playerClass,
-    secondaryClass: s.secondaryClass,
+  const { activeTargetId, currentEnergy, currentAdrenaline, currentHealth, level, currentXp, boundSkills, bindSkill, lastFlaskTime, useFlask, attributePoints, activeSkillPoints, passivePoints } = usePlayerStore(useShallow(s => ({
     activeTargetId: s.activeTargetId,
     currentEnergy: s.currentEnergy,
     currentAdrenaline: s.currentAdrenaline,
@@ -79,7 +77,6 @@ export function CombatOverlay() {
   const [now, setNow] = useState(useAppStore.getState().getGameTime());
   const [bindingSlotIndex, setBindingSlotIndex] = useState<number | null>(null);
 
-  const isFighter = playerClass === 'Fighter' || secondaryClass === 'Fighter';
   
   
   const playerBuffs = entityBuffs['player'] || [];
@@ -95,7 +92,7 @@ export function CombatOverlay() {
   
   const maxHealth = getStat('Health');
   const maxEnergy = getStat('Energy');
-  const maxAdrenaline = 100;
+
   const xpRequired = 100 * Math.pow(level, 2);
   
   // Re-render frequently to update the GCD visual sweep smoothly
@@ -766,7 +763,9 @@ export function CombatOverlay() {
           {/* Resources Container (Bottom Left) */}
           <div className="absolute bottom-3 left-3 flex flex-col gap-[8px] z-40 pointer-events-auto w-[360px]">
             {/* Vitals Box */}
-            <div className="flex flex-col gap-[8px]  mb-[3px]">
+            <div className="flex flex-col gap-[8px] mb-[3px]">
+              <div className="w-full h-[22px]"></div>
+
               {/* Health Bar */}
               <div className="relative flex w-full items-center">
                  <div className="relative w-full h-[1.375rem] bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
@@ -797,21 +796,7 @@ export function CombatOverlay() {
                  </div>
               </div>
 
-              {/* Adrenaline Bar */}
-              {isFighter && (
-                 <div className="relative w-full h-[22px] bg-black/40 overflow-hidden backdrop-blur-md rounded-none">
-                    <div 
-                      className="absolute top-0 left-0 h-full bg-amber-600"
-                      style={{ 
-                        display: currentAdrenaline > 0 ? 'block' : 'none',
-                        width: `${Math.min(100, (currentAdrenaline / maxAdrenaline) * 100)}%`
-                      }}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center text-[0.65rem] font-bold text-white [text-shadow:2px_2px_1px_rgba(0,0,0,1)] leading-none z-10 font-mono tracking-widest pt-[0.0625rem]">
-                      {Math.floor(currentAdrenaline)}/{maxAdrenaline}
-                    </div>
-                 </div>
-              )}
+
             </div>
 
             {/* XP Bar & Level */}

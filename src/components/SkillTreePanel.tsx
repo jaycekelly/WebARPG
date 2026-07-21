@@ -31,7 +31,7 @@ export function SkillTreePanel() {
     return () => setContent(null);
   }, [setContent]);
 
-  const availableClasses: any[] = (['Fighter', 'Rogue', 'Ranger', 'Mage'] as any[]).filter(c => c !== playerClass);
+  const availableClasses: any[] = (['Warrior', 'Rogue', 'Ranger', 'Mage'] as any[]).filter(c => c !== playerClass);
   const selectedPreviewClass = previewClass || availableClasses[0];
 
   const currentClass = activeTab === 'primary' ? playerClass 
@@ -268,7 +268,7 @@ export function SkillTreePanel() {
                </span>
                <div className="w-px h-3.5 bg-zinc-400/80 mr-2" />
                <span className="text-sky-400 font-black text-xs mr-1">+{mastery * 3}</span>
-               <span className="text-[10px] text-text-secondary font-bold tracking-widest">{currentClass === 'Fighter' ? 'STR' : currentClass === 'Rogue' ? 'DEX' : 'INT'}</span>
+               <span className="text-[10px] text-text-secondary font-bold tracking-widest">{currentClass === 'Warrior' ? 'STR' : currentClass === 'Rogue' ? 'DEX' : 'INT'}</span>
             </div>
          </div>   
       </div>

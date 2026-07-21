@@ -1,6 +1,6 @@
 import type { Skill } from '../../engine/skills/types';
-import { FIGHTER_L10_SKILLS } from './fighter_l10';
+import { WARRIOR_SKILLS } from './warrior_skills';
 
 export const SKILLS: Record<string, Skill> = {
-  ...FIGHTER_L10_SKILLS,
+  ...WARRIOR_SKILLS,
 };

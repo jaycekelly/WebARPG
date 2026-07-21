@@ -8,7 +8,7 @@ export const MainMenuView = () => {
     const { characters, activeCharacterId, addCharacter, setActiveCharacter } = useMetaStore();
     const [view, setView] = useState<'main' | 'select' | 'create'>('main');
     const [newName, setNewName] = useState('');
-    const [selectedClass, setSelectedClass] = useState<'Fighter' | 'Rogue' | 'Ranger' | 'Mage'>('Fighter');
+    const [selectedClass, setSelectedClass] = useState<'Warrior' | 'Rogue' | 'Ranger' | 'Mage'>('Warrior');
     
     const sortedCharacters = [...characters].sort((a, b) => b.lastPlayed - a.lastPlayed);
     
@@ -134,8 +134,8 @@ export const MainMenuView = () => {
                     <div className="flex flex-col gap-1 mt-1">
                         <label className="text-text-secondary text-[10px] font-bold uppercase tracking-widest">Starting Class</label>
                         <div className="grid grid-cols-2 gap-2">
-                             {(['Fighter', 'Rogue', 'Ranger', 'Mage'] as const).map(cls => {
-                                const isEnabled = cls === 'Fighter';
+                             {(['Warrior', 'Rogue', 'Ranger', 'Mage'] as const).map(cls => {
+                                const isEnabled = cls === 'Warrior';
                                 const isSelected = selectedClass === cls;
                                 return (
                                     <button

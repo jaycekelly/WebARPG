@@ -126,18 +126,18 @@ export function useGameEngine() {
         lastRegenFlushTime = currentTime;
       }
 
-      // Adrenaline Decay: no decay in-combat
-      if (isOutOfCombat && playerState.currentAdrenaline > 0) {
-        const decayAmount = 5 * dtSec;
-        usePlayerStore.getState().decayAdrenaline(decayAmount);
-      }
+      // Adrenaline Decay: no decay in-combat (Temporarily Disabled)
+      // if (isOutOfCombat && playerState.currentAdrenaline > 0) {
+      //   const decayAmount = 5 * dtSec;
+      //   usePlayerStore.getState().decayAdrenaline(decayAmount);
+      // }
 
-      // Adrenaline Generation: Passively generate 4 per second, ONLY IF player dealt damage within last 2 seconds
-      const timeSinceDamageDealt = now - combatState.lastDamageDealtTime;
-      if (timeSinceDamageDealt <= 2000 && playerState.currentAdrenaline < 100) {
-        const generationAmount = 4 * dtSec;
-        usePlayerStore.getState().addAdrenaline(generationAmount);
-      }
+      // Adrenaline Generation: Passively generate 4 per second, ONLY IF player dealt damage within last 2 seconds (Temporarily Disabled)
+      // const timeSinceDamageDealt = now - combatState.lastDamageDealtTime;
+      // if (timeSinceDamageDealt <= 2000 && playerState.currentAdrenaline < 100) {
+      //   const generationAmount = 4 * dtSec;
+      //   usePlayerStore.getState().addAdrenaline(generationAmount);
+      // }
 
       // Handle Ground Zones
       worldState.clearExpiredZones(now);

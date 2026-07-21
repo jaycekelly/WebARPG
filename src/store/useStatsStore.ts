@@ -17,7 +17,7 @@ const getTreeModifiers = (): StatModifier[] => {
     const processClass = (cls: ClassType) => {
        const mPts = skillState.getTotalPointsSpent(cls);
        if (mPts > 0) {
-          if (cls === 'Fighter') treeMods.push({ id: `mastery_${cls}_str`, sourceId: `mastery_${cls}`, stat: 'Strength', type: 'flat', value: mPts * 3 });
+          if (cls === 'Warrior') treeMods.push({ id: `mastery_${cls}_str`, sourceId: `mastery_${cls}`, stat: 'Strength', type: 'flat', value: mPts * 3 });
           else if (cls === 'Rogue') treeMods.push({ id: `mastery_${cls}_dex`, sourceId: `mastery_${cls}`, stat: 'Dexterity', type: 'flat', value: mPts * 3 });
           else if (cls === 'Mage') treeMods.push({ id: `mastery_${cls}_int`, sourceId: `mastery_${cls}`, stat: 'Intelligence', type: 'flat', value: mPts * 3 });
        }

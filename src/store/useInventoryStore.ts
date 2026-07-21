@@ -283,7 +283,7 @@ setTimeout(() => {
      let starterItems: (Item | null)[] = [];
      
      switch (playerClass) {
-        case 'Fighter':
+        case 'Warrior':
         default:
            const sword = ItemGenerator.generateUnique('bronze_sword', 1);
            const shield = ItemGenerator.generateUnique('iron_shield', 1);

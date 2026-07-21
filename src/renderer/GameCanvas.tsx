@@ -17,6 +17,7 @@ import { useWorldStore } from '../store/useWorldStore';
 import { perfMetrics } from '../utils/performance';
 import { usePlayerStore } from '../store/usePlayerStore';
 import { useCombatStore } from '../store/useCombatStore';
+import { useStatsStore } from '../store/useStatsStore';
 import { useAppStore } from '../store/useAppStore';
 import { useVisionStore } from '../store/useVisionStore';
 import { useTooltipStore } from '../store/useTooltipStore';
@@ -273,7 +274,7 @@ export function GameCanvas() {
           let camTargetX = visTarget ? visTarget.x : p.position.x;
           let camTargetY = visTarget ? visTarget.y : p.position.y;
           let isDashing = visTarget ? visTarget.isDashing : false;
-          const dt = ticker.deltaMS / 1000;
+          const dt = a.isPaused ? 0 : ticker.deltaMS / 1000;
           const targetDist = Math.max(Math.abs(p.position.x - camTargetX), Math.abs(p.position.y - camTargetY));
           if (targetDist <= 10) {
             if (targetDist > 1.2) isDashing = true;
@@ -312,7 +313,7 @@ export function GameCanvas() {
             app.renderer.height,
             tileSize,
             totalTileSize,
-            ticker.deltaMS / 1000,
+            a.isPaused ? 0 : ticker.deltaMS / 1000,
             isOutOfCombat,
           );
 
@@ -438,6 +439,7 @@ export function GameCanvas() {
             entities.update(
               projParams,
               baseScale,
+              0, // dt is 0 during pause
               p.position,
               false, // no player hit effect during pause
               w.enemies,

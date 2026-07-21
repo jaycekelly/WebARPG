@@ -57,7 +57,7 @@ interface PlayerState {
 export const usePlayerStore = create<PlayerState>()(
   persist(
     (set, get) => ({
-      playerClass: 'Fighter',
+      playerClass: 'Warrior',
   secondaryClass: null,
   position: { x: 5, y: 5 },
   currentHealth: 100,
@@ -74,7 +74,7 @@ export const usePlayerStore = create<PlayerState>()(
   gold: 0,
   normalPityCount: 0,
   magicPityCount: 0,
-  boundSkills: ['heavy_strike_combo', 'onslaught_leap', 'shield_break', 'ground_slam', 'zealous_blow', null, null, null],
+  boundSkills: ['heavy_strike', 'cleave', 'charge', 'war_cry', 'brace', 'battle_rage', null, null],
   lastFlaskTime: 0,
   move: (dx, dy) => {
     let moved = false;

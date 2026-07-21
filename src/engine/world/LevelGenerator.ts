@@ -87,10 +87,10 @@ export class LevelGenerator {
   }
 
   /**
-   * A small, empty test cave with the Fighter Kit's 3-enemy pack (Cultist Arbalest,
+   * A small, empty test cave with the Warrior Kit's 3-enemy pack (Cultist Arbalest,
    * Ironclad Brute, Footman) tethered together via a shared groupId, spawned close
    * together in the middle of the room. A simple playground for testing the
-   * Level 10 Fighter Prototype Kit against a small tethered pack.
+   * Level 10 Warrior Prototype Kit against a small tethered pack.
    */
   static initializePlaygroundCave(playerLevel: number = 1) {
     const worldStore = useWorldStore.getState();
