@@ -319,6 +319,15 @@ export function createEntityRenderer(): EntityRenderer {
     EntityHitboxes.delete(entry.key);
   }
 
+  function isProjOffscreen(proj: ProjectedPoint, viewportW: number, viewportH: number, margin = 150): boolean {
+    return (
+      proj.screenX < -margin ||
+      proj.screenX > viewportW + margin ||
+      proj.screenY < -margin ||
+      proj.screenY > viewportH + margin
+    );
+  }
+
   function sortByDepth() {
     container.sortableChildren = true;
     container.sortChildren();
@@ -474,6 +483,11 @@ export function createEntityRenderer(): EntityRenderer {
         tracked.set(key, entry);
       }
       if (visibleTiles && !visibleTiles.has(`${enemy.position.x},${enemy.position.y}`)) {
+        hideEntry(entry);
+        continue;
+      }
+      const projCheckEnemy = projectTileToScreen(entry.currentX ?? enemy.position.x, entry.currentY ?? enemy.position.y, params);
+      if (isProjOffscreen(projCheckEnemy, params.viewportWidth, params.viewportHeight)) {
         hideEntry(entry);
         continue;
       }
@@ -699,9 +713,13 @@ export function createEntityRenderer(): EntityRenderer {
         hideEntry(entry);
         continue;
       }
+      const projLoot = projectTileToScreen(drop.position.x, drop.position.y, params);
+      if (isProjOffscreen(projLoot, params.viewportWidth, params.viewportHeight)) {
+        hideEntry(entry);
+        continue;
+      }
       showEntry(entry);
       {
-        const projLoot = projectTileToScreen(drop.position.x, drop.position.y, params);
         setPosition(entry, projLoot, 0, 0, 0, drop.position.x, drop.position.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
 
         const time = Date.now();
@@ -757,9 +775,13 @@ export function createEntityRenderer(): EntityRenderer {
         hideEntry(entry);
         continue;
       }
+      const projObs = projectTileToScreen(obs.x, obs.y, params);
+      if (isProjOffscreen(projObs, params.viewportWidth, params.viewportHeight)) {
+        hideEntry(entry);
+        continue;
+      }
       showEntry(entry);
       {
-        const projObs = projectTileToScreen(obs.x, obs.y, params);
         setPosition(entry, projObs, 0, 0, 0, obs.x, obs.y, playerPos, pointLights, visibleTilesSet, exploredTilesSet, ctx);
       }
     }

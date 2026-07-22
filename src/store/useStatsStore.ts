@@ -122,195 +122,36 @@ export const useStatsStore = create<StatsState>((set, get) => ({
     { id: 'base_crit_multiplier', sourceId: 'base_character', stat: 'CriticalStrikeMultiplier', type: 'flat', value: 150 },
   ],
 
-  addModifier: (mod) => set((state) => ({
-    modifiers: [...state.modifiers, mod]
-  })),
+  addModifier: (mod) => {
+    cachedAllStats = null;
+    set((state) => ({ modifiers: [...state.modifiers, mod] }));
+  },
 
-  removeModifier: (id) => set((state) => ({
-    modifiers: state.modifiers.filter(m => m.id !== id)
-  })),
+  removeModifier: (id) => {
+    cachedAllStats = null;
+    set((state) => ({ modifiers: state.modifiers.filter(m => m.id !== id) }));
+  },
 
-  removeModifiersBySource: (sourceId) => set((state) => ({
-    modifiers: state.modifiers.filter(m => m.sourceId !== sourceId)
-  })),
+  removeModifiersBySource: (sourceId) => {
+    cachedAllStats = null;
+    set((state) => ({ modifiers: state.modifiers.filter(m => m.sourceId !== sourceId) }));
+  },
   
-  updateModifierValue: (id, value) => set((state) => ({
-    modifiers: state.modifiers.map(m => m.id === id ? { ...m, value } : m)
-  })),
+  updateModifierValue: (id, value) => {
+    cachedAllStats = null;
+    set((state) => ({ modifiers: state.modifiers.map(m => m.id === id ? { ...m, value } : m) }));
+  },
 
   getStat: (stat) => {
-    let mods = get().modifiers.filter(m => m.stat === stat);
-    
-    // Add tree modifiers, equipment, and attributes
-    const treeMods = getTreeModifiers().filter(m => m.stat === stat);
-    const equipMods = getEquipmentModifiers().filter(m => m.stat === stat);
-    const attrMods = getBaseAttributeModifiers().filter(m => m.stat === stat);
-    mods = mods.concat(treeMods, equipMods, attrMods);
-    
-    // Unarmed Weapon Damage fallback
-    if (stat === 'WeaponDamage') {
-      const externalWeaponMods = mods.filter(m => m.sourceId !== 'base_character');
-      if (externalWeaponMods.length > 0) {
-        // If a weapon provides WeaponDamage, ignore the base character unarmed damage
-        mods = mods.filter(m => !(m.sourceId === 'base_character'));
-      }
-    }
-    
-    // Add active buffs
-    const playerBuffs = useBuffStore.getState().entityBuffs['player'] || [];
-    playerBuffs.forEach(buff => {
-      buff.statModifiers.forEach(mod => {
-        if (mod.stat === stat) {
-           mods.push({
-             id: `${buff.id}_${mod.stat}`,
-             sourceId: buff.buffId,
-             stat: mod.stat,
-             type: mod.type,
-             value: mod.value * buff.stacks
-           });
-        }
-      });
-    });
-    
-    // Shorthand logic for getStat
-    if (stat === 'FireResist' || stat === 'ColdResist' || stat === 'LightningResist') {
-       const allEleMods = get().modifiers.filter(m => m.stat === 'AllElementalResist');
-       playerBuffs.forEach(buff => {
-         buff.statModifiers.forEach(mod => {
-           if (mod.stat === 'AllElementalResist') {
-             allEleMods.push({
-               id: `${buff.id}_AllElementalResist`,
-               sourceId: buff.buffId,
-               stat: 'AllElementalResist',
-               type: mod.type,
-               value: mod.value * buff.stacks
-             });
-           }
-         });
-       });
-       mods = mods.concat(allEleMods.map(m => ({ ...m, id: m.id + '_derived', stat: stat as StatType })));
-    }
-    
-    if (stat === 'StrikeResist' || stat === 'PierceResist') {
-       const physMods = get().modifiers.filter(m => m.stat === 'PhysicalResist');
-       playerBuffs.forEach(buff => {
-         buff.statModifiers.forEach(mod => {
-           if (mod.stat === 'PhysicalResist') {
-             physMods.push({
-               id: `${buff.id}_PhysicalResist`,
-               sourceId: buff.buffId,
-               stat: 'PhysicalResist',
-               type: mod.type,
-               value: mod.value * buff.stacks
-             });
-           }
-         });
-       });
-       mods = mods.concat(physMods.map(m => ({ ...m, id: m.id + '_derived', stat: stat as StatType })));
-    }
-    
-    if (stat === 'Health') {
-       const vit = get().getStat('Vitality');
-       if (vit > 0) {
-         mods.push({
-           id: 'vit_health_bonus',
-           sourceId: 'base_attributes',
-           stat: 'Health',
-           type: 'flat',
-           value: vit * 4
-         });
-       }
-       const level = usePlayerStore.getState().level;
-       if (level > 1) {
-         mods.push({
-           id: 'level_hp_bonus',
-           sourceId: 'base_attributes',
-           stat: 'Health',
-           type: 'flat',
-           value: (level - 1) * 10
-         });
-       }
-    }
-
-    if (stat === 'Energy') {
-       const int = get().getStat('Intelligence');
-       if (int > 0) {
-         mods.push({
-           id: 'int_energy_bonus',
-           sourceId: 'base_attributes',
-           stat: 'Energy',
-           type: 'flat',
-           value: int * 1
-         });
-       }
-       const level = usePlayerStore.getState().level;
-       if (level > 1) {
-         mods.push({
-           id: 'level_energy_bonus',
-           sourceId: 'base_attributes',
-           stat: 'Energy',
-           type: 'flat',
-           value: (level - 1) * 3
-         });
-       }
-    }
-
-    if (stat === 'HealthRegeneration') {
-       const level = usePlayerStore.getState().level;
-       if (level > 1) {
-         mods.push({
-           id: 'level_hp_regen_bonus',
-           sourceId: 'base_attributes',
-           stat: 'HealthRegeneration',
-           type: 'flat',
-           value: (level - 1) * 0.075 // 0.05 base + 0.025 from previous leveling loop logic
-         });
-       }
-    }
-
-    if (stat === 'EnergyRegeneration') {
-       const level = usePlayerStore.getState().level;
-       if (level > 1) {
-         mods.push({
-           id: 'level_energy_regen_bonus',
-           sourceId: 'base_attributes',
-           stat: 'EnergyRegeneration',
-           type: 'flat',
-           value: (level - 1) * 0.2
-         });
-       }
-    }
-
-    if (stat === 'Armor') {
-       const str = get().getStat('Strength');
-       if (str > 0) {
-         mods.push({
-           id: 'str_armor_bonus',
-           sourceId: 'base_attributes',
-           stat: 'Armor',
-           type: 'flat',
-           value: str
-         });
-       }
-    }
-
-    if (stat === 'HasteRating') {
-       const dex = get().getStat('Dexterity');
-       if (dex > 0) {
-         mods.push({
-           id: 'dex_haste_bonus',
-           sourceId: 'base_attributes',
-           stat: 'HasteRating',
-           type: 'flat',
-           value: dex
-         });
-       }
-    }
-
-    return StatCalculator.calculateFinalStat(mods);
+    return get().getAllStats()[stat] ?? 0;
   },
 
   getAllStats: () => {
+    ensureSubscriptions();
+    if (cachedAllStats) {
+      return cachedAllStats;
+    }
+
     let mods = [...get().modifiers, ...getTreeModifiers(), ...getEquipmentModifiers(), ...getBaseAttributeModifiers()];
     
     // Unarmed Weapon Damage fallback
@@ -377,6 +218,38 @@ export const useStatsStore = create<StatsState>((set, get) => ({
       stats['HasteRating'] = (stats['HasteRating'] || 0) + dex;
     }
 
+    cachedAllStats = stats;
     return stats;
   }
 }));
+
+let cachedAllStats: Record<string, number> | null = null;
+let subscriptionsInitialized = false;
+
+function invalidateStatsCache() {
+  cachedAllStats = null;
+}
+
+function ensureSubscriptions() {
+  if (subscriptionsInitialized) return;
+  subscriptionsInitialized = true;
+
+  useInventoryStore.subscribe(() => { invalidateStatsCache(); });
+  useSkillStore.subscribe(() => { invalidateStatsCache(); });
+  usePlayerStore.subscribe((state, prevState) => {
+    if (
+      state.level !== prevState.level ||
+      state.playerClass !== prevState.playerClass ||
+      state.secondaryClass !== prevState.secondaryClass ||
+      state.allocatedAttributes !== prevState.allocatedAttributes
+    ) {
+      invalidateStatsCache();
+    }
+  });
+  useBuffStore.subscribe((state, prevState) => {
+    if (state.entityBuffs['player'] !== prevState.entityBuffs['player']) {
+      invalidateStatsCache();
+    }
+  });
+}
+
