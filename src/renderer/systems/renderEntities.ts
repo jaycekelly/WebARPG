@@ -18,8 +18,6 @@ const HEALTH_BAR_WIDTH = 90;
 const HEALTH_BAR_HEIGHT = 10;
 const HEALTH_BAR_OFFSET_Y = -85;
 
-const SHADOW_WIDTH = 110; // wide oval shadow
-const SHADOW_HEIGHT = 65; // ~62% of width = oval
 
 const ENTITY_Z = {
   obstacle: 0,
@@ -55,6 +53,10 @@ interface TrackedSprite {
   currentX?: number;
   currentY?: number;
   isDashing?: boolean;
+  squishX?: number;
+  squishY?: number;
+  ghostPct?: number;
+  selectRingAlpha?: number;
 }
 
 export interface EntityRenderer {
@@ -83,12 +85,13 @@ export function createEntityRenderer(): EntityRenderer {
   const container = new Container();
   const uiContainer = new Container();
   const tracked = new Map<string, TrackedSprite>();
+  let lastPlayerTileKey = '';
 
   // ---- Sub-graphics factories -----------------------------------------------
   function makeShadow(): Graphics {
     const g = new Graphics();
-    g.ellipse(0, 5, SHADOW_WIDTH / 2, SHADOW_HEIGHT / 2);
-    g.fill({ color: 0x000000, alpha: 0.25 });
+    g.circle(0, 5, 36);
+    g.fill({ color: 0x000000, alpha: 0.45 });
     return g;
   }
 
@@ -123,7 +126,7 @@ export function createEntityRenderer(): EntityRenderer {
     key: string,
     zIdx: number,
     hasHealthBar: boolean,
-    iconScale: number = 0.85,
+    iconScale: number = 1.25,
   ): TrackedSprite {
     const c = new Container();
     c.zIndex = zIdx;
@@ -158,7 +161,7 @@ export function createEntityRenderer(): EntityRenderer {
     
     // Icon above shadow and glow
     const icon = new Sprite(texture);
-    icon.anchor.set(0.5, 0.85);
+    icon.anchor.set(0.5, 0.76);
     if (!isObstacle) {
       icon.scale.set(iconScale, iconScale); // Dynamically scale icon based on entity size
     }
@@ -179,7 +182,7 @@ export function createEntityRenderer(): EntityRenderer {
     // Flash sprite (same texture, white color, preserve fill if it's loot)
     const flashTexture = getEntityTexture(kind, '#ffffff', isLoot);
     const flashSprite = new Sprite(flashTexture);
-    flashSprite.anchor.set(0.5, 0.85);
+    flashSprite.anchor.set(0.5, 0.76);
     if (!isObstacle) {
       flashSprite.scale.set(0.85, 0.85); // Shrink flash to match icon
     }
@@ -204,6 +207,7 @@ export function createEntityRenderer(): EntityRenderer {
       kind,
       category,
     };
+    (entry as any).baseColorHex = parseInt(color.replace('#', '0x'), 16);
 
     container.addChild(c);
     tracked.set(key, entry);
@@ -253,13 +257,24 @@ export function createEntityRenderer(): EntityRenderer {
     // sort behind standing actors on the same tile
     entry.container.zIndex = projected.zDepth + (ENTITY_Z[entry.category] ?? 0);
     
-    // Lighting tint
-    let lighting = getTileLighting(wx, wy, playerPos, pointLights, ctx);
+    // Live hand-drawn 3-frame wobble texture update for character entities
+    const isLoot = entry.key.startsWith('loot:');
+    const frameIndex = Math.floor(performance.now() / 280) % 3;
+    entry.icon.texture = getEntityTexture(entry.kind, '#ffffff', isLoot, frameIndex);
+
+    // Lighting tint (locked to integer grid tile to prevent sub-pixel movement flicker)
+    const tileX = Math.round(wx);
+    const tileY = Math.round(wy);
+    let lighting = getTileLighting(tileX, tileY, playerPos, pointLights, ctx);
+    const tileKey = `${tileX},${tileY}`;
+    const isExploredOnly = !visibleTiles.has(tileKey) && exploredTiles.has(tileKey);
     
-    // If in memory fog (explored but not visible), it receives no direct light.
-    // Use the biome's ambient color scaled to a visible 18% brightness baseline so they match
-    // the surrounding environment and avoid simultaneous contrast artifacts (looking brown).
-    if (!visibleTiles.has(`${wx},${wy}`) && exploredTiles.has(`${wx},${wy}`)) {
+    const isObstacleOrItem = entry.kind === 'trees' || entry.kind === 'mountain' || entry.kind === 'cave_entrance' || 
+                             entry.kind === 'candle' || entry.kind === 'campfire' || entry.kind === 'accessibility' || 
+                             entry.key.startsWith('loot:');
+
+    if (isExploredOnly) {
+       // Dark memory fog tint for explored tiles
        const minR = ctx.entityAmbient.r;
        const minG = ctx.entityAmbient.g;
        const minB = ctx.entityAmbient.b;
@@ -270,17 +285,54 @@ export function createEntityRenderer(): EntityRenderer {
        const finalB = Math.floor(minB + (255 - minB) * ent);
        
        const memoryTint = (finalR << 16) | (finalG << 8) | finalB;
-       lighting = { intensity: 0.0, entityTint: memoryTint };
+       entry.icon.tint = memoryTint;
+       entry.flashSprite.tint = memoryTint;
+    } else if (!isObstacleOrItem) {
+       // Living creatures (Player & Enemies) receive dynamic lighting tint when visible
+       entry.icon.tint = lighting.entityTint;
+       entry.flashSprite.tint = lighting.entityTint;
+    } else {
+       // Static obstacles preserve their clean, un-tinted flat colors
+       entry.icon.tint = 0xffffff;
+       entry.flashSprite.tint = 0xffffff;
     }
     
-    const tint = lighting.entityTint;
+    // 3D elevation shadow scaling & alpha attenuation
+    // When hopOffset > 0, shadow stays grounded, shrinks and fades
+    const hopFactor = Math.max(0, 1.0 - (hopOffset / 50));
+    entry.shadow.alpha = 0.45 * (0.4 + 0.6 * hopFactor);
+    const isObstacle = entry.kind === 'trees' || entry.kind === 'mountain' || entry.kind === 'cave_entrance';
+    const baseShadowScale = isObstacle ? 1.15 : (entry.key.startsWith('loot:') ? 0.6 : 0.85);
+    entry.shadow.scale.set(
+      baseShadowScale * (0.7 + 0.3 * hopFactor),
+      (baseShadowScale * 0.615) * (0.7 + 0.3 * hopFactor)
+    );
+
+    // Clean, grounded scale logic
+    const isNonCreature = isObstacle || entry.kind === 'torch' || entry.kind === 'campfire' || entry.kind === 'npc_guide' || entry.key.startsWith('loot:');
     
-    entry.icon.tint = tint;
-    entry.flashSprite.tint = tint;
-    
-    entry.icon.skew.x = 0;
-    entry.flashSprite.skew.x = 0;
-    
+    if (isNonCreature) {
+      const baseScaleVal = entry.key.startsWith('loot:') ? 0.6 : (isObstacle ? 1.0 : 0.85);
+      entry.icon.scale.set(baseScaleVal);
+      entry.flashSprite.scale.set(baseScaleVal);
+    } else {
+      entry.squishX = entry.squishX ?? 1.0;
+      entry.squishY = entry.squishY ?? 1.0;
+      
+      const isBeingHit = jitterOffsetX !== 0 || jitterOffsetY !== 0;
+      if (isBeingHit) {
+        entry.squishY = 0.94;
+        entry.squishX = 1.06;
+      } else {
+        entry.squishX += (1.0 - entry.squishX) * 0.25;
+        entry.squishY += (1.0 - entry.squishY) * 0.25;
+      }
+
+      const baseScaleVal = (entry as any).currentScale ?? 1.25;
+      entry.icon.scale.set(baseScaleVal * entry.squishX, baseScaleVal * entry.squishY);
+      entry.flashSprite.scale.set(baseScaleVal * entry.squishX, baseScaleVal * entry.squishY);
+    }
+
     // Apply hop and jitter ONLY to the physical body sprites, not the shadow/floor rings
     entry.icon.x = jitterOffsetX;
     entry.icon.y = -hopOffset + jitterOffsetY;
@@ -373,7 +425,7 @@ export function createEntityRenderer(): EntityRenderer {
     activeKeys.add(playerKey);
     let playerEntry = tracked.get(playerKey);
     if (!playerEntry) {
-      playerEntry = makeEntitySprite('robot', '#e4e4e7', playerKey, ENTITY_Z.player, false);
+      playerEntry = makeEntitySprite('human', '#e4e4e7', playerKey, ENTITY_Z.player, false);
       tracked.set(playerKey, playerEntry);
     }
     showEntry(playerEntry);
@@ -396,19 +448,17 @@ export function createEntityRenderer(): EntityRenderer {
         playerEntry.isDashing = false;
       }
 
+      const diffX = playerPos.x - playerEntry.currentX;
+      const diffY = playerPos.y - playerEntry.currentY;
+      const isMovingPlayer = Math.abs(diffX) > 0.02 || Math.abs(diffY) > 0.02;
+
       if (playerEntry.isDashing) {
         const combatState = useCombatStore.getState();
         const isOutOfCombat = !combatState.isInCombat();
-        // Base logical speed in tiles per second
         const baseSpeed = isOutOfCombat ? 2.5 : useStatsStore.getState().getStat('MoveSpeed');
-        // Visual speed is slightly faster (10%) than logical speed so the sprite smoothly reaches 
-        // the tile center just milliseconds before the next logical input is accepted.
         const maxSpeed = baseSpeed * 1.1;
         
         const decay = 20.0;
-        let diffX = playerPos.x - playerEntry.currentX;
-        let diffY = playerPos.y - playerEntry.currentY;
-        
         let velX = diffX * decay;
         let velY = diffY * decay;
         
@@ -422,18 +472,29 @@ export function createEntityRenderer(): EntityRenderer {
         playerEntry.currentY += velY * dt;
       } else {
         const lf = 1 - Math.exp(-12.0 * dt);
-        playerEntry.currentX += (playerPos.x - playerEntry.currentX) * lf;
-        playerEntry.currentY += (playerPos.y - playerEntry.currentY) * lf;
+        playerEntry.currentX += diffX * lf;
+        playerEntry.currentY += diffY * lf;
       }
 
-    const fracX = Math.abs(playerEntry.currentX - Math.round(playerEntry.currentX));
-    const fracY = Math.abs(playerEntry.currentY - Math.round(playerEntry.currentY));
-    const progress = Math.max(fracX, fracY) * 2;
-    
-    const isVerticalOnly = fracX < 0.01 && fracY > 0.01;
-    const hopMax = isVerticalOnly ? 50 : 25;
+    // Directional Lean / Tilt along movement vector
+    const leanTarget = isMovingPlayer ? Math.max(-0.06, Math.min(0.06, (diffX - diffY) * 0.10)) : 0;
+    playerEntry.icon.skew.x += (leanTarget - playerEntry.icon.skew.x) * Math.min(1.0, dt * 8.0);
+    playerEntry.flashSprite.skew.x = playerEntry.icon.skew.x;
 
-    const hopPlayer = playerEntry.isDashing ? 0 : hopMax * Math.pow(progress, 0.8);
+    // Footstep dust puff emission on step initialization
+    const currentTileKey = `${Math.round(playerEntry.currentX)},${Math.round(playerEntry.currentY)}`;
+    if (lastPlayerTileKey && lastPlayerTileKey !== currentTileKey && isMovingPlayer) {
+       useCombatStore.getState().addHitEffect('dust', playerEntry.currentX, playerEntry.currentY, 0xd4d4d8, 'dust');
+    }
+    lastPlayerTileKey = currentTileKey;
+
+    // Smooth Sine Hop Arc based on distance to target
+    const distToTarget = Math.hypot(diffX, diffY);
+    const stepProgress = Math.max(0, Math.min(1.0, 1.0 - distToTarget));
+    
+    const isVerticalOnly = Math.abs(diffX) < 0.05 && Math.abs(diffY) > 0.05;
+    const hopMax = isVerticalOnly ? 45 : 22;
+    const hopPlayer = (playerEntry.isDashing || distToTarget < 0.05) ? 0 : hopMax * Math.sin(stepProgress * Math.PI);
 
     const projPlayer = projectTileToScreen(playerEntry.currentX, playerEntry.currentY, params);
     projPlayer.zDepth += 100;
@@ -606,9 +667,14 @@ export function createEntityRenderer(): EntityRenderer {
         entry.icon.scale.set((entry as any).currentScale);
         entry.flashSprite.scale.set((entry as any).currentScale);
 
-        // Handle Targeting Reticle
-        if (isTargeted) {
+        // Handle Targeting Reticle with smooth alpha fade
+        entry.selectRingAlpha = entry.selectRingAlpha ?? 0;
+        const targetRingAlpha = isTargeted ? 1.0 : 0.0;
+        entry.selectRingAlpha += (targetRingAlpha - entry.selectRingAlpha) * Math.min(1.0, dt * 16.0);
+
+        if (entry.selectRingAlpha > 0.01) {
           entry.selectRing.visible = true;
+          entry.selectRing.alpha = entry.selectRingAlpha;
           entry.selectRing.clear();
 
           // Animated Floor Reticle using Camera Perspective
@@ -665,20 +731,37 @@ export function createEntityRenderer(): EntityRenderer {
           entry.selectRing.visible = false;
         }
 
-        // Health bar (GridHealthBar style)
+        // Health bar (GridHealthBar style with delayed ghosting bar)
         if (entry.healthBar) {
-          const pct = enemy.health / enemy.stats.maxHealth;
+          const pct = Math.max(0, Math.min(1, enemy.health / enemy.stats.maxHealth));
           if (enemy.health < enemy.stats.maxHealth) {
             entry.healthBar.visible = true;
+            entry.ghostPct = entry.ghostPct ?? pct;
+            
+            if (pct < entry.ghostPct) {
+              // Drain ghost bar slowly toward actual pct (approx 450ms catchup)
+              entry.ghostPct += (pct - entry.ghostPct) * Math.min(1.0, dt * 5.0);
+            } else {
+              entry.ghostPct = pct;
+            }
+
             const hw = HEALTH_BAR_WIDTH / 2;
             entry.healthBar.clear();
-            // border
+            // 1. Outer border
             entry.healthBar.roundRect(-hw - 1, -1, HEALTH_BAR_WIDTH + 2, HEALTH_BAR_HEIGHT + 2, 2);
-            entry.healthBar.fill({ color: 0x27272a, alpha: 0.5 });
-            // background
+            entry.healthBar.fill({ color: 0x27272a, alpha: 0.6 });
+            // 2. Dark red background
             entry.healthBar.roundRect(-hw, 0, HEALTH_BAR_WIDTH, HEALTH_BAR_HEIGHT, 1);
             entry.healthBar.fill({ color: 0x450a0a });
-            // fill
+            
+            // 3. Delayed ghost fill (pale yellow/white damage trail)
+            const ghostW = Math.max(0, HEALTH_BAR_WIDTH * entry.ghostPct);
+            if (ghostW > 0) {
+              entry.healthBar.roundRect(-hw, 0, ghostW, HEALTH_BAR_HEIGHT, 1);
+              entry.healthBar.fill({ color: 0xfef08a, alpha: 0.85 });
+            }
+            
+            // 4. Actual health fill (solid red)
             const fillW = Math.max(0, HEALTH_BAR_WIDTH * pct);
             if (fillW > 0) {
               entry.healthBar.roundRect(-hw, 0, fillW, HEALTH_BAR_HEIGHT, 1);
@@ -686,6 +769,7 @@ export function createEntityRenderer(): EntityRenderer {
             }
           } else {
             entry.healthBar.visible = false;
+            entry.ghostPct = 1.0;
           }
         }
       }
@@ -760,10 +844,10 @@ export function createEntityRenderer(): EntityRenderer {
       let entry = tracked.get(key);
       if (!entry) {
         let kind = 'mountain';
-        let color = '#71717a';
-        let scale = 0.85;
+        let color = '#ffffff';
+        let scale = 1.0;
         if (obs.type === 'tree') kind = 'trees';
-        else if (obs.type === 'rock') { kind = 'stone'; scale = 0.65; }
+        else if (obs.type === 'rock') { kind = 'stone'; scale = 1.0; }
         else if (obs.type === 'npc_guide') { kind = 'accessibility'; color = '#3b82f6'; }
         else if (obs.type === 'dungeon_entrance') { kind = 'cave_entrance'; color = '#ef4444'; }
         else if (obs.type === 'torch') { kind = 'candle'; color = '#fbbf24'; scale = 0.55; }

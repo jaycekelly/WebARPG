@@ -1,6 +1,6 @@
 import { useRef, useEffect } from 'react';
 import { createElement } from 'react';
-import { Container, Graphics } from 'pixi.js';
+import { Container, Graphics, Sprite, Texture } from 'pixi.js';
 // No extra pixi filters imported
 import { getPixiApp, destroyPixiApp, setPixiAppBackground } from './pixiApp';
 import { createCamera } from './camera';
@@ -34,6 +34,28 @@ const TEXTURE_SIZE = 128;
 
 const FLOOR_PERSPECTIVE_PX = 2500;
 const FLOOR_TILT_DEG = 52;
+
+
+
+function createLowHpVignetteTexture(width: number, height: number): Texture {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.floor(width));
+  canvas.height = Math.max(1, Math.floor(height));
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    const cx = width / 2;
+    const cy = height / 2;
+    const innerRadius = Math.min(width, height) * 0.3;
+    const outerRadius = Math.max(width, height) * 0.75;
+    const grad = ctx.createRadialGradient(cx, cy, innerRadius, cx, cy, outerRadius);
+    grad.addColorStop(0, 'rgba(220,38,38,0)');
+    grad.addColorStop(0.65, 'rgba(220,38,38,0.2)');
+    grad.addColorStop(1, 'rgba(185,28,28,0.75)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  }
+  return Texture.from(canvas);
+}
 
 export function GameCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -104,6 +126,8 @@ export function GameCanvas() {
     const container = containerRef.current;
     if (!canvas || !container) return;
 
+    let lowHpSprite: Sprite | null = null;
+
     const syncSize = () => {
       const cw = container.clientWidth;
       const ch = container.clientHeight;
@@ -115,6 +139,11 @@ export function GameCanvas() {
         canvas.height = h;
         canvas.style.width = cw + 'px';
         canvas.style.height = ch + 'px';
+
+        if (lowHpSprite) {
+          lowHpSprite.texture.destroy(true);
+          lowHpSprite.texture = createLowHpVignetteTexture(w, h);
+        }
       }
     };
     syncSize();
@@ -162,6 +191,12 @@ export function GameCanvas() {
         const particles = createParticleRenderer();
         gameLayer.addChild(particles.container);
 
+        // Low HP outskirts red pulse overlay
+        lowHpSprite = new Sprite(createLowHpVignetteTexture(canvas.width, canvas.height));
+        lowHpSprite.zIndex = 8050;
+        lowHpSprite.alpha = 0;
+        app.stage.addChild(lowHpSprite);
+
         // Floating text in screen space (not affected by world/camera transforms)
         const floatingTexts = createFloatingTextRenderer();
         app.stage.addChild(floatingTexts.container);
@@ -207,7 +242,22 @@ export function GameCanvas() {
             fog.container.visible = false;
             floatingTexts.container.visible = false;
             pauseOverlay.visible = false;
+            if (lowHpSprite) lowHpSprite.visible = false;
             return;
+          }
+
+          if (lowHpSprite) {
+            lowHpSprite.visible = true;
+            const maxHp = useStatsStore.getState().getStat('Health') || 100;
+            const curHp = p.currentHealth;
+            const hpRatio = maxHp > 0 ? curHp / maxHp : 1;
+            if (hpRatio < 0.3) {
+              const pulse = (Math.sin(performance.now() / 250) + 1) / 2;
+              const intensity = (0.3 - hpRatio) / 0.3;
+              lowHpSprite.alpha = (0.25 + pulse * 0.45) * intensity;
+            } else {
+              lowHpSprite.alpha = 0;
+            }
           }
 
           // If we were hovering loot, check if it still exists
@@ -268,44 +318,7 @@ export function GameCanvas() {
 
           const isOutOfCombat = !useCombatStore.getState().isInCombat();
           const visTarget = entities.getPlayerVisualPosition();
-          
-          // Eliminate 1-frame camera latency judder by pre-calculating the player's exact visual 
-          // grid coordinate for THIS frame before the camera builds its projection parameters.
-          let camTargetX = visTarget ? visTarget.x : p.position.x;
-          let camTargetY = visTarget ? visTarget.y : p.position.y;
-          let isDashing = visTarget ? visTarget.isDashing : false;
-          const dt = a.isPaused ? 0 : ticker.deltaMS / 1000;
-          const targetDist = Math.max(Math.abs(p.position.x - camTargetX), Math.abs(p.position.y - camTargetY));
-          if (targetDist <= 10) {
-            if (targetDist > 1.2) isDashing = true;
-            else if (targetDist < 0.1) isDashing = false;
-            
-            if (isDashing) {
-              const baseSpeed = isOutOfCombat ? 2.5 : useStatsStore.getState().getStat('MoveSpeed');
-              const maxSpeed = baseSpeed * 1.1;
-              const decay = 20.0;
-              let diffX = p.position.x - camTargetX;
-              let diffY = p.position.y - camTargetY;
-              let velX = diffX * decay;
-              let velY = diffY * decay;
-              const speed = Math.sqrt(velX*velX + velY*velY);
-              if (speed > maxSpeed) {
-                 velX = (velX / speed) * maxSpeed;
-                 velY = (velY / speed) * maxSpeed;
-              }
-              camTargetX += velX * dt;
-              camTargetY += velY * dt;
-            } else {
-              const decay = 12.0;
-              const lf = 1 - Math.exp(-decay * dt);
-              camTargetX += (p.position.x - camTargetX) * lf;
-              camTargetY += (p.position.y - camTargetY) * lf;
-            }
-          } else {
-            camTargetX = p.position.x;
-            camTargetY = p.position.y;
-          }
-          const camTarget = { x: camTargetX, y: camTargetY };
+          const camTarget = visTarget ? { x: visTarget.x, y: visTarget.y } : p.position;
 
           const camResult = cam.update(
             camTarget,
@@ -316,6 +329,9 @@ export function GameCanvas() {
             a.isPaused ? 0 : ticker.deltaMS / 1000,
             isOutOfCombat,
           );
+
+          // Apply WebGL container screen shake directly to gameLayer
+          gameLayer.position.set(camResult.shakeX, camResult.shakeY);
 
           const focusWorldY = (camResult.focusY + 0.5) * tileSize;
 
@@ -390,7 +406,7 @@ export function GameCanvas() {
           }
 
           const vs = useVisionStore.getState();
-          const pointLights = extractLights(w.grid);
+          const pointLights = extractLights(w.grid, c.hitEffects, w.lootDrops);
           
           fog.update(
             projParams.panX,
@@ -482,23 +498,31 @@ export function GameCanvas() {
           // Targeting overlay: dim tiles outside effective range
           tileVfx.update(projParams, p.position, c.targetingSkillId, hoveredTile, w.grid.obstacles);
 
-          // Particles
+          // Particles & Camera Shake
           const currentHitIds = new Set<string>();
           for (const h of c.hitEffects) {
              currentHitIds.add(h.id);
              if (!processedHitIds.has(h.id)) {
                 processedHitIds.add(h.id);
-                // Spawn particles at target location
-                let tx = 0, ty = 0;
-                if (h.targetId === 'player') {
-                   tx = p.position.x; ty = p.position.y;
-                } else {
-                   const enemy = w.enemies.find(e => e.id === h.targetId);
-                   if (enemy) { tx = enemy.position.x; ty = enemy.position.y; }
-                }
-                
-                const pType = h.damageType ? h.damageType.toLowerCase() : 'physical';
-                particles.spawn(tx, ty, 0, h.color, pType, 1, h.targetId, h.sourceX, h.sourceY);
+                 // Trigger trauma camera impact shake (skip for cosmetic dust puffs)
+                 if (h.targetId !== 'dust') {
+                   const traumaAmt = h.isCrit ? 0.55 : (h.targetId === 'player' ? 0.40 : 0.20);
+                   cam.addTrauma(traumaAmt);
+                 }
+
+                 // Spawn particles at target location
+                 let tx = 0, ty = 0;
+                 if (h.targetId === 'dust') {
+                    tx = h.sourceX; ty = h.sourceY;
+                 } else if (h.targetId === 'player') {
+                    tx = p.position.x; ty = p.position.y;
+                 } else {
+                    const enemy = w.enemies.find(e => e.id === h.targetId);
+                    if (enemy) { tx = enemy.position.x; ty = enemy.position.y; }
+                 }
+                 
+                 const pType = h.damageType ? h.damageType.toLowerCase() : 'physical';
+                 particles.spawn(tx, ty, 0, h.color, pType, 1, h.targetId, h.sourceX, h.sourceY);
              }
           }
           // Clean up old hit ids

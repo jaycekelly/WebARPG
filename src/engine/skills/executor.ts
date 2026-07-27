@@ -793,7 +793,9 @@ export class SkillExecutor {
                     const srcX = (skill.targeting === 'Area' || skill.targeting === 'Ground') && finalTargetPos ? finalTargetPos.x : playerState.position.x;
                     const srcY = (skill.targeting === 'Area' || skill.targeting === 'Ground') && finalTargetPos ? finalTargetPos.y : playerState.position.y;
                     
-                    useCombatStore.getState().addHitEffect(enemy.id, srcX, srcY, vfxColor, finalElement);
+                    const killedEnemy = useWorldStore.getState().enemies.find(e => e.id === enemy.id);
+                    const hitDamageType = (killedEnemy?.isDead) ? 'death' : finalElement;
+                    useCombatStore.getState().addHitEffect(enemy.id, srcX, srcY, vfxColor, hitDamageType);
                     
                     addLog(`You hit ${enemy.name} for ${actualDamage.toFixed(0)} ${finalElement} damage.${resultText}`, 'ability');
                     

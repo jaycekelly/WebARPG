@@ -157,6 +157,7 @@ export function useGameEngine() {
              combatState.addFloatingText(enemy.position.x, enemy.position.y, tickDamage.toFixed(0), { colorClass: 'text-orange-500' });
              const updated = useWorldStore.getState().enemies.find(e => e.id === enemy.id);
              if (updated?.isDead && !updated.rewardsGranted) {
+               combatState.addHitEffect(enemy.id, enemy.position.x, enemy.position.y, 0xffffff, 'death');
                combatState.addLog(`${enemy.name} died to ${zone.hazardId}.`, 'system');
              }
           }
@@ -618,7 +619,8 @@ export function useGameEngine() {
                       else if (result === 'deflect') displayString += ' (Deflect)';
                       
                       combatState.addFloatingText(position.x, position.y, displayString, { colorClass: 'text-red-400', isCrit: result === 'crit' });
-                      combatState.addHitEffect('player', enemy.activeTelegraph.targetPos.x, enemy.activeTelegraph.targetPos.y, skillTemplate.color, skillTemplate.damageType);
+                      // Pass enemy position as hit source so recoil pushes player away from the enemy, and set isCrit=true for heavy impact shake
+                      combatState.addHitEffect('player', enemy.position.x, enemy.position.y, skillTemplate.color, skillTemplate.damageType, true);
                       
                       let resultText = '';
                       if (result === 'block') resultText = ' (Blocked)';

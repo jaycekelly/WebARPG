@@ -4,7 +4,7 @@ import { projectTileToScreen } from '../../engine/world/screenProjection';
 import { useWorldStore } from '../../store/useWorldStore';
 import { usePlayerStore } from '../../store/usePlayerStore';
 
-type VfxShape = 'slash' | 'ring' | 'orb' | 'streak' | 'zigzag' | 'needle' | 'bolt' | 'pillar' | 'shatter' | 'spark' | 'cube';
+type VfxShape = 'slash' | 'ring' | 'orb' | 'streak' | 'zigzag' | 'needle' | 'bolt' | 'pillar' | 'shatter' | 'spark' | 'cube' | 'dust' | 'small_cube';
 
 interface VfxElement {
   x: number;
@@ -100,6 +100,10 @@ export function createParticleRenderer() {
       // Small blocky square for pixel-art style evaporation
       p.gfx.rect(-8, -8, 16, 16);
       p.gfx.fill({ color: color, alpha: 1.0 });
+    } else if (shape === 'small_cube') {
+      // Crisp 8x8 pixel square for footstep dust
+      p.gfx.rect(-4, -4, 8, 8);
+      p.gfx.fill({ color: color, alpha: 0.9 });
     } else if (shape === 'needle') {
       // Bulky spearhead (slightly larger)
       p.gfx.poly([-13, -13, 20, 0, -13, 13]);
@@ -132,12 +136,32 @@ export function createParticleRenderer() {
       p.gfx.fill({ color, alpha: 0.9 });
       p.gfx.rect(-8, -8, 16, 16);
       p.gfx.fill({ color: 0xffffff, alpha: 1.0 });
+    } else if (shape === 'ring') {
+      p.gfx.circle(0, 0, 28);
+      p.gfx.stroke({ color, width: 4, alpha: 0.9 });
+    } else if (shape === 'dust') {
+      p.gfx.circle(0, 0, 5);
+      p.gfx.fill({ color: 0xd4d4d8, alpha: 0.5 });
     }
     p.gfx.visible = true;
   }
 
   function spawn(x: number, y: number, z: number, color: number, type: string, _count = 1, targetId?: string, sourceX?: number, sourceY?: number) {
-    if (type === 'slash' || type === 'strike' || type === 'physical') {
+    if (type === 'dust') {
+      for (let i = 0; i < 2; i++) {
+        const ox = (Math.random() - 0.5) * 0.15;
+        const oy = (Math.random() - 0.5) * 0.15;
+        const expAngle = (i / 2) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+        const speed = 0.007 + Math.random() * 0.008;
+        const vx = Math.cos(expAngle) * speed;
+        const vy = Math.sin(expAngle) * speed;
+        const angle = Math.random() * Math.PI * 2;
+        spawnElement(x + ox, y + oy, 0.02, 0xd4d4d8, 'small_cube', 130 + Math.random() * 50, angle, vx, vy, 0);
+      }
+    } else if (type === 'slash' || type === 'strike' || type === 'physical') {
+      // Spawn expanding floor ring shockwave
+      spawnElement(x, y, 0.05, color, 'ring', 220, 0, 0, 0, 0, targetId);
+
       const baseAngles = [Math.PI / 4, -Math.PI / 4, 0];
       const baseAngle = baseAngles[Math.floor(Math.random() * baseAngles.length)];
       const angle = baseAngle + (Math.random() - 0.5) * 0.3;
@@ -148,17 +172,18 @@ export function createParticleRenderer() {
       
       spawnElement(x - vx * 4, y - vy * 4, z + 0.2, color, 'slash', 150, angle, vx, vy, 0, targetId);
     } else if (type === 'pierce') {
-      // Single massive forward thrust
+      // Single massive forward thrust + directional floor streak
       let angle = Math.random() * Math.PI * 2;
       if (sourceX !== undefined && sourceY !== undefined) {
          angle = Math.atan2(y - sourceY, x - sourceX);
       }
       
-      // Matched speed and spawn offset to behave exactly like Strike FX
       const speed = 0.08;
       const vx = Math.cos(angle) * speed;
       const vy = Math.sin(angle) * speed;
       
+      // Fast directional floor streak along thrust vector
+      spawnElement(x, y, 0.05, color, 'streak', 180, angle, vx * 0.5, vy * 0.5, 0, targetId);
       spawnElement(x - vx * 4, y - vy * 4, z + 0.2, color, 'needle', 150, angle, vx, vy, 0, targetId);
     } else if (type === 'fire') {
       // Tamed floating, burning blocky embers
@@ -182,50 +207,33 @@ export function createParticleRenderer() {
       
       for (let i = 0; i < numSparks; i++) {
         let ox = 0, oy = 0;
-        // Try up to 10 times to find a random spot that isn't too close to another spark
         for (let attempts = 0; attempts < 10; attempts++) {
-          ox = (Math.random() - 0.5) * 0.7; // Tighter random box
+          ox = (Math.random() - 0.5) * 0.7;
           oy = (Math.random() - 0.5) * 0.7;
           let tooClose = false;
           for (const p of positions) {
-            // Reduced rejection distance since they are in a tighter space
             if (Math.hypot(p.x - ox, p.y - oy) < 0.25) {
               tooClose = true;
               break;
             }
           }
-          if (!tooClose) break; // Found a good spot!
+          if (!tooClose) break;
         }
         positions.push({ x: ox, y: oy });
         
-        // Completely random rotation angle
         const angle = Math.random() * Math.PI * 2;
-        
-        // Zero velocity so they just flash in place like static crackles
         spawnElement(x + ox, y + oy, z + 0.2, color, 'spark', 100 + Math.random() * 80, angle, 0, 0, 0, targetId);
       }
     } else if (type === 'death') {
-      // Explode outwards into blocky white particles uniformly
+      // Explode outwards into blocky white particles uniformly (slightly wider spread)
       for (let i = 0; i < 12; i++) {
-        // Start dead-center of the entity, lower to the ground
-        const ox = 0;
-        const oy = 0;
-        const oz = 0.1;
-        
-        // 360-degree radial explosion in world space
         const expAngle = Math.random() * Math.PI * 2;
-        const speed = 0.01 + Math.random() * 0.02; // Reduced speed to tighten the explosion
+        const speed = 0.015 + Math.random() * 0.022;
         const vx = Math.cos(expAngle) * speed;
-        // Do not multiply by 2.0! Letting the isometric engine squash the Y-axis naturally 
-        // makes the explosion look like it's correctly sticking to the 3D floor perspective!
-        const vy = Math.sin(expAngle) * speed; 
-        // Keep Z-velocity at 0 so they don't spray wildly up and down the screen's Y-axis!
-        const vz = 0; 
-        
-        // Random visual rotation for the cubes
+        const vy = Math.sin(expAngle) * speed;
         const angle = Math.random() * Math.PI * 2;
         
-        spawnElement(x + ox, y + oy, z + oz, 0xffffff, 'cube', 250 + Math.random() * 150, angle, vx, vy, vz, targetId);
+        spawnElement(x, y, z + 0.1, 0xffffff, 'cube', 250 + Math.random() * 150, angle, vx, vy, 0, targetId);
       }
     } else {
       // Generic condensed blast
@@ -290,7 +298,7 @@ export function createParticleRenderer() {
           p.scaleX = proj.scale * (0.2 + progress * 3.0);
           p.scaleY = p.scaleX * 0.5; // Squashed for isometric perspective
           p.gfx.alpha = 1.0 - Math.pow(progress, 1.5);
-        } else if (p.shape === 'cube') {
+        } else if (p.shape === 'cube' || p.shape === 'small_cube') {
           // Cubes stay full size but fade out completely linearly
           p.scaleX = proj.scale;
           p.scaleY = proj.scale;
