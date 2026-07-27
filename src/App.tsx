@@ -21,6 +21,8 @@ import { LevelGenerator } from './engine/world/LevelGenerator';
 import { useVisionStore } from './store/useVisionStore';
 import { FPSDisplay } from './components/FPSDisplay';
 import { PERF_DEBUG_ENABLED } from './utils/perfDebug';
+import { StylizedEntityPreview } from './components/StylizedEntityPreview';
+import { Layers } from 'lucide-react';
 
 const GameOverScreen = () => {
   const currentHealth = usePlayerStore(state => state.currentHealth);
@@ -55,6 +57,7 @@ function App() {
   useUIScale(); // Mount the responsive UI scaler
   const { location, setLocation } = useAppStore();
   const [hydrated, setHydrated] = useState(false);
+  const [showEntityPreview, setShowEntityPreview] = useState(false);
 
   useEffect(() => {
     const checkHydration = () => {
@@ -134,6 +137,14 @@ function App() {
         return;
       }
 
+      // Toggle 2.5D Showcase Preview with 'v' key
+      if (e.key.toLowerCase() === 'v' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        // Only toggle if target isn't an input
+        if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+        setShowEntityPreview((prev) => !prev);
+        return;
+      }
+
       // Tactical Pause
       if (e.code === 'Space') {
         const appState = useAppStore.getState();
@@ -165,23 +176,10 @@ function App() {
                  appState.setDungeonSelectOpen(!appState.dungeonSelectOpen);
               }
            }
-           
-           const npc = grid.obstacles.find(o => o.type === 'npc_guide');
-           if (npc) {
-              const dist = Math.max(Math.abs(position.x - npc.x), Math.abs(position.y - npc.y));
-              if (dist <= 1) {
-                  useCombatStore.getState().addFloatingText(
-                      npc.x, npc.y,
-                      "I'm gay",
-                      { colorClass: 'text-zinc-100 text-sm italic' }
-                  );
-              }
-           }
         }
       }
 
       if (e.key.toLowerCase() === 'x') {
-        // Allow weapon swap even while panels are open
         useInventoryStore.getState().swapWeaponSet();
         useCombatStore.getState().addFloatingText(
           usePlayerStore.getState().position.x,
@@ -190,7 +188,6 @@ function App() {
           { colorClass: 'text-zinc-400 text-sm' }
         );
       }
-
 
       if (e.key.toLowerCase() === 'k') {
         const appState = useAppStore.getState();
@@ -221,11 +218,15 @@ function App() {
       }
 
       if (e.key === 'Escape') {
+        if (showEntityPreview) {
+          setShowEntityPreview(false);
+          return;
+        }
+
         const appState = useAppStore.getState();
         const combatState = useCombatStore.getState();
         const playerState = usePlayerStore.getState();
 
-        // 1. Cancel Casting (combat safety — highest priority)
         if (combatState.castingSkillId) {
           combatState.refundSkillCooldown(combatState.castingSkillId);
           combatState.setCasting(null);
@@ -233,13 +234,11 @@ function App() {
           return;
         }
 
-        // 2. Cancel Aiming Mode
         if (combatState.targetingSkillId) {
           combatState.setTargetingSkill(null);
           return;
         }
 
-        // 3. Close Modal Windows
         if (appState.mapOverlayOpen) {
           appState.setMapOverlayOpen(false);
           return;
@@ -257,13 +256,11 @@ function App() {
           return;
         }
 
-        // 4. Clear Target
         if (playerState.activeTargetId) {
           playerState.setTarget(null, true);
           return;
         }
 
-        // 5. Toggle Escape Menu
         if (appState.escapeMenuOpen) {
           appState.setEscapeMenuOpen(false);
           appState.setPaused(false);
@@ -275,7 +272,7 @@ function App() {
     };
     window.addEventListener('keydown', handleGlobalKeyDown);
     return () => window.removeEventListener('keydown', handleGlobalKeyDown);
-  }, [setLocation]);
+  }, [setLocation, showEntityPreview]);
 
   if (location === 'editor') {
     return (
@@ -291,11 +288,22 @@ function App() {
   }
 
   return (
-    <div className="flex w-full h-full items-center justify-center bg-black overflow-hidden">
+    <div className="flex w-full h-full items-center justify-center bg-black overflow-hidden relative">
       <div className="flex w-full h-full bg-zinc-950 overflow-hidden text-text-primary font-sans selection:bg-red-500/30 relative shadow-vignette">
         
         {(location === 'dungeon' || location === 'town') && <DungeonView />}
         {location === 'town' && <TownView />}
+
+        {/* Floating Top-Right Trigger for 2.5D Entity Showcase */}
+        <button
+          onClick={() => setShowEntityPreview(true)}
+          className="absolute top-3 right-16 z-[40] flex items-center space-x-1.5 px-3 py-1.5 bg-indigo-950/80 hover:bg-indigo-900/90 border border-indigo-500/40 text-indigo-200 text-xs font-semibold rounded-lg shadow-lg backdrop-blur transition active:scale-95 group"
+          title="Toggle 2.5D Entity Preview Showcase (Hotkey: V)"
+        >
+          <Layers className="w-3.5 h-3.5 text-indigo-400 group-hover:scale-110 transition-transform" />
+          <span>2.5D Showcase</span>
+          <span className="text-[10px] bg-indigo-900/80 text-indigo-300 px-1.5 py-0.2 rounded border border-indigo-500/30">V</span>
+        </button>
 
         <CharacterWindow />
         <GlobalTooltip />
@@ -303,6 +311,11 @@ function App() {
         <EscapeMenu />
         <GameOverScreen />
         {PERF_DEBUG_ENABLED && <FPSDisplay />}
+
+        {/* 2.5D Entity Showcase Preview Modal */}
+        {showEntityPreview && (
+          <StylizedEntityPreview onClose={() => setShowEntityPreview(false)} />
+        )}
       </div>
     </div>
   );

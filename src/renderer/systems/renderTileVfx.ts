@@ -236,18 +236,22 @@ export function createTileVfxRenderer(): TileVfxRenderer {
          }
          
          const lifeLeft = Math.max(0, avgExpiresAt - now);
-         const progress = Math.min(1, 1 - (lifeLeft / maxDuration));
          
-         let alpha = 1.0 - Math.pow(progress, 2); // Ease-in fade
-         let heightProgress = 1 - Math.pow(1 - progress, 3);
+         // Smooth 250ms post-cast collapse fade
+         const fadeWindowMs = 250;
+         let alpha = 1.0;
+         if (lifeLeft < fadeWindowMs) {
+            alpha = Math.max(0, lifeLeft / fadeWindowMs);
+         }
+         let heightProgress = Math.min(1.0, 1 - (lifeLeft / maxDuration));
          
          if (isTelegraph) {
-             alpha = 1.0; // Telegraphs do not get lighter as they charge
-             heightProgress = progress; // Linear rise for telegraphs
+             heightProgress = Math.min(1.0, 1 - (lifeLeft / maxDuration));
          }
          
-         const uniformAlpha = alpha * 0.35; // Uniform transparency level
-         const risePx = 35 * heightProgress;
+         // Crisp, readable tile highlight opacity
+         const uniformAlpha = alpha * 0.28;
+         const risePx = 35 * Math.min(1.0, heightProgress * 2.0);
 
          // Build a quick lookup for tiles in this specific AoE blob
          const tileSet = new Set<string>();

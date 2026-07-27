@@ -47,6 +47,7 @@ export interface HitEffect {
   color: number;
   damageType?: string;
   expiresAt: number;
+  isCrit?: boolean;
 }
 
 export interface QueuedAction {
@@ -103,7 +104,7 @@ interface CombatState {
 
   addLog: (message: string, type: CombatLogEntry['type']) => void;
   addFloatingText: (x: number, y: number, text: string, options?: { colorClass?: string, isCrit?: boolean, duration?: number, isSkillDamage?: boolean, skillIcon?: string, isUI?: boolean }) => void;
-  addHitEffect: (targetId: string, sourceX: number, sourceY: number, color: number, damageType?: string) => void;
+  addHitEffect: (targetId: string, sourceX: number, sourceY: number, color: number, damageType?: string, isCrit?: boolean) => void;
   addTileEffect: (x: number, y: number, type: string, color: number, durationMs?: number, ownerId?: string) => void;
   removeTileEffectsByOwner: (ownerId: string) => void;
   clearExpiredFloatingTexts: (now: number) => void;
@@ -256,7 +257,7 @@ export const useCombatStore = create<CombatState>()(
     });
   },
 
-  addHitEffect: (targetId: string, sourceX: number, sourceY: number, color: number, damageType?: string) => {
+  addHitEffect: (targetId: string, sourceX: number, sourceY: number, color: number, damageType?: string, isCrit?: boolean) => {
     const expiresAt = useAppStore.getState().getGameTime() + 150; // 150ms flash duration
     const id = Math.random().toString();
     set((state) => {
@@ -265,14 +266,14 @@ export const useCombatStore = create<CombatState>()(
       return {
         hitEffects: [
           ...filtered,
-          { targetId, id, sourceX, sourceY, color, expiresAt, damageType }
+          { targetId, id, sourceX, sourceY, color, expiresAt, damageType, isCrit }
         ]
       };
     });
   },
   
   addTileEffect: (x, y, type, color, durationMs, ownerId) => {
-    const finalDuration = durationMs ?? 300;
+    const finalDuration = durationMs ?? 550;
     const expiresAt = useAppStore.getState().getGameTime() + finalDuration;
     const id = Math.random().toString();
     set((state) => ({

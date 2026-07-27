@@ -9,7 +9,7 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
     aiProfile: 'melee_rusher',
     baseXpReward: 20,
     baseGoldReward: 5,
-    scale: 0.45, // Smaller scaling factor for bats
+    scale: 1.0, // Standardized scale for Baba Is You enemies
     stats: {
       maxHealth: 200,
       attackPower: 5,
@@ -28,11 +28,11 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
     skills: [
       {
         id: 'sonic_screech',
-        chargeTime: 1500,
-        cooldown: 10000,
+        chargeTime: 1000,
+        cooldown: 8000,
         cooldownVariance: 0.2, // +/- 20%
-        initialCooldown: 5000, // Wait 3 seconds after aggro
-        range: 2,
+        initialCooldown: 1500, // Screech soon after aggroing
+        range: 3,
         shape: 'line',
         radius: 3, // Length of the line
         damageMult: 3.0,
