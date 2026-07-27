@@ -299,36 +299,13 @@ function createCanvas(): [HTMLCanvasElement, CanvasRenderingContext2D] {
   return [canvas, ctx];
 }
 
-import { renderBabaEntity, BABA_PRESETS, type BabaEntityConfig } from './stylizedEntityRenderer';
-
-const BABA_ENTITY_MAP: Record<string, BabaEntityConfig> = {
-  human: BABA_PRESETS[0], // Champion Is Baba (Player Warrior)
-  bat: BABA_PRESETS[1], // Keke Ghost (Bat enemy)
-  turtle: BABA_PRESETS[2], // Jiji Slime
-  rabbit: BABA_PRESETS[2], // Jiji Slime
-  cultist_arbalest: BABA_PRESETS[1], // Keke Ghost
-  ironclad_brute: BABA_PRESETS[3], // Me Bot
-  footman: BABA_PRESETS[0], // Champion Is Baba
-  mountain: BABA_PRESETS[4], // Large Mountain Peak
-  stone: BABA_PRESETS[5], // Large Dungeon Rock
-};
-
 // ---- Draw icon paths directly with Path2D ------------------------------------
 function drawIcon(
   ctx: CanvasRenderingContext2D,
   kind: string,
   color: string,
-  _fillBackground: boolean = false,
-  frameIndex: number = 0
+  _fillBackground: boolean = false
 ) {
-  // Render Baba Is You Basic Blob Entity for characters/enemies/obstacles
-  if (BABA_ENTITY_MAP[kind]) {
-    const config = BABA_ENTITY_MAP[kind];
-    // Pass timeMs (0ms, 280ms, 560ms) corresponding to calmed 3-frame hand-drawn wobble
-    renderBabaEntity(ctx, config, TEXTURE_SIZE, TEXTURE_SIZE, frameIndex * 280);
-    return;
-  }
-
   const def = ICON_PATHS[kind];
   if (!def) {
     drawPlaceholder(ctx, kind, color);
@@ -356,59 +333,24 @@ function drawIcon(
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
 
-  const hasMultipleColors = paths.some((p: any) => typeof p === 'object' && p.color);
 
-  // First pass: fill path interiors for non-loot entities to prevent ground/shadow bleedthrough
-  if (!hasMultipleColors && !_fillBackground) {
-    ctx.save();
-    ctx.fillStyle = '#09090b'; // Matching dark background fill
-    for (const p of paths) {
-      const d = typeof p === 'string' ? p : p.d;
-      ctx.fill(new Path2D(d));
-    }
-    ctx.restore();
-  }
 
   // Second pass: stroke all paths to draw the icon's colored lines over the filled body
   for (let i = 0; i < paths.length; i++) {
     const item = paths[i];
-    const d = typeof item === 'string' ? item : (item as any).d;
+    const d = typeof item === 'string' ? item : item.d;
     const p = new Path2D(d);
-
-    if (def && !isArray && (def as any).colors && (def as any).colors[i]) {
-      ctx.strokeStyle = (def as any).colors[i];
+    
+    if (def && !isArray && def.colors && def.colors[i]) {
+      ctx.strokeStyle = def.colors[i];
     } else {
       ctx.strokeStyle = color;
     }
-
+    
     ctx.stroke(p);
   }
 
   ctx.restore();
-
-  // If a background fill is requested, render a rounded square backdrop behind the icon
-  if (_fillBackground) {
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = TEXTURE_SIZE;
-    tempCanvas.height = TEXTURE_SIZE;
-    const tempCtx = tempCanvas.getContext('2d')!;
-
-    const bgPadding = 4;
-    const size = TEXTURE_SIZE - bgPadding * 2;
-    const radius = 16;
-    tempCtx.fillStyle = '#18181b';
-    tempCtx.beginPath();
-    tempCtx.roundRect(bgPadding, bgPadding, size, size, radius);
-    tempCtx.fill();
-
-    tempCtx.strokeStyle = '#27272a';
-    tempCtx.lineWidth = 2;
-    tempCtx.stroke();
-
-    tempCtx.drawImage(ctx.canvas, 0, 0);
-    ctx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
-    ctx.drawImage(tempCanvas, 0, 0);
-  }
 }
 
 // ---- Placeholder for kinds without SVG paths --------------------------------
@@ -445,19 +387,14 @@ function drawPlaceholder(
 }
 
 // ---- Public API --------------------------------------------------------------
-export function getEntityTexture(
-  kind: string,
-  color: string,
-  fillBackground: boolean = false,
-  frameIndex: number = 0
-): Texture {
-  const key = `${makeKey(kind, color, fillBackground)}_${frameIndex}`;
+export function getEntityTexture(kind: string, color: string, fillBackground: boolean = false): Texture {
+  const key = makeKey(kind, color, fillBackground);
 
   const cached = cache.get(key);
   if (cached) return cached.texture;
 
   const [canvas, ctx] = createCanvas();
-  drawIcon(ctx, kind, color, fillBackground, frameIndex);
+  drawIcon(ctx, kind, color, fillBackground);
 
   const texture = Texture.from(canvas);
   const entry: CacheEntry = { texture };

@@ -9,7 +9,7 @@ export const ENEMIES: Record<string, EnemyTemplate> = {
     aiProfile: 'melee_rusher',
     baseXpReward: 20,
     baseGoldReward: 5,
-    scale: 1.0, // Standardized scale for Baba Is You enemies
+    scale: 0.45, // Smaller scaling factor for bats
     stats: {
       maxHealth: 200,
       attackPower: 5,

@@ -18,6 +18,8 @@ const HEALTH_BAR_WIDTH = 90;
 const HEALTH_BAR_HEIGHT = 10;
 const HEALTH_BAR_OFFSET_Y = -85;
 
+const SHADOW_WIDTH = 110; // wide oval shadow
+const SHADOW_HEIGHT = 65; // ~62% of width = oval
 
 const ENTITY_Z = {
   obstacle: 0,
@@ -126,7 +128,7 @@ export function createEntityRenderer(): EntityRenderer {
     key: string,
     zIdx: number,
     hasHealthBar: boolean,
-    iconScale: number = 1.25,
+    iconScale: number = 0.85,
   ): TrackedSprite {
     const c = new Container();
     c.zIndex = zIdx;
@@ -161,7 +163,7 @@ export function createEntityRenderer(): EntityRenderer {
     
     // Icon above shadow and glow
     const icon = new Sprite(texture);
-    icon.anchor.set(0.5, 0.76);
+    icon.anchor.set(0.5, 0.85);
     if (!isObstacle) {
       icon.scale.set(iconScale, iconScale); // Dynamically scale icon based on entity size
     }
@@ -182,7 +184,7 @@ export function createEntityRenderer(): EntityRenderer {
     // Flash sprite (same texture, white color, preserve fill if it's loot)
     const flashTexture = getEntityTexture(kind, '#ffffff', isLoot);
     const flashSprite = new Sprite(flashTexture);
-    flashSprite.anchor.set(0.5, 0.76);
+    flashSprite.anchor.set(0.5, 0.85);
     if (!isObstacle) {
       flashSprite.scale.set(0.85, 0.85); // Shrink flash to match icon
     }
@@ -257,11 +259,6 @@ export function createEntityRenderer(): EntityRenderer {
     // sort behind standing actors on the same tile
     entry.container.zIndex = projected.zDepth + (ENTITY_Z[entry.category] ?? 0);
     
-    // Live hand-drawn 3-frame wobble texture update for character entities
-    const isLoot = entry.key.startsWith('loot:');
-    const frameIndex = Math.floor(performance.now() / 280) % 3;
-    entry.icon.texture = getEntityTexture(entry.kind, '#ffffff', isLoot, frameIndex);
-
     // Lighting tint (locked to integer grid tile to prevent sub-pixel movement flicker)
     const tileX = Math.round(wx);
     const tileY = Math.round(wy);
@@ -292,9 +289,9 @@ export function createEntityRenderer(): EntityRenderer {
        entry.icon.tint = lighting.entityTint;
        entry.flashSprite.tint = lighting.entityTint;
     } else {
-       // Static obstacles preserve their clean, un-tinted flat colors
-       entry.icon.tint = 0xffffff;
-       entry.flashSprite.tint = 0xffffff;
+       // Static obstacles (NPCs, campfires, torches) preserve their clean, custom base color
+       entry.icon.tint = (entry as any).baseColorHex ?? 0xffffff;
+       entry.flashSprite.tint = (entry as any).baseColorHex ?? 0xffffff;
     }
     
     // 3D elevation shadow scaling & alpha attenuation
@@ -328,7 +325,7 @@ export function createEntityRenderer(): EntityRenderer {
         entry.squishY += (1.0 - entry.squishY) * 0.25;
       }
 
-      const baseScaleVal = (entry as any).currentScale ?? 1.25;
+      const baseScaleVal = (entry as any).currentScale ?? 0.85;
       entry.icon.scale.set(baseScaleVal * entry.squishX, baseScaleVal * entry.squishY);
       entry.flashSprite.scale.set(baseScaleVal * entry.squishX, baseScaleVal * entry.squishY);
     }
@@ -425,7 +422,7 @@ export function createEntityRenderer(): EntityRenderer {
     activeKeys.add(playerKey);
     let playerEntry = tracked.get(playerKey);
     if (!playerEntry) {
-      playerEntry = makeEntitySprite('human', '#e4e4e7', playerKey, ENTITY_Z.player, false);
+      playerEntry = makeEntitySprite('robot', '#e4e4e7', playerKey, ENTITY_Z.player, false);
       tracked.set(playerKey, playerEntry);
     }
     showEntry(playerEntry);
@@ -844,10 +841,10 @@ export function createEntityRenderer(): EntityRenderer {
       let entry = tracked.get(key);
       if (!entry) {
         let kind = 'mountain';
-        let color = '#ffffff';
-        let scale = 1.0;
+        let color = '#71717a';
+        let scale = 0.85;
         if (obs.type === 'tree') kind = 'trees';
-        else if (obs.type === 'rock') { kind = 'stone'; scale = 1.0; }
+        else if (obs.type === 'rock') { kind = 'stone'; scale = 0.65; }
         else if (obs.type === 'npc_guide') { kind = 'accessibility'; color = '#3b82f6'; }
         else if (obs.type === 'dungeon_entrance') { kind = 'cave_entrance'; color = '#ef4444'; }
         else if (obs.type === 'torch') { kind = 'candle'; color = '#fbbf24'; scale = 0.55; }

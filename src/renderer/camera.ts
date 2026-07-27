@@ -26,9 +26,9 @@ export function createCamera(): CameraInstance {
     viewportW: number,
     viewportH: number,
     tileSize: number,
-    _totalTileSize: number,
+    totalTileSize: number,
     dt: number,
-    _isOutOfCombat = false,
+    isOutOfCombat = false,
   ): CameraResult {
     const targetFocusX = playerPos.x;
     const targetFocusY = playerPos.y;

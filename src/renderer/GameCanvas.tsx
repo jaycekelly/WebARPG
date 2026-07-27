@@ -35,7 +35,24 @@ const TEXTURE_SIZE = 128;
 const FLOOR_PERSPECTIVE_PX = 2500;
 const FLOOR_TILT_DEG = 52;
 
-
+function createVignetteTexture(width: number, height: number): Texture {
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.floor(width));
+  canvas.height = Math.max(1, Math.floor(height));
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    const cx = width / 2;
+    const cy = height / 2;
+    const innerRadius = Math.min(width, height) * 0.35;
+    const outerRadius = Math.max(width, height) * 0.75;
+    const grad = ctx.createRadialGradient(cx, cy, innerRadius, cx, cy, outerRadius);
+    grad.addColorStop(0, 'rgba(0,0,0,0)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.65)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  }
+  return Texture.from(canvas);
+}
 
 function createLowHpVignetteTexture(width: number, height: number): Texture {
   const canvas = document.createElement('canvas');
@@ -248,7 +265,7 @@ export function GameCanvas() {
 
           if (lowHpSprite) {
             lowHpSprite.visible = true;
-            const maxHp = useStatsStore.getState().getStat('Health') || 100;
+            const maxHp = useStatsStore.getState().getStat('MaxHealth') || 100;
             const curHp = p.currentHealth;
             const hpRatio = maxHp > 0 ? curHp / maxHp : 1;
             if (hpRatio < 0.3) {
