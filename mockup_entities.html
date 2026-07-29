@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebARPG - Differentiated Style: Entities vs Background Props</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #09090b;
+      --bg-panel: #18181b;
+      --border-panel: #27272a;
+      --border-bright: #3f3f46;
+      --text-primary: #f4f4f5;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --accent-emerald: #10b981;
+      --accent-crimson: #ef4444;
+      --accent-purple: #a855f7;
+      --accent-amber: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Inter', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border-panel);
+      padding: 0.8rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 10;
+    }
+
+    .title-group {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .badge {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 0.2rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .app-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 57px);
+      position: relative;
+    }
+
+    .sidebar {
+      width: 360px;
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border-panel);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      padding: 1.25rem;
+      overflow-y: auto;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .btn-grid.full {
+      grid-template-columns: 1fr;
+    }
+
+    button {
+      background: #27272a;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-panel);
+      padding: 0.6rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+    }
+
+    button:hover {
+      background: #3f3f46;
+      color: var(--text-primary);
+      border-color: var(--border-bright);
+    }
+
+    button.active {
+      background: #3f3f46;
+      color: #ffffff;
+      border-color: var(--accent-emerald);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+
+    .style-card {
+      background: #121215;
+      border: 1px solid var(--border-panel);
+      border-radius: 8px;
+      padding: 0.9rem;
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+
+    .style-card h3 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 0.3rem;
+    }
+
+    .style-card p {
+      color: var(--text-secondary);
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.3rem;
+      margin-top: 0.5rem;
+    }
+
+    .tag {
+      background: #27272a;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .viewport {
+      flex: 1;
+      position: relative;
+      background: #060608;
+      display: flex;
+      flex-direction: column;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .viewport-overlay {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: rgba(24, 24, 27, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid var(--border-panel);
+      border-radius: 6px;
+      padding: 0.6rem 1rem;
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      pointer-events: none;
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .overlay-stat {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .overlay-stat .val {
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 600;
+    }
+
+    .hint-text {
+      position: absolute;
+      bottom: 1rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(18, 18, 21, 0.85);
+      border: 1px solid var(--border-panel);
+      padding: 0.4rem 0.8rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      pointer-events: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="title-group">
+      <span class="badge">Visual Contrast System</span>
+      <h1>Entities vs Environment Props</h1>
+      <span class="subtitle">White Outlines & Face Colors Reserved for Living Entities Only</span>
+    </div>
+  </header>
+
+  <div class="app-container">
+    <aside class="sidebar">
+      
+      <div class="style-card">
+        <h3>Visual Hierarchy Rules</h3>
+        <p><strong>Living Entities:</strong> Full white specular rim outline (#f4f4f5) + colored face/eye slits.<br><br><strong>Background Props:</strong> Dark obsidian/slate stone (#141417), subtle dark border (#3f3f46), NO white outlines, NO face blocks.</p>
+        <div class="tag-list">
+          <span class="tag">#EntitiesHaveWhiteBorder</span>
+          <span class="tag">#PropsHaveNoWhiteBorder</span>
+          <span class="tag">#ColorsOnlyForFaces</span>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="section-title">Scene View Mode</div>
+        <div class="btn-grid full">
+          <button id="btn-scene-mixed" class="active" onclick="setSceneMode('mixed')">Full Dungeon Encounter (Entities & Props)</button>
+          <button id="btn-scene-entities" onclick="setSceneMode('entities')">Entities Only (White Outline & Faces)</button>
+          <button id="btn-scene-props" onclick="setSceneMode('props')">Environment Props Only (Dark & Muted)</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="section-title">Simulate Animations</div>
+        <div class="btn-grid">
+          <button id="btn-anim-idle" class="active" onclick="setAnim('idle')">Idle Breathe</button>
+          <button id="btn-anim-attack" onclick="triggerAction('attack')">Pulse Attack</button>
+          <button id="btn-anim-hit" onclick="triggerAction('hit')">Take Hit Flash</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="section-title">Environment & Overlay</div>
+        <div class="btn-grid">
+          <button id="btn-toggle-grid" class="active" onclick="toggleEnv('grid')">Isometric Grid</button>
+          <button id="btn-toggle-shadow" class="active" onclick="toggleEnv('shadow')">Drop Shadow</button>
+        </div>
+      </div>
+
+      <div class="control-group">
+        <div class="section-title">View Scale</div>
+        <div class="btn-grid">
+          <button onclick="setZoom(1.0)">1.0x (Game View)</button>
+          <button onclick="setZoom(1.5)" class="active" id="btn-zoom-default">1.5x (Detail View)</button>
+        </div>
+      </div>
+
+    </aside>
+
+    <main class="viewport">
+      <canvas id="viewCanvas"></canvas>
+      
+      <div class="viewport-overlay">
+        <div class="overlay-stat">FPS: <span class="val">60</span></div>
+        <div class="overlay-stat">Active View: <span class="val" id="stat-view">FULL DUNGEON ENCOUNTER</span></div>
+      </div>
+
+      <div class="hint-text">💡 White specular outlines & glowing eyes make entities pop instantly over background props</div>
+    </main>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('viewCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let sceneMode = 'mixed';
+    let zoomScale = 1.5;
+    let animTime = 0;
+    
+    let actionState = { attackTime: 0, hitTime: 0 };
+    let envSettings = { grid: true, shadow: true };
+
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = rect.width * window.devicePixelRatio;
+      canvas.height = rect.height * window.devicePixelRatio;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const ENTITIES = [
+      {
+        id: 'rogue',
+        name: 'Shadow Rogue (Player)',
+        type: 'entity',
+        accentColor: '#34d399',
+        hp: 100, maxHp: 100,
+        posX: 0.15, posY: 0.5,
+        render: renderRoguePlayer
+      },
+      {
+        id: 'goblin',
+        name: 'Blood Goblin (Enemy)',
+        type: 'entity',
+        accentColor: '#ef4444',
+        hp: 45, maxHp: 60,
+        posX: 0.38, posY: 0.5,
+        render: renderBloodGoblin
+      },
+      {
+        id: 'lich',
+        name: 'Solar Spectre (Lich)',
+        type: 'entity',
+        accentColor: '#f59e0b',
+        hp: 80, maxHp: 80,
+        posX: 0.62, posY: 0.5,
+        render: renderSolarLich
+      },
+      {
+        id: 'boss',
+        name: 'Abyssal Archon (Boss)',
+        type: 'entity',
+        accentColor: '#a855f7',
+        hp: 850, maxHp: 1000,
+        posX: 0.85, posY: 0.5,
+        scaleMultiplier: 1.35,
+        render: renderAbyssalBoss
+      }
+    ];
+
+    const PROPS = [
+      {
+        id: 'prop_shrine',
+        name: 'Obsidian Shrine',
+        type: 'prop',
+        posX: 0.26, posY: 0.5,
+        render: renderPropShrine
+      },
+      {
+        id: 'prop_obelisk',
+        name: 'Void Pillar',
+        type: 'prop',
+        posX: 0.50, posY: 0.5,
+        render: renderPropObelisk
+      },
+      {
+        id: 'prop_brazier',
+        name: 'Soul Urn Brazier',
+        type: 'prop',
+        posX: 0.74, posY: 0.5,
+        render: renderPropBrazier
+      },
+      {
+        id: 'prop_chest',
+        name: 'Sarcophagus Vault',
+        type: 'prop',
+        posX: 0.94, posY: 0.5,
+        render: renderPropChest
+      }
+    ];
+
+    function drawEntityStyle9(ctx, bodyPath, eyeColor, eyeY = -28, eyeH = 3) {
+      ctx.save();
+
+      ctx.beginPath();
+      bodyPath();
+      ctx.fillStyle = '#09090b';
+      ctx.fill();
+
+      ctx.strokeStyle = '#f4f4f5';
+      ctx.lineWidth = 2.5;
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 8;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = eyeColor;
+      ctx.shadowColor = eyeColor;
+      ctx.shadowBlur = 12;
+      ctx.fillRect(-6, eyeY, 12, eyeH);
+      ctx.shadowBlur = 0;
+
+      ctx.restore();
+    }
+
+    function drawPropStyle(ctx, bodyPath, innerSeamsFunc, topFlameColor) {
+      ctx.save();
+
+      ctx.beginPath();
+      bodyPath();
+      ctx.fillStyle = '#141417';
+      ctx.fill();
+
+      ctx.strokeStyle = '#3f3f46';
+      ctx.lineWidth = 1.6;
+      ctx.stroke();
+
+      if (innerSeamsFunc) {
+        ctx.strokeStyle = '#27272a';
+        ctx.lineWidth = 1.0;
+        innerSeamsFunc(ctx);
+      }
+
+      if (topFlameColor) {
+        ctx.fillStyle = topFlameColor;
+        ctx.shadowColor = topFlameColor;
+        ctx.shadowBlur = 10;
+        ctx.beginPath(); ctx.arc(0, -22, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      }
+
+      ctx.restore();
+    }
+
+    function renderRoguePlayer(ctx) {
+      drawEntityStyle9(ctx, () => {
+        ctx.moveTo(0, -44);
+        ctx.lineTo(-12, -32); ctx.lineTo(-15, 10); ctx.lineTo(-8, 36); ctx.lineTo(0, 24); ctx.lineTo(8, 36); ctx.lineTo(15, 10); ctx.lineTo(12, -32);
+        ctx.closePath();
+      }, '#34d399', -28);
+    }
+
+    function renderBloodGoblin(ctx) {
+      drawEntityStyle9(ctx, () => {
+        ctx.moveTo(0, -32);
+        ctx.lineTo(-20, -24); ctx.lineTo(-10, -12); ctx.lineTo(-14, 15); ctx.lineTo(-6, 34); ctx.lineTo(0, 20); ctx.lineTo(6, 34); ctx.lineTo(14, 15); ctx.lineTo(10, -12); ctx.lineTo(20, -24);
+        ctx.closePath();
+      }, '#ef4444', -18);
+    }
+
+    function renderSolarLich(ctx) {
+      drawEntityStyle9(ctx, () => {
+        ctx.moveTo(0, -46);
+        ctx.lineTo(-14, -34); ctx.lineTo(-16, 38); ctx.lineTo(0, 32); ctx.lineTo(16, 38); ctx.lineTo(14, -34);
+        ctx.closePath();
+      }, '#f59e0b', -28);
+    }
+
+    function renderAbyssalBoss(ctx) {
+      drawEntityStyle9(ctx, () => {
+        ctx.moveTo(0, -48);
+        ctx.lineTo(-38, -58); ctx.lineTo(-20, -25); ctx.lineTo(-26, 42); ctx.lineTo(0, 24); ctx.lineTo(26, 42); ctx.lineTo(20, -25); ctx.lineTo(38, -58);
+        ctx.closePath();
+      }, '#a855f7', -32, 4);
+    }
+
+    function renderPropShrine(ctx) {
+      drawPropStyle(ctx, () => {
+        ctx.moveTo(0, -45);
+        ctx.lineTo(-14, -30); ctx.lineTo(-14, 30); ctx.lineTo(0, 42); ctx.lineTo(14, 30); ctx.lineTo(14, -30);
+        ctx.closePath();
+      }, (ctx) => {
+        ctx.beginPath(); ctx.moveTo(-14, 0); ctx.lineTo(14, 0); ctx.stroke();
+      });
+    }
+
+    function renderPropObelisk(ctx) {
+      drawPropStyle(ctx, () => {
+        ctx.moveTo(0, -55);
+        ctx.lineTo(-12, -40); ctx.lineTo(-16, 35); ctx.lineTo(0, 44); ctx.lineTo(16, 35); ctx.lineTo(12, -40);
+        ctx.closePath();
+      }, (ctx) => {
+        ctx.beginPath(); ctx.moveTo(0, -55); ctx.lineTo(0, 44); ctx.stroke();
+      });
+    }
+
+    function renderPropBrazier(ctx) {
+      drawPropStyle(ctx, () => {
+        ctx.moveTo(-18, -15);
+        ctx.lineTo(18, -15); ctx.lineTo(12, 25); ctx.lineTo(-12, 25);
+        ctx.closePath();
+      }, null, '#f59e0b');
+    }
+
+    function renderPropChest(ctx) {
+      drawPropStyle(ctx, () => {
+        ctx.moveTo(-24, -18);
+        ctx.lineTo(24, -18); ctx.lineTo(26, 18); ctx.lineTo(-26, 18);
+        ctx.closePath();
+      }, (ctx) => {
+        ctx.beginPath(); ctx.moveTo(-24, 0); ctx.lineTo(24, 0); ctx.stroke();
+      });
+    }
+
+    function render() {
+      animTime += 0.03;
+
+      ctx.fillStyle = '#060608';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      if (envSettings.grid) drawGrid();
+
+      let activeList = [];
+      if (sceneMode === 'mixed') activeList = [...ENTITIES, ...PROPS].sort((a, b) => a.posX - b.posX);
+      else if (sceneMode === 'entities') activeList = ENTITIES;
+      else if (sceneMode === 'props') activeList = PROPS;
+
+      activeList.forEach((item, idx) => {
+        const spacing = canvas.width / (activeList.length + 1);
+        const px = spacing * (idx + 1);
+        const py = item.posY * canvas.height;
+        renderObject(item, px, py);
+      });
+
+      requestAnimationFrame(render);
+    }
+
+    function renderObject(item, px, py) {
+      ctx.save();
+      ctx.translate(px, py);
+
+      const scale = zoomScale * (item.scaleMultiplier || 1.0);
+      const isEntity = item.type === 'entity';
+
+      const breatheY = isEntity ? Math.sin(animTime * 2.5 + item.posX * 10) * 3 : 0;
+      let hitOffset = isEntity && actionState.hitTime > 0 ? Math.sin((actionState.hitTime -= 0.05) * 30) * 6 : 0;
+      let attackX = isEntity && actionState.attackTime > 0 ? Math.sin((actionState.attackTime -= 0.04) * Math.PI) * 15 : 0;
+
+      ctx.translate(attackX + hitOffset, breatheY);
+      ctx.scale(scale, scale);
+
+      if (envSettings.shadow) {
+        ctx.beginPath();
+        ctx.ellipse(0, 38, 24, 8, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fill();
+      }
+
+      item.render(ctx);
+
+      ctx.font = '600 11px Inter, sans-serif';
+      ctx.fillStyle = isEntity ? '#f4f4f5' : '#71717a';
+      ctx.textAlign = 'center';
+      ctx.fillText(item.name, 0, 56);
+
+      ctx.restore();
+    }
+
+    function drawGrid() {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(39, 39, 42, 0.25)';
+      ctx.lineWidth = 1;
+      const step = 45;
+      for (let x = -canvas.width; x < canvas.width * 2; x += step) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x - canvas.height, canvas.height); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + canvas.height, canvas.height); ctx.stroke();
+      }
+      ctx.restore();
+    }
+
+    function setSceneMode(mode) {
+      sceneMode = mode;
+      document.querySelectorAll('#btn-scene-mixed, #btn-scene-entities, #btn-scene-props').forEach(b => b.classList.remove('active'));
+      const btnMap = { mixed: 'btn-scene-mixed', entities: 'btn-scene-entities', props: 'btn-scene-props' };
+      document.getElementById(btnMap[mode]).classList.add('active');
+      document.getElementById('stat-view').innerText = mode === 'mixed' ? 'FULL DUNGEON ENCOUNTER' : mode.toUpperCase();
+    }
+
+    function setAnim(anim) {}
+    function triggerAction(action) {
+      if (action === 'attack') actionState.attackTime = 1.0;
+      if (action === 'hit') actionState.hitTime = 1.0;
+    }
+    function toggleEnv(key) {
+      envSettings[key] = !envSettings[key];
+      const btnMap = { grid: 'btn-toggle-grid', shadow: 'btn-toggle-shadow' };
+      document.getElementById(btnMap[key]).classList.toggle('active', envSettings[key]);
+    }
+    function setZoom(val) { zoomScale = val; }
+
+    render();
+  </script>
+</body>
+</html>

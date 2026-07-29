@@ -422,7 +422,7 @@ export function createEntityRenderer(): EntityRenderer {
     activeKeys.add(playerKey);
     let playerEntry = tracked.get(playerKey);
     if (!playerEntry) {
-      playerEntry = makeEntitySprite('robot', '#e4e4e7', playerKey, ENTITY_Z.player, false);
+      playerEntry = makeEntitySprite('rogue', '#34d399', playerKey, ENTITY_Z.player, false);
       tracked.set(playerKey, playerEntry);
     }
     showEntry(playerEntry);

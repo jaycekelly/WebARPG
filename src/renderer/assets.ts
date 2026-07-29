@@ -299,6 +299,131 @@ function createCanvas(): [HTMLCanvasElement, CanvasRenderingContext2D] {
   return [canvas, ctx];
 }
 
+// ---- Style 9 Procedural Entity Canvas Renderer -------------------------------
+function drawStyle9EntityToCanvas(
+  ctx: CanvasRenderingContext2D,
+  pathFunc: (ctx: CanvasRenderingContext2D) => void,
+  eyeColor: string,
+  eyeY: number = 52,
+  eyeH: number = 4
+) {
+  ctx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+  ctx.save();
+
+  // 1. Solid Pitch-Black Obsidian Body Fill (#09090b)
+  pathFunc(ctx);
+  ctx.fillStyle = '#09090b';
+  ctx.fill();
+
+  // 2. FULL WHITE SPECULAR RIM OUTLINE (#f4f4f5) around the entire body path!
+  ctx.strokeStyle = '#f4f4f5';
+  ctx.lineWidth = 3.8;
+  ctx.shadowColor = '#ffffff';
+  ctx.shadowBlur = 10;
+  ctx.stroke();
+  ctx.shadowBlur = 0;
+
+  // 3. Accent Glowing Eye Slit
+  ctx.fillStyle = eyeColor;
+  ctx.shadowColor = eyeColor;
+  ctx.shadowBlur = 14;
+  ctx.fillRect(64 - 8, eyeY, 16, eyeH);
+  ctx.shadowBlur = 0;
+
+  ctx.restore();
+}
+
+function drawRoguePath(ctx: CanvasRenderingContext2D) {
+  ctx.beginPath();
+  ctx.moveTo(64, 25);
+  ctx.lineTo(44, 42);
+  ctx.lineTo(38, 90);
+  ctx.lineTo(50, 118);
+  ctx.lineTo(64, 102);
+  ctx.lineTo(78, 118);
+  ctx.lineTo(90, 90);
+  ctx.lineTo(84, 42);
+  ctx.closePath();
+}
+
+function drawGoblinPath(ctx: CanvasRenderingContext2D) {
+  ctx.beginPath();
+  ctx.moveTo(64, 38);
+  ctx.lineTo(28, 26);
+  ctx.lineTo(46, 46);
+  ctx.lineTo(38, 85);
+  ctx.lineTo(52, 114);
+  ctx.lineTo(64, 94);
+  ctx.lineTo(76, 114);
+  ctx.lineTo(90, 85);
+  ctx.lineTo(82, 46);
+  ctx.lineTo(100, 26);
+  ctx.closePath();
+}
+
+function drawLichPath(ctx: CanvasRenderingContext2D) {
+  ctx.beginPath();
+  ctx.moveTo(64, 20);
+  ctx.lineTo(42, 35);
+  ctx.lineTo(38, 116);
+  ctx.lineTo(64, 106);
+  ctx.lineTo(90, 116);
+  ctx.lineTo(86, 35);
+  ctx.closePath();
+}
+
+function drawGargoylePath(ctx: CanvasRenderingContext2D) {
+  ctx.beginPath();
+  ctx.moveTo(64, 28);
+  ctx.lineTo(24, 45);
+  ctx.lineTo(28, 95);
+  ctx.lineTo(40, 118);
+  ctx.lineTo(64, 104);
+  ctx.lineTo(88, 118);
+  ctx.lineTo(100, 95);
+  ctx.lineTo(104, 45);
+  ctx.closePath();
+}
+
+function drawStyle9PropToCanvas(
+  ctx: CanvasRenderingContext2D,
+  pathFunc: (ctx: CanvasRenderingContext2D) => void
+) {
+  ctx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+  ctx.save();
+
+  // 1. Dark Slate Obsidian Fill (#141417)
+  pathFunc(ctx);
+  ctx.fillStyle = '#141417';
+  ctx.fill();
+
+  // 2. Dark Muted Border (#3f3f46) - NO WHITE OUTLINE!
+  ctx.strokeStyle = '#3f3f46';
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+
+  // 3. Subtle Interior Stone Seam
+  ctx.strokeStyle = '#27272a';
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.moveTo(48, 64);
+  ctx.lineTo(80, 64);
+  ctx.stroke();
+
+  ctx.restore();
+}
+
+function drawShrinePath(ctx: CanvasRenderingContext2D) {
+  ctx.beginPath();
+  ctx.moveTo(64, 18);
+  ctx.lineTo(48, 38);
+  ctx.lineTo(48, 102);
+  ctx.lineTo(64, 116);
+  ctx.lineTo(80, 102);
+  ctx.lineTo(80, 38);
+  ctx.closePath();
+}
+
 // ---- Draw icon paths directly with Path2D ------------------------------------
 function drawIcon(
   ctx: CanvasRenderingContext2D,
@@ -306,6 +431,27 @@ function drawIcon(
   color: string,
   _fillBackground: boolean = false
 ) {
+  if (kind === 'rogue' || kind === 'human' || kind === 'robot' || kind === 'player') {
+    drawStyle9EntityToCanvas(ctx, drawRoguePath, '#34d399', 52, 4);
+    return;
+  }
+  if (kind === 'bat' || kind === 'goblin' || kind === 'rabbit' || kind === 'footman') {
+    drawStyle9EntityToCanvas(ctx, drawGoblinPath, '#ef4444', 56, 4);
+    return;
+  }
+  if (kind === 'cultist_arbalest' || kind === 'bird') {
+    drawStyle9EntityToCanvas(ctx, drawLichPath, '#f59e0b', 50, 4);
+    return;
+  }
+  if (kind === 'ironclad_brute' || kind === 'turtle') {
+    drawStyle9EntityToCanvas(ctx, drawGargoylePath, '#f87171', 54, 4);
+    return;
+  }
+  if (kind === 'trees' || kind === 'mountain' || kind === 'cave_entrance' || kind === 'stone') {
+    drawStyle9PropToCanvas(ctx, drawShrinePath);
+    return;
+  }
+
   const def = ICON_PATHS[kind];
   if (!def) {
     drawPlaceholder(ctx, kind, color);
@@ -332,8 +478,6 @@ function drawIcon(
   ctx.lineWidth = 2;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-
-
 
   // Second pass: stroke all paths to draw the icon's colored lines over the filled body
   for (let i = 0; i < paths.length; i++) {
